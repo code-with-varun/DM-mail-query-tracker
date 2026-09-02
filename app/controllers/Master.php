@@ -74,12 +74,14 @@ class Master extends Controller {
 
         $userModel = $this->model('User_model');
         $activities = $activityModel->getAllActivitiesWithSub();
+        $allSubActivities = $activityModel->getAllSubActivitiesWithHierarchy();
         $divisions = $activityModel->getDivisions();
         $employees = $userModel->getEmployees();
 
         $this->render('master/activities', [
             'title' => 'Activities Master',
             'activities' => $activities,
+            'allSubActivities' => $allSubActivities,
             'divisions' => $divisions,
             'employees' => $employees
         ]);

@@ -112,4 +112,70 @@ class Master extends Controller {
             'divisions' => $divisions
         ]);
     }
+
+    /**
+     * Export Activities CSV Reference
+     */
+    public function export_activities() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Activities_Master.csv');
+
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($output, ['Activity ID', 'Activity Name', 'Description', 'Status']);
+        $activities = $this->model('Activity_model')->getActivities();
+        foreach ($activities as $act) {
+            fputcsv($output, [$act['id'], $act['activity_name'], $act['description'] ?? '', 'Active']);
+        }
+        fclose($output);
+        exit();
+    }
+
+    /**
+     * Export Sub-Activities CSV Reference
+     */
+    public function export_sub_activities() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Sub_Activities_Master.csv');
+
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($output, ['Sub Activity ID', 'Sub Activity Name', 'Parent Activity Name', 'Default SLA TAT (Hours)']);
+        $subActs = $this->model('Activity_model')->fetchAll("SELECT sa.*, a.activity_name FROM sub_activities sa JOIN activities a ON sa.activity_id = a.id ORDER BY a.activity_name, sa.sub_activity_name");
+        foreach ($subActs as $sa) {
+            fputcsv($output, [$sa['id'], $sa['sub_activity_name'], $sa['activity_name'], $sa['default_tat_hours']]);
+        }
+        fclose($output);
+        exit();
+    }
+
+    /**
+     * Export Divisions CSV Reference
+     */
+    public function export_divisions() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Divisions_Master.csv');
+
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($output, ['Division ID', 'Division Code (Use this in Import)', 'Division Name', 'Status']);
+        $divisions = $this->model('Activity_model')->getDivisions();
+        foreach ($divisions as $div) {
+            fputcsv($output, [$div['id'], $div['code'], $div['division_name'], $div['status']]);
+        }
+        fclose($output);
+        exit();
+    }
 }

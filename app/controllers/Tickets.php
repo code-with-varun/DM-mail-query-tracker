@@ -170,165 +170,66 @@ class Tickets extends Controller {
     }
 
     /**
-     * Download Multi-Sheet Excel Ticket Import Template
+     * Download Clean CSV Ticket Import Template
      */
     public function template() {
         $this->requireAuth();
         $this->requireRole([1, 2]);
 
-        $activityModel = $this->model('Activity_model');
-        $userModel = $this->model('User_model');
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Ticket_Import_Template.csv');
 
-        $activities = $activityModel->getActivities();
-        $subActivities = $activityModel->fetchAll("SELECT sa.*, a.activity_name FROM sub_activities sa JOIN activities a ON sa.activity_id = a.id");
-        $divisions = $activityModel->getDivisions();
-        $employees = $userModel->getEmployees();
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
 
-        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-        header('Content-Disposition: attachment; filename="MQT_Tickets_Import_Template.xls"');
+        // CSV Header
+        fputcsv($output, [
+            'Ticket Type',
+            'Received Datetime',
+            'From Address',
+            'Subject',
+            'Activity Name',
+            'Sub Activity Name',
+            'Division Code',
+            'Priority',
+            'Allocated Employee Code',
+            'Agency Code',
+            'Manager Name',
+            'Remarks'
+        ]);
 
-        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
-        ?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheets"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheets"
- xmlns:html="http://www.w3.org/TR/REC-html40">
- <Styles>
-  <Style ss:ID="Default" ss:Name="Normal">
-   <Alignment ss:Vertical="Bottom"/>
-   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
-  </Style>
-  <Style ss:ID="Header">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
-   <Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="MasterHeader">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
-   <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-  </Style>
-  <Style ss:ID="SubHeader">
-   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#1E293B"/>
-   <Interior ss:Color="#E2E8F0" ss:Pattern="Solid"/>
-  </Style>
- </Styles>
+        // Sample Data Rows
+        fputcsv($output, [
+            'Query Ticket',
+            date('Y-m-d H:i:s'),
+            'vendor.billing@client.com',
+            'Sample Query Regarding Payment Delay',
+            'Agency Billing',
+            'Billing Query',
+            'DIV01',
+            'Medium',
+            'EMP002',
+            'AGC101',
+            'John Doe',
+            'Sample imported query ticket'
+        ]);
 
- <!-- SHEET 1: Ticket Import Dump -->
- <Worksheet ss:Name="Ticket Import Dump">
-  <Table>
-   <Row ss:Height="24" ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Ticket Type</Data></Cell>
-    <Cell><Data ss:Type="String">Received Datetime</Data></Cell>
-    <Cell><Data ss:Type="String">From Address</Data></Cell>
-    <Cell><Data ss:Type="String">Subject</Data></Cell>
-    <Cell><Data ss:Type="String">Activity Name</Data></Cell>
-    <Cell><Data ss:Type="String">Sub Activity Name</Data></Cell>
-    <Cell><Data ss:Type="String">Division Code</Data></Cell>
-    <Cell><Data ss:Type="String">Priority</Data></Cell>
-    <Cell><Data ss:Type="String">Allocated Employee Code</Data></Cell>
-    <Cell><Data ss:Type="String">Agency Code</Data></Cell>
-    <Cell><Data ss:Type="String">Manager Name</Data></Cell>
-    <Cell><Data ss:Type="String">Remarks</Data></Cell>
-   </Row>
-   <Row ss:Height="20">
-    <Cell><Data ss:Type="String">Query Ticket</Data></Cell>
-    <Cell><Data ss:Type="String"><?= date('Y-m-d H:i:s') ?></Data></Cell>
-    <Cell><Data ss:Type="String">vendor.billing@client.com</Data></Cell>
-    <Cell><Data ss:Type="String">Sample Query Regarding Payment Delay</Data></Cell>
-    <Cell><Data ss:Type="String">Agency Billing</Data></Cell>
-    <Cell><Data ss:Type="String">Billing Query</Data></Cell>
-    <Cell><Data ss:Type="String">DIV01</Data></Cell>
-    <Cell><Data ss:Type="String">Medium</Data></Cell>
-    <Cell><Data ss:Type="String">EMP002</Data></Cell>
-    <Cell><Data ss:Type="String">AGC101</Data></Cell>
-    <Cell><Data ss:Type="String">John Doe</Data></Cell>
-    <Cell><Data ss:Type="String">Sample imported query ticket</Data></Cell>
-   </Row>
-   <Row ss:Height="20">
-    <Cell><Data ss:Type="String">Task Ticket</Data></Cell>
-    <Cell><Data ss:Type="String"><?= date('Y-m-d H:i:s') ?></Data></Cell>
-    <Cell><Data ss:Type="String">INTERNAL_TASK</Data></Cell>
-    <Cell><Data ss:Type="String">Sample Internal Compliance Task</Data></Cell>
-    <Cell><Data ss:Type="String">Inhouse</Data></Cell>
-    <Cell><Data ss:Type="String">Internal Support</Data></Cell>
-    <Cell><Data ss:Type="String">DIV02</Data></Cell>
-    <Cell><Data ss:Type="String">High</Data></Cell>
-    <Cell><Data ss:Type="String">EMP003</Data></Cell>
-    <Cell><Data ss:Type="String"></Data></Cell>
-    <Cell><Data ss:Type="String"></Data></Cell>
-    <Cell><Data ss:Type="String">Sample imported task ticket</Data></Cell>
-   </Row>
-  </Table>
- </Worksheet>
+        fputcsv($output, [
+            'Task Ticket',
+            date('Y-m-d H:i:s'),
+            'INTERNAL_TASK',
+            'Sample Internal Compliance Task',
+            'Inhouse',
+            'Internal Support',
+            'DIV02',
+            'High',
+            'EMP003',
+            '',
+            '',
+            'Sample imported task ticket'
+        ]);
 
- <!-- SHEET 2: Master Reference Data -->
- <Worksheet ss:Name="Master Reference Data">
-  <Table>
-   <Row ss:Height="24" ss:StyleID="MasterHeader">
-    <Cell><Data ss:Type="String">Master Category</Data></Cell>
-    <Cell><Data ss:Type="String">Name / Code to Use</Data></Cell>
-    <Cell><Data ss:Type="String">Parent Activity / Department</Data></Cell>
-    <Cell><Data ss:Type="String">SLA TAT Hours / Email</Data></Cell>
-   </Row>
-
-   <!-- Activities Section -->
-   <Row ss:StyleID="SubHeader">
-    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 1. ACTIVITIES MASTER ---</Data></Cell>
-   </Row>
-   <?php foreach ($activities as $act): ?>
-   <Row>
-    <Cell><Data ss:Type="String">Activity</Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($act['activity_name']) ?></Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($act['description'] ?? 'Active') ?></Data></Cell>
-    <Cell><Data ss:Type="String">ID: <?= $act['id'] ?></Data></Cell>
-   </Row>
-   <?php endforeach; ?>
-
-   <!-- Sub-Activities Section -->
-   <Row ss:StyleID="SubHeader">
-    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 2. SUB-ACTIVITIES MASTER (SLAs) ---</Data></Cell>
-   </Row>
-   <?php foreach ($subActivities as $sa): ?>
-   <Row>
-    <Cell><Data ss:Type="String">Sub-Activity</Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($sa['sub_activity_name']) ?></Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($sa['activity_name']) ?></Data></Cell>
-    <Cell><Data ss:Type="String"><?= $sa['default_tat_hours'] ?> Hours SLA</Data></Cell>
-   </Row>
-   <?php endforeach; ?>
-
-   <!-- Divisions Section -->
-   <Row ss:StyleID="SubHeader">
-    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 3. DIVISIONS MASTER ---</Data></Cell>
-   </Row>
-   <?php foreach ($divisions as $div): ?>
-   <Row>
-    <Cell><Data ss:Type="String">Division</Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($div['code']) ?></Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($div['division_name']) ?></Data></Cell>
-    <Cell><Data ss:Type="String">Active</Data></Cell>
-   </Row>
-   <?php endforeach; ?>
-
-   <!-- Employees Section -->
-   <Row ss:StyleID="SubHeader">
-    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 4. EMPLOYEES / ASSIGNEES MASTER ---</Data></Cell>
-   </Row>
-   <?php foreach ($employees as $emp): ?>
-   <Row>
-    <Cell><Data ss:Type="String">Employee</Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($emp['user_code']) ?></Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($emp['full_name']) ?></Data></Cell>
-    <Cell><Data ss:Type="String"><?= htmlspecialchars($emp['email']) ?></Data></Cell>
-   </Row>
-   <?php endforeach; ?>
-  </Table>
- </Worksheet>
-</Workbook>
-        <?php
+        fclose($output);
         exit();
     }
 

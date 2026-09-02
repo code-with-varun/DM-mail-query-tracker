@@ -65,4 +65,26 @@ class Employees extends Controller {
             redirect('employees');
         }
     }
+
+    /**
+     * Export Employees CSV Reference
+     */
+    public function export() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Employees_Master.csv');
+
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($output, ['User ID', 'Employee Code (Use this in Import)', 'Full Name', 'Email Address', 'Role', 'Department', 'Status']);
+        $users = $this->model('User_model')->getAllUsers();
+        foreach ($users as $u) {
+            fputcsv($output, [$u['id'], $u['user_code'], $u['full_name'], $u['email'], $u['role_name'], $u['department'], $u['status']]);
+        }
+        fclose($output);
+        exit();
+    }
 }

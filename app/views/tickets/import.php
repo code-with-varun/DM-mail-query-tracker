@@ -12,6 +12,36 @@
         </div>
     </div>
 
+    <!-- Master CSV Reference Download Bar -->
+    <div class="card border-0 shadow-sm mb-4 bg-white">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-database text-primary fs-5"></i>
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark">Master Reference CSV Exports</h6>
+                    <small class="text-muted fs-8">Download live master data to get exact Activity Names, Sub-Activity Names, Division Codes, and Employee Codes for your dump file.</small>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="<?= base_url('tickets/template') ?>" class="btn btn-success btn-sm fw-bold">
+                    <i class="fas fa-file-csv me-1"></i>Ticket Dump Template (.csv)
+                </a>
+                <a href="<?= base_url('master/export_activities') ?>" class="btn btn-outline-primary btn-sm fw-bold">
+                    <i class="fas fa-folder me-1"></i>Activities (.csv)
+                </a>
+                <a href="<?= base_url('master/export_sub_activities') ?>" class="btn btn-outline-primary btn-sm fw-bold">
+                    <i class="fas fa-list me-1"></i>Sub-Activities (.csv)
+                </a>
+                <a href="<?= base_url('master/export_divisions') ?>" class="btn btn-outline-primary btn-sm fw-bold">
+                    <i class="fas fa-building me-1"></i>Divisions (.csv)
+                </a>
+                <a href="<?= base_url('employees/export') ?>" class="btn btn-outline-primary btn-sm fw-bold">
+                    <i class="fas fa-users me-1"></i>Employees (.csv)
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <!-- Left Side: Upload Card -->
         <div class="col-lg-7">
@@ -26,7 +56,7 @@
                         <!-- Drag & Drop Zone -->
                         <div id="drop-zone" class="mb-4 text-center p-5 border border-2 border-dashed rounded bg-light" style="cursor: pointer; transition: all 0.2s ease;">
                             <i class="fas fa-file-csv fs-1 text-success mb-3"></i>
-                            <h5 class="fw-bold text-dark">Drag & Drop your CSV or Excel file here</h5>
+                            <h5 class="fw-bold text-dark">Drag & Drop your CSV file here</h5>
                             <p class="text-muted fs-7 mb-3">or click anywhere in this box to browse files</p>
                             <input type="file" name="csv_file" id="csv_file_input" class="form-control d-none" accept=".csv, .xlsx, .xls" required>
                             <div id="file-name-display" class="badge bg-success fs-6 px-3 py-2 d-none"></div>
@@ -34,7 +64,7 @@
 
                         <div class="d-flex justify-content-between align-items-center">
                             <a href="<?= base_url('tickets/template') ?>" class="btn btn-outline-success fw-bold">
-                                <i class="fas fa-download me-1"></i>Download Sample Template
+                                <i class="fas fa-download me-1"></i>Download CSV Template
                             </a>
                             <button type="submit" class="btn btn-success fw-bold px-4">
                                 <i class="fas fa-upload me-1"></i>Start Import Process
@@ -55,22 +85,22 @@
                     <div class="d-flex gap-3 mb-3">
                         <div class="badge bg-primary rounded-circle p-2 fs-6 flex-shrink-0" style="width:32px; height:32px;">1</div>
                         <div>
-                            <strong class="d-block text-dark">Download Template</strong>
-                            Download the formatted <code>MQT_Tickets_Import_Template.csv</code> file.
+                            <strong class="d-block text-dark">Download Template & Masters</strong>
+                            Download <code>MQT_Ticket_Import_Template.csv</code> and optional master reference CSV files.
                         </div>
                     </div>
                     <div class="d-flex gap-3 mb-3">
                         <div class="badge bg-primary rounded-circle p-2 fs-6 flex-shrink-0" style="width:32px; height:32px;">2</div>
                         <div>
                             <strong class="d-block text-dark">Dump Ticket Data</strong>
-                            Fill in your query or task details. Make sure mandatory fields (Subject, From Address) are populated.
+                            Fill in query or task details. Copy exact activity names, division codes, or employee codes from the downloaded master CSVs.
                         </div>
                     </div>
                     <div class="d-flex gap-3">
                         <div class="badge bg-primary rounded-circle p-2 fs-6 flex-shrink-0" style="width:32px; height:32px;">3</div>
                         <div>
                             <strong class="d-block text-dark">Upload & Import</strong>
-                            Upload the saved file. The system will automatically map activities, assignees, and calculate SLA deadlines!
+                            Upload your completed CSV file. The system will automatically resolve activities, assignees, and SLA deadlines!
                         </div>
                     </div>
                 </div>

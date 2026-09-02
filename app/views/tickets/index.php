@@ -9,9 +9,9 @@
                 <a href="<?= base_url('tickets/template') ?>" class="btn btn-outline-success btn-sm fw-bold" title="Download Excel CSV Template">
                     <i class="fas fa-file-excel me-1"></i>Download Template
                 </a>
-                <button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#bulkImportModal" title="Import Tickets from Excel/CSV">
+                <a href="<?= base_url('tickets/import_view') ?>" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#bulkImportModal" title="Import Tickets from Excel/CSV">
                     <i class="fas fa-file-upload me-1"></i>Bulk Import
-                </button>
+                </a>
             <?php endif; ?>
             <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary btn-sm fw-bold ms-1">
                 <i class="fas fa-plus-circle me-1"></i>New Ticket

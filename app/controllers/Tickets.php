@@ -231,6 +231,18 @@ class Tickets extends Controller {
     }
 
     /**
+     * Dedicated Bulk Import Page View
+     */
+    public function import_view() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        $this->render('tickets/import', [
+            'title' => 'Bulk Ticket Import'
+        ]);
+    }
+
+    /**
      * Bulk Ticket Excel / CSV Import Engine
      */
     public function import() {

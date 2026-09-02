@@ -1,21 +1,23 @@
 <?php
 /**
- * Tickets Controller (Mail Query & Task Tickets)
+ * Ticket Controller
  */
 
 class Tickets extends Controller {
     public function index() {
         $this->requireAuth();
+
         $ticketModel = $this->model('Ticket_model');
         $activityModel = $this->model('Activity_model');
         $userModel = $this->model('User_model');
 
         $filters = [
+            'search' => sanitize($_GET['search'] ?? ''),
             'status' => sanitize($_GET['status'] ?? ''),
-            'ticket_type' => sanitize($_GET['type'] ?? ''),
-            'activity_id' => sanitize($_GET['activity_id'] ?? ''),
-            'allocated_to' => sanitize($_GET['allocated_to'] ?? ''),
-            'search' => sanitize($_GET['search'] ?? '')
+            'activity_id' => !empty($_GET['activity_id']) ? (int)$_GET['activity_id'] : null,
+            'allocated_to' => !empty($_GET['allocated_to']) ? (int)$_GET['allocated_to'] : null,
+            'date_from' => sanitize($_GET['date_from'] ?? ''),
+            'date_to' => sanitize($_GET['date_to'] ?? '')
         ];
 
         $tickets = $ticketModel->getTickets($filters, Session::get('user_id'), Session::get('role_id'));
@@ -86,11 +88,13 @@ class Tickets extends Controller {
 
             $ticketId = $ticketModel->createTicket($ticketData);
 
-            // Handle Attachment Upload if present
+            // File Attachment Handling
             if (!empty($_FILES['attachment']['name'])) {
                 $uploadDir = __DIR__ . '/../../public/uploads/';
-                if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-                
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+
                 $fileName = time() . '_' . basename($_FILES['attachment']['name']);
                 $targetFile = $uploadDir . $fileName;
 
@@ -166,67 +170,165 @@ class Tickets extends Controller {
     }
 
     /**
-     * Download Excel/CSV Ticket Import Template
+     * Download Multi-Sheet Excel Ticket Import Template
      */
     public function template() {
         $this->requireAuth();
         $this->requireRole([1, 2]);
 
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=MQT_Tickets_Import_Template.csv');
+        $activityModel = $this->model('Activity_model');
+        $userModel = $this->model('User_model');
 
-        $output = fopen('php://output', 'w');
-        // Add UTF-8 BOM for Excel compatibility
-        fputs($output, $bom = chr(0xEF) . chr(0xBB) . chr(0xBF));
+        $activities = $activityModel->getActivities();
+        $subActivities = $activityModel->fetchAll("SELECT sa.*, a.activity_name FROM sub_activities sa JOIN activities a ON sa.activity_id = a.id");
+        $divisions = $activityModel->getDivisions();
+        $employees = $userModel->getEmployees();
 
-        // CSV Header
-        fputcsv($output, [
-            'Ticket Type',
-            'Received Datetime',
-            'From Address',
-            'Subject',
-            'Activity Name',
-            'Sub Activity Name',
-            'Division Code',
-            'Priority',
-            'Allocated Employee Code',
-            'Agency Code',
-            'Manager Name',
-            'Remarks'
-        ]);
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="MQT_Tickets_Import_Template.xls"');
 
-        // Sample Data Rows
-        fputcsv($output, [
-            'Query Ticket',
-            date('Y-m-d H:i:s'),
-            'vendor.billing@client.com',
-            'Sample Query Regarding Payment Delay',
-            'Agency Billing',
-            'Billing Query',
-            'DIV01',
-            'Medium',
-            'EMP002',
-            'AGC101',
-            'John Doe',
-            'Sample imported query ticket'
-        ]);
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+        ?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheets"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheets"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+  </Style>
+  <Style ss:ID="Header">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  </Style>
+  <Style ss:ID="MasterHeader">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  </Style>
+  <Style ss:ID="SubHeader">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#1E293B"/>
+   <Interior ss:Color="#E2E8F0" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
 
-        fputcsv($output, [
-            'Task Ticket',
-            date('Y-m-d H:i:s'),
-            'INTERNAL_TASK',
-            'Sample Internal Compliance Task',
-            'Inhouse',
-            'Internal Support',
-            'DIV02',
-            'High',
-            'EMP003',
-            '',
-            '',
-            'Sample imported task ticket'
-        ]);
+ <!-- SHEET 1: Ticket Import Dump -->
+ <Worksheet ss:Name="Ticket Import Dump">
+  <Table>
+   <Row ss:Height="24" ss:StyleID="Header">
+    <Cell><Data ss:Type="String">Ticket Type</Data></Cell>
+    <Cell><Data ss:Type="String">Received Datetime</Data></Cell>
+    <Cell><Data ss:Type="String">From Address</Data></Cell>
+    <Cell><Data ss:Type="String">Subject</Data></Cell>
+    <Cell><Data ss:Type="String">Activity Name</Data></Cell>
+    <Cell><Data ss:Type="String">Sub Activity Name</Data></Cell>
+    <Cell><Data ss:Type="String">Division Code</Data></Cell>
+    <Cell><Data ss:Type="String">Priority</Data></Cell>
+    <Cell><Data ss:Type="String">Allocated Employee Code</Data></Cell>
+    <Cell><Data ss:Type="String">Agency Code</Data></Cell>
+    <Cell><Data ss:Type="String">Manager Name</Data></Cell>
+    <Cell><Data ss:Type="String">Remarks</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell><Data ss:Type="String">Query Ticket</Data></Cell>
+    <Cell><Data ss:Type="String"><?= date('Y-m-d H:i:s') ?></Data></Cell>
+    <Cell><Data ss:Type="String">vendor.billing@client.com</Data></Cell>
+    <Cell><Data ss:Type="String">Sample Query Regarding Payment Delay</Data></Cell>
+    <Cell><Data ss:Type="String">Agency Billing</Data></Cell>
+    <Cell><Data ss:Type="String">Billing Query</Data></Cell>
+    <Cell><Data ss:Type="String">DIV01</Data></Cell>
+    <Cell><Data ss:Type="String">Medium</Data></Cell>
+    <Cell><Data ss:Type="String">EMP002</Data></Cell>
+    <Cell><Data ss:Type="String">AGC101</Data></Cell>
+    <Cell><Data ss:Type="String">John Doe</Data></Cell>
+    <Cell><Data ss:Type="String">Sample imported query ticket</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell><Data ss:Type="String">Task Ticket</Data></Cell>
+    <Cell><Data ss:Type="String"><?= date('Y-m-d H:i:s') ?></Data></Cell>
+    <Cell><Data ss:Type="String">INTERNAL_TASK</Data></Cell>
+    <Cell><Data ss:Type="String">Sample Internal Compliance Task</Data></Cell>
+    <Cell><Data ss:Type="String">Inhouse</Data></Cell>
+    <Cell><Data ss:Type="String">Internal Support</Data></Cell>
+    <Cell><Data ss:Type="String">DIV02</Data></Cell>
+    <Cell><Data ss:Type="String">High</Data></Cell>
+    <Cell><Data ss:Type="String">EMP003</Data></Cell>
+    <Cell><Data ss:Type="String"></Data></Cell>
+    <Cell><Data ss:Type="String"></Data></Cell>
+    <Cell><Data ss:Type="String">Sample imported task ticket</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
 
-        fclose($output);
+ <!-- SHEET 2: Master Reference Data -->
+ <Worksheet ss:Name="Master Reference Data">
+  <Table>
+   <Row ss:Height="24" ss:StyleID="MasterHeader">
+    <Cell><Data ss:Type="String">Master Category</Data></Cell>
+    <Cell><Data ss:Type="String">Name / Code to Use</Data></Cell>
+    <Cell><Data ss:Type="String">Parent Activity / Department</Data></Cell>
+    <Cell><Data ss:Type="String">SLA TAT Hours / Email</Data></Cell>
+   </Row>
+
+   <!-- Activities Section -->
+   <Row ss:StyleID="SubHeader">
+    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 1. ACTIVITIES MASTER ---</Data></Cell>
+   </Row>
+   <?php foreach ($activities as $act): ?>
+   <Row>
+    <Cell><Data ss:Type="String">Activity</Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($act['activity_name']) ?></Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($act['description'] ?? 'Active') ?></Data></Cell>
+    <Cell><Data ss:Type="String">ID: <?= $act['id'] ?></Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+
+   <!-- Sub-Activities Section -->
+   <Row ss:StyleID="SubHeader">
+    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 2. SUB-ACTIVITIES MASTER (SLAs) ---</Data></Cell>
+   </Row>
+   <?php foreach ($subActivities as $sa): ?>
+   <Row>
+    <Cell><Data ss:Type="String">Sub-Activity</Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($sa['sub_activity_name']) ?></Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($sa['activity_name']) ?></Data></Cell>
+    <Cell><Data ss:Type="String"><?= $sa['default_tat_hours'] ?> Hours SLA</Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+
+   <!-- Divisions Section -->
+   <Row ss:StyleID="SubHeader">
+    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 3. DIVISIONS MASTER ---</Data></Cell>
+   </Row>
+   <?php foreach ($divisions as $div): ?>
+   <Row>
+    <Cell><Data ss:Type="String">Division</Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($div['code']) ?></Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($div['division_name']) ?></Data></Cell>
+    <Cell><Data ss:Type="String">Active</Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+
+   <!-- Employees Section -->
+   <Row ss:StyleID="SubHeader">
+    <Cell ss:MergeAcross="3"><Data ss:Type="String">--- 4. EMPLOYEES / ASSIGNEES MASTER ---</Data></Cell>
+   </Row>
+   <?php foreach ($employees as $emp): ?>
+   <Row>
+    <Cell><Data ss:Type="String">Employee</Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($emp['user_code']) ?></Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($emp['full_name']) ?></Data></Cell>
+    <Cell><Data ss:Type="String"><?= htmlspecialchars($emp['email']) ?></Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+  </Table>
+ </Worksheet>
+</Workbook>
+        <?php
         exit();
     }
 
@@ -256,29 +358,44 @@ class Tickets extends Controller {
             }
 
             if (empty($_FILES['csv_file']['tmp_name'])) {
-                Session::setFlash('danger', 'Please select a CSV file to upload.');
-                redirect('tickets');
+                Session::setFlash('danger', 'Please select a CSV or Excel file to upload.');
+                redirect('tickets/import_view');
             }
 
             $filePath = $_FILES['csv_file']['tmp_name'];
-            $handle = fopen($filePath, 'r');
-            if (!$handle) {
-                Session::setFlash('danger', 'Failed to read uploaded file.');
-                redirect('tickets');
+            $content = file_get_contents($filePath);
+            $rows = [];
+
+            if (str_contains($content, '<Workbook') || str_contains($content, '<?xml')) {
+                // Parse XML Spreadsheet 2003 format
+                preg_match_all('/<Row[^>]*>(.*?)<\/Row>/is', $content, $rowMatches);
+                foreach ($rowMatches[1] as $rIndex => $rXml) {
+                    if ($rIndex === 0) continue; // Skip header row
+                    preg_match_all('/<Data[^>]*>(.*?)<\/Data>/is', $rXml, $cellMatches);
+                    if (!empty($cellMatches[1])) {
+                        $cleanCells = array_map(function($val) {
+                            return trim(html_entity_decode(strip_tags($val)));
+                        }, $cellMatches[1]);
+                        $rows[] = $cleanCells;
+                    }
+                }
+            } else {
+                // Parse Standard CSV file
+                $handle = fopen($filePath, 'r');
+                if ($handle) {
+                    $bom = fread($handle, 3);
+                    if ($bom !== "\xEF\xBB\xBF") rewind($handle);
+                    fgetcsv($handle); // Skip header row
+                    while (($data = fgetcsv($handle)) !== false) {
+                        $rows[] = $data;
+                    }
+                    fclose($handle);
+                }
             }
 
-            // Skip UTF-8 BOM if present
-            $bom = fread($handle, 3);
-            if ($bom !== "\xEF\xBB\xBF") {
-                rewind($handle);
-            }
-
-            // Read Header
-            $header = fgetcsv($handle);
-            if (!$header || count($header) < 4) {
-                Session::setFlash('danger', 'Invalid CSV format or missing headers.');
-                fclose($handle);
-                redirect('tickets');
+            if (empty($rows)) {
+                Session::setFlash('danger', 'No data rows found in uploaded file.');
+                redirect('tickets/import_view');
             }
 
             $ticketModel = $this->model('Ticket_model');
@@ -294,7 +411,7 @@ class Tickets extends Controller {
             $successCount = 0;
             $errorCount = 0;
 
-            while (($row = fgetcsv($handle)) !== false) {
+            foreach ($rows as $row) {
                 if (count($row) < 3 || empty(array_filter($row))) continue;
 
                 $ticketType = sanitize($row[0] ?? 'Query Ticket');
@@ -395,8 +512,6 @@ class Tickets extends Controller {
                     $errorCount++;
                 }
             }
-
-            fclose($handle);
 
             Session::setFlash('success', "Bulk Import Complete: Successfully imported {$successCount} tickets" . ($errorCount > 0 ? " ({$errorCount} rows skipped/failed)." : "."));
             redirect('tickets');

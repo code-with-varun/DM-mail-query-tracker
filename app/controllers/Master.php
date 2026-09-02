@@ -185,11 +185,52 @@ class Master extends Controller {
         $output = fopen('php://output', 'w');
         fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-        fputcsv($output, ['Division ID', 'Division Code (Use this in Import)', 'Division Name', 'Status']);
+        fputcsv($output, ['Division ID', 'Division Code', 'Division Name', 'Status']);
         $divisions = $this->model('Activity_model')->getDivisions();
         foreach ($divisions as $div) {
             fputcsv($output, [$div['id'], $div['code'], $div['division_name'], $div['status']]);
         }
+        fclose($output);
+        exit();
+    }
+
+    /**
+     * Export Single Combined Master CSV (Sub Activity + Activity + Division + Default Employee)
+     */
+    public function export_all() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Complete_Hierarchy_Master.csv');
+
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        // Single Combined Master Header
+        fputcsv($output, [
+            'Sub Activity Name',
+            'Parent Activity Name',
+            'Division Code',
+            'Division Name',
+            'Default Employee Code',
+            'Default Employee Name',
+            'Default SLA TAT (Hours)'
+        ]);
+
+        $subActs = $this->model('Activity_model')->getAllSubActivitiesWithHierarchy();
+        foreach ($subActs as $sa) {
+            fputcsv($output, [
+                $sa['sub_activity_name'],
+                $sa['activity_name'],
+                $sa['division_code'] ?? '',
+                $sa['division_name'] ?? '',
+                $sa['default_user_code'] ?? '',
+                $sa['default_user_name'] ?? '',
+                $sa['default_tat_hours']
+            ]);
+        }
+
         fclose($output);
         exit();
     }

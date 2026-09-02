@@ -174,7 +174,7 @@ class Tickets extends Controller {
     }
 
     /**
-     * Download Clean CSV Ticket Import Template
+     * Download Clean CSV Ticket Import Template (Simplified: No Activity/Division columns)
      */
     public function template() {
         $this->requireAuth();
@@ -186,15 +186,13 @@ class Tickets extends Controller {
         $output = fopen('php://output', 'w');
         fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-        // CSV Header
+        // Simplified CSV Header (Activity & Division automatically inferred from Sub Activity)
         fputcsv($output, [
             'Ticket Type',
             'Received Datetime',
             'From Address',
             'Subject',
-            'Activity Name',
             'Sub Activity Name',
-            'Division Code',
             'Priority',
             'Allocated Employee Code',
             'Agency Code',
@@ -202,17 +200,15 @@ class Tickets extends Controller {
             'Remarks'
         ]);
 
-        // Sample Data Rows (Minimal mandatory yellow headers + optional auto-populated headers)
+        // Sample Data Rows
         fputcsv($output, [
             'Query Ticket',
             date('Y-m-d H:i:s'),
             'vendor.billing@client.com',
             'Sample Query Regarding Payment Delay',
-            '', // Auto-populated from Sub Activity
             'Billing Query',
-            '', // Auto-populated from Sub Activity
             'Medium',
-            '', // Auto-populated from Sub Activity Default Assignee (EMP002)
+            '', // Auto-assigned from Sub-Activity Default Assignee (EMP002)
             'AGC101',
             'John Doe',
             'Sample imported query ticket'
@@ -223,11 +219,9 @@ class Tickets extends Controller {
             date('Y-m-d H:i:s'),
             'INTERNAL_TASK',
             'Sample Internal Compliance Task',
-            '', // Auto-populated
             'Internal Support',
-            '', // Auto-populated
             'High',
-            '', // Auto-populated
+            '', // Auto-assigned
             '',
             '',
             'Sample imported task ticket'
@@ -238,7 +232,7 @@ class Tickets extends Controller {
     }
 
     /**
-     * Unified Bulk Ticket CSV Import (GET: Page View, POST: Import Processor)
+     * Unified Bulk Ticket CSV Import Engine
      */
     public function import() {
         $this->requireAuth();
@@ -285,8 +279,6 @@ class Tickets extends Controller {
             $activityModel = $this->model('Activity_model');
             $userModel = $this->model('User_model');
 
-            $activities = $activityModel->getActivities();
-            $divisions = $activityModel->getDivisions();
             $employees = $userModel->fetchAll("SELECT id, user_code, email, full_name FROM users WHERE status = 'Active'");
 
             $successCount = 0;
@@ -299,14 +291,12 @@ class Tickets extends Controller {
                 $receivedDatetime = !empty($row[1]) ? date('Y-m-d H:i:s', strtotime($row[1])) : date('Y-m-d H:i:s');
                 $fromAddress = sanitize($row[2] ?? 'N/A');
                 $subject = sanitize($row[3] ?? '');
-                $activityName = sanitize($row[4] ?? '');
-                $subActivityName = sanitize($row[5] ?? '');
-                $divisionCode = sanitize($row[6] ?? '');
-                $priority = sanitize($row[7] ?? 'Medium');
-                $empCode = sanitize($row[8] ?? '');
-                $agencyCode = sanitize($row[9] ?? '');
-                $managerName = sanitize($row[10] ?? '');
-                $remarks = sanitize($row[11] ?? '');
+                $subActivityName = sanitize($row[4] ?? '');
+                $priority = sanitize($row[5] ?? 'Medium');
+                $empCode = sanitize($row[6] ?? '');
+                $agencyCode = sanitize($row[7] ?? '');
+                $managerName = sanitize($row[8] ?? '');
+                $remarks = sanitize($row[9] ?? '');
 
                 if (empty($subject)) {
                     $errorCount++;
@@ -319,34 +309,13 @@ class Tickets extends Controller {
                     $subDetail = $activityModel->getSubActivityDetailByName($subActivityName);
                 }
 
-                // Resolve Activity ID (Auto-populate from Sub Activity if blank)
                 $activityId = $subDetail['activity_id'] ?? 1;
-                if (!empty($activityName)) {
-                    foreach ($activities as $act) {
-                        if (strcasecmp($act['activity_name'], $activityName) === 0) {
-                            $activityId = $act['id'];
-                            break;
-                        }
-                    }
-                }
-
-                // Resolve Sub-Activity ID & Default TAT
                 $subActivityId = $subDetail['id'] ?? 1;
                 $defaultTatHours = $subDetail['default_tat_hours'] ?? 24;
-
-                // Resolve Division ID (Auto-populate from Sub Activity if blank)
                 $divisionId = $subDetail['division_id'] ?? null;
-                if (!empty($divisionCode)) {
-                    foreach ($divisions as $div) {
-                        if (strcasecmp($div['code'], $divisionCode) === 0 || strcasecmp($div['division_name'], $divisionCode) === 0) {
-                            $divisionId = $div['id'];
-                            break;
-                        }
-                    }
-                }
-
-                // Resolve Allocated Employee ID (Auto-populate default assignee from Sub Activity if blank)
                 $allocatedTo = $subDetail['default_user_id'] ?? null;
+
+                // Optional Employee Override if specified in CSV
                 if (!empty($empCode)) {
                     foreach ($employees as $emp) {
                         if (strcasecmp($emp['user_code'] ?? '', $empCode) === 0 || strcasecmp($emp['full_name'] ?? '', $empCode) === 0 || strcasecmp($emp['email'] ?? '', $empCode) === 0) {

@@ -164,4 +164,230 @@ class Tickets extends Controller {
             redirect('tickets/view/' . $ticketId);
         }
     }
+
+    /**
+     * Download Excel/CSV Ticket Import Template
+     */
+    public function template() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Tickets_Import_Template.csv');
+
+        $output = fopen('php://output', 'w');
+        // Add UTF-8 BOM for Excel compatibility
+        fputs($output, $bom = chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        // CSV Header
+        fputcsv($output, [
+            'Ticket Type',
+            'Received Datetime',
+            'From Address',
+            'Subject',
+            'Activity Name',
+            'Sub Activity Name',
+            'Division Code',
+            'Priority',
+            'Allocated Employee Code',
+            'Agency Code',
+            'Manager Name',
+            'Remarks'
+        ]);
+
+        // Sample Data Rows
+        fputcsv($output, [
+            'Query Ticket',
+            date('Y-m-d H:i:s'),
+            'vendor.billing@client.com',
+            'Sample Query Regarding Payment Delay',
+            'Agency Billing',
+            'Billing Query',
+            'DIV01',
+            'Medium',
+            'EMP002',
+            'AGC101',
+            'John Doe',
+            'Sample imported query ticket'
+        ]);
+
+        fputcsv($output, [
+            'Task Ticket',
+            date('Y-m-d H:i:s'),
+            'INTERNAL_TASK',
+            'Sample Internal Compliance Task',
+            'Inhouse',
+            'Internal Support',
+            'DIV02',
+            'High',
+            'EMP003',
+            '',
+            '',
+            'Sample imported task ticket'
+        ]);
+
+        fclose($output);
+        exit();
+    }
+
+    /**
+     * Bulk Ticket Excel / CSV Import Engine
+     */
+    public function import() {
+        $this->requireAuth();
+        $this->requireRole([1, 2]);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            if (empty($_FILES['csv_file']['tmp_name'])) {
+                Session::setFlash('danger', 'Please select a CSV file to upload.');
+                redirect('tickets');
+            }
+
+            $filePath = $_FILES['csv_file']['tmp_name'];
+            $handle = fopen($filePath, 'r');
+            if (!$handle) {
+                Session::setFlash('danger', 'Failed to read uploaded file.');
+                redirect('tickets');
+            }
+
+            // Skip UTF-8 BOM if present
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+
+            // Read Header
+            $header = fgetcsv($handle);
+            if (!$header || count($header) < 4) {
+                Session::setFlash('danger', 'Invalid CSV format or missing headers.');
+                fclose($handle);
+                redirect('tickets');
+            }
+
+            $ticketModel = $this->model('Ticket_model');
+            $activityModel = $this->model('Activity_model');
+            $userModel = $this->model('User_model');
+
+            // Pre-cache lookup tables
+            $activities = $activityModel->getActivities();
+            $subActivities = $activityModel->fetchAll("SELECT * FROM sub_activities");
+            $divisions = $activityModel->getDivisions();
+            $employees = $userModel->fetchAll("SELECT id, user_code, email, full_name FROM users WHERE status = 'Active'");
+
+            $successCount = 0;
+            $errorCount = 0;
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (count($row) < 3 || empty(array_filter($row))) continue;
+
+                $ticketType = sanitize($row[0] ?? 'Query Ticket');
+                $receivedDatetime = !empty($row[1]) ? date('Y-m-d H:i:s', strtotime($row[1])) : date('Y-m-d H:i:s');
+                $fromAddress = sanitize($row[2] ?? 'N/A');
+                $subject = sanitize($row[3] ?? '');
+                $activityName = sanitize($row[4] ?? '');
+                $subActivityName = sanitize($row[5] ?? '');
+                $divisionCode = sanitize($row[6] ?? '');
+                $priority = sanitize($row[7] ?? 'Medium');
+                $empCode = sanitize($row[8] ?? '');
+                $agencyCode = sanitize($row[9] ?? '');
+                $managerName = sanitize($row[10] ?? '');
+                $remarks = sanitize($row[11] ?? '');
+
+                if (empty($subject)) {
+                    $errorCount++;
+                    continue;
+                }
+
+                // Resolve Activity ID
+                $activityId = 1;
+                foreach ($activities as $act) {
+                    if (strcasecmp($act['activity_name'], $activityName) === 0) {
+                        $activityId = $act['id'];
+                        break;
+                    }
+                }
+
+                // Resolve Sub-Activity ID & Default TAT
+                $subActivityId = 1;
+                $defaultTatHours = 24;
+                foreach ($subActivities as $sa) {
+                    if ($sa['activity_id'] == $activityId && strcasecmp($sa['sub_activity_name'], $subActivityName) === 0) {
+                        $subActivityId = $sa['id'];
+                        $defaultTatHours = (int)$sa['default_tat_hours'];
+                        break;
+                    }
+                }
+
+                // Resolve Division ID
+                $divisionId = null;
+                if (!empty($divisionCode)) {
+                    foreach ($divisions as $div) {
+                        if (strcasecmp($div['code'], $divisionCode) === 0 || strcasecmp($div['division_name'], $divisionCode) === 0) {
+                            $divisionId = $div['id'];
+                            break;
+                        }
+                    }
+                }
+
+                // Resolve Allocated Employee ID
+                $allocatedTo = null;
+                if (!empty($empCode)) {
+                    foreach ($employees as $emp) {
+                        if (strcasecmp($emp['user_code'] ?? '', $empCode) === 0 || strcasecmp($emp['full_name'] ?? '', $empCode) === 0 || strcasecmp($emp['email'] ?? '', $empCode) === 0) {
+                            $allocatedTo = $emp['id'];
+                            break;
+                        }
+                    }
+                }
+
+                $tatDatetime = date('Y-m-d H:i:s', strtotime("+{$defaultTatHours} hours"));
+
+                $ticketData = [
+                    'ticket_type' => in_array($ticketType, ['Task Ticket', 'Task']) ? 'Task Ticket' : 'Query Ticket',
+                    'received_datetime' => $receivedDatetime,
+                    'from_address' => $fromAddress,
+                    'subject' => $subject,
+                    'division_id' => $divisionId,
+                    'activity_id' => $activityId,
+                    'sub_activity_id' => $subActivityId,
+                    'status' => $allocatedTo ? 'Assigned' : 'New',
+                    'priority' => in_array($priority, ['Low', 'Medium', 'High', 'Critical']) ? $priority : 'Medium',
+                    'tat_datetime' => $tatDatetime,
+                    'allocated_to' => $allocatedTo,
+                    'agency_code' => $agencyCode,
+                    'manager_name' => $managerName,
+                    'remarks' => $remarks,
+                    'created_by' => Session::get('user_id')
+                ];
+
+                try {
+                    $ticketId = $ticketModel->createTicket($ticketData);
+                    if ($ticketData['ticket_type'] === 'Task Ticket') {
+                        $this->model('Task_model')->insert('task_tickets', [
+                            'ticket_id' => $ticketId,
+                            'task_title' => $subject,
+                            'description' => $remarks,
+                            'priority' => $ticketData['priority'],
+                            'due_date' => $tatDatetime,
+                            'status' => 'Pending',
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errorCount++;
+                }
+            }
+
+            fclose($handle);
+
+            Session::setFlash('success', "Bulk Import Complete: Successfully imported {$successCount} tickets" . ($errorCount > 0 ? " ({$errorCount} rows skipped/failed)." : "."));
+            redirect('tickets');
+        }
+    }
 }

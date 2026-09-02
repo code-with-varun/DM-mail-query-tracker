@@ -4,8 +4,18 @@
             <h4 class="fw-bold mb-1">Mail Query & Task Tickets</h4>
             <p class="text-muted fs-7 mb-0">Centralized Query Register and SLA Tracker</p>
         </div>
-        <div>
-            <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary fw-bold"><i class="fas fa-plus-circle me-2"></i>New Ticket</a>
+        <div class="d-flex align-items-center gap-2">
+            <?php if (is_super_admin() || is_admin()): ?>
+                <a href="<?= base_url('tickets/template') ?>" class="btn btn-outline-success btn-sm fw-bold" title="Download Excel CSV Template">
+                    <i class="fas fa-file-excel me-1"></i>Download Template
+                </a>
+                <button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#bulkImportModal" title="Import Tickets from Excel/CSV">
+                    <i class="fas fa-file-upload me-1"></i>Bulk Import
+                </button>
+            <?php endif; ?>
+            <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary btn-sm fw-bold ms-1">
+                <i class="fas fa-plus-circle me-1"></i>New Ticket
+            </a>
         </div>
     </div>
 
@@ -100,3 +110,48 @@
         </div>
     </div>
 </div>
+
+<!-- Bulk Import Modal -->
+<?php if (is_super_admin() || is_admin()): ?>
+<div class="modal fade" id="bulkImportModal" tabindex="-1" aria-labelledby="bulkImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="<?= base_url('tickets/import') ?>" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="bulkImportModalLabel"><i class="fas fa-file-excel me-2"></i>Bulk Ticket Excel / CSV Import</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 shadow-sm fs-7 mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Download the official template to dump your query and task tickets, then upload the completed <strong>.csv</strong> or <strong>.xlsx</strong> file below.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold fs-7">Select CSV / Excel File <span class="text-danger">*</span></label>
+                        <input type="file" name="csv_file" class="form-control" accept=".csv, .xlsx, .xls" required>
+                    </div>
+
+                    <div class="p-3 bg-light rounded border fs-8 text-muted">
+                        <div class="fw-bold text-dark mb-1"><i class="fas fa-list-check me-1 text-success"></i>Supported Column Headers:</div>
+                        <ul class="mb-0 ps-3">
+                            <li><strong>Ticket Type</strong>: Query Ticket / Task Ticket</li>
+                            <li><strong>Activity Name</strong>: Agency Billing, Empanelment, Inhouse, Vendor</li>
+                            <li><strong>Priority</strong>: Low, Medium, High, Critical</li>
+                            <li><strong>Allocated Employee Code</strong>: EMP002, EMP003, etc.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <a href="<?= base_url('tickets/template') ?>" class="btn btn-outline-secondary me-auto btn-sm fw-bold">
+                        <i class="fas fa-download me-1"></i>Download Template
+                    </a>
+                    <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm fw-bold"><i class="fas fa-upload me-1"></i>Upload & Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>

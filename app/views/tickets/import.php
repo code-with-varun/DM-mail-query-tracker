@@ -21,13 +21,15 @@
                 </div>
                 <div class="card-body p-4">
                     <form action="<?= base_url('tickets/import') ?>" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
+                        <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
 
-                        <div class="mb-4 text-center p-4 border border-2 border-dashed rounded bg-light">
-                            <i class="fas fa-file-excel fs-1 text-success mb-3"></i>
-                            <h5>Select your CSV or Excel file</h5>
-                            <p class="text-muted fs-7 mb-3">Ensure column headers match the official sample template.</p>
-                            <input type="file" name="csv_file" class="form-control form-control-lg w-75 mx-auto" accept=".csv, .xlsx, .xls" required>
+                        <!-- Drag & Drop Zone -->
+                        <div id="drop-zone" class="mb-4 text-center p-5 border border-2 border-dashed rounded bg-light" style="cursor: pointer; transition: all 0.2s ease;">
+                            <i class="fas fa-file-csv fs-1 text-success mb-3"></i>
+                            <h5 class="fw-bold text-dark">Drag & Drop your CSV or Excel file here</h5>
+                            <p class="text-muted fs-7 mb-3">or click anywhere in this box to browse files</p>
+                            <input type="file" name="csv_file" id="csv_file_input" class="form-control d-none" accept=".csv, .xlsx, .xls" required>
+                            <div id="file-name-display" class="badge bg-success fs-6 px-3 py-2 d-none"></div>
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center">
@@ -136,3 +138,44 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('csv_file_input');
+    const nameDisplay = document.getElementById('file-name-display');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+            nameDisplay.textContent = 'Selected: ' + this.files[0].name;
+            nameDisplay.classList.remove('d-none');
+        }
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('bg-white', 'border-success');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-white', 'border-success');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+            fileInput.files = files;
+            nameDisplay.textContent = 'Selected: ' + files[0].name;
+            nameDisplay.classList.remove('d-none');
+        }
+    });
+});
+</script>

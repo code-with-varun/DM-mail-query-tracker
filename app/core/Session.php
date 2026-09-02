@@ -62,6 +62,10 @@ class Session {
         return $_SESSION['csrf_token'] ?? '';
     }
 
+    public static function getCsrfToken(): string {
+        return self::csrfToken();
+    }
+
     public static function verifyCsrf(): bool {
         $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         return !empty($token) && hash_equals($_SESSION['csrf_token'] ?? '', $token);

@@ -117,7 +117,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <form action="<?= base_url('tickets/import') ?>" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?= Session::getCsrfToken() ?>">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title fw-bold" id="bulkImportModalLabel"><i class="fas fa-file-excel me-2"></i>Bulk Ticket Excel / CSV Import</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>

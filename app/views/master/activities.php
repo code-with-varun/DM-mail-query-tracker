@@ -2,7 +2,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1">Activities & Sub-Activities Master</h4>
-            <p class="text-muted fs-7 mb-0">Configure parent business activities and SLA TAT hours per sub-activity</p>
+            <p class="text-muted fs-7 mb-0">Configure Division > Activity > Sub-Activity hierarchy and Default Employee mappings</p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#activityModal">
@@ -20,7 +20,12 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="fw-bold mb-0 text-primary"><i class="fas fa-folder me-2"></i><?= htmlspecialchars($act['activity_name']) ?></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="fw-bold mb-0 text-primary"><i class="fas fa-folder me-2"></i><?= htmlspecialchars($act['activity_name']) ?></h6>
+                            <?php if (!empty($act['division_name'])): ?>
+                                <span class="badge bg-secondary fs-9"><i class="fas fa-building me-1"></i><?= htmlspecialchars($act['division_code'] ?? $act['division_name']) ?></span>
+                            <?php endif; ?>
+                        </div>
                         <small class="text-muted fs-8"><?= htmlspecialchars($act['description'] ?? 'No description') ?></small>
                     </div>
                     <div class="d-flex align-items-center gap-1">
@@ -45,7 +50,14 @@
                         <?php else: ?>
                             <?php foreach ($act['sub_activities'] as $sa): ?>
                             <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                <span><i class="fas fa-level-up-alt fa-rotate-90 me-2 text-secondary"></i><?= htmlspecialchars($sa['sub_activity_name']) ?></span>
+                                <div>
+                                    <span class="fw-bold text-dark"><i class="fas fa-level-up-alt fa-rotate-90 me-2 text-secondary"></i><?= htmlspecialchars($sa['sub_activity_name']) ?></span>
+                                    <?php if (!empty($sa['default_user_name'])): ?>
+                                        <small class="d-block text-muted fs-8 ms-4">
+                                            <i class="fas fa-user-check me-1 text-success"></i>Default Assignee: <strong class="text-dark"><?= htmlspecialchars($sa['default_user_name']) ?></strong> (<?= htmlspecialchars($sa['default_user_code']) ?>)
+                                        </small>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="badge bg-dark"><i class="fas fa-clock me-1 text-warning"></i><?= $sa['default_tat_hours'] ?> Hours SLA</span>
                                     <button type="button" class="btn btn-sm btn-link p-0 text-primary" data-bs-toggle="modal" data-bs-target="#editSubActModal<?= $sa['id'] ?>" title="Edit Sub-Activity">
@@ -77,6 +89,15 @@
                                             </div>
                                             <div class="modal-body p-4">
                                                 <div class="mb-3">
+                                                    <label class="form-label fs-7 fw-bold">Parent Division</label>
+                                                    <select name="division_id" class="form-select">
+                                                        <option value="">Select Division (Optional)</option>
+                                                        <?php foreach ($divisions as $div): ?>
+                                                            <option value="<?= $div['id'] ?>" <?= ($sa['division_id'] ?? $act['division_id']) == $div['id'] ? 'selected' : '' ?>><?= htmlspecialchars($div['division_name']) ?> (<?= htmlspecialchars($div['code']) ?>)</option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
                                                     <label class="form-label fs-7 fw-bold">Parent Activity <span class="text-danger">*</span></label>
                                                     <select name="activity_id" class="form-select" required>
                                                         <?php foreach ($activities as $pAct): ?>
@@ -87,6 +108,15 @@
                                                 <div class="mb-3">
                                                     <label class="form-label fs-7 fw-bold">Sub-Activity Name <span class="text-danger">*</span></label>
                                                     <input type="text" name="sub_activity_name" class="form-control" value="<?= htmlspecialchars($sa['sub_activity_name']) ?>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fs-7 fw-bold">Default Assigned Employee</label>
+                                                    <select name="default_user_id" class="form-select">
+                                                        <option value="">Select Default Employee (Optional)</option>
+                                                        <?php foreach ($employees as $emp): ?>
+                                                            <option value="<?= $emp['id'] ?>" <?= ($sa['default_user_id'] ?? '') == $emp['id'] ? 'selected' : '' ?>><?= htmlspecialchars($emp['full_name']) ?> (<?= htmlspecialchars($emp['user_code']) ?>)</option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label fs-7 fw-bold">Default SLA TAT Hours <span class="text-danger">*</span></label>
@@ -122,6 +152,15 @@
                         </div>
                         <div class="modal-body p-4">
                             <div class="mb-3">
+                                <label class="form-label fs-7 fw-bold">Parent Division</label>
+                                <select name="division_id" class="form-select">
+                                    <option value="">Select Division (Optional)</option>
+                                    <?php foreach ($divisions as $div): ?>
+                                        <option value="<?= $div['id'] ?>" <?= ($act['division_id'] ?? '') == $div['id'] ? 'selected' : '' ?>><?= htmlspecialchars($div['division_name']) ?> (<?= htmlspecialchars($div['code']) ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label fs-7 fw-bold">Activity Name <span class="text-danger">*</span></label>
                                 <input type="text" name="activity_name" class="form-control" value="<?= htmlspecialchars($act['activity_name']) ?>" required>
                             </div>
@@ -155,6 +194,15 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold">Parent Division</label>
+                        <select name="division_id" class="form-select">
+                            <option value="">Select Division (Optional)</option>
+                            <?php foreach ($divisions as $div): ?>
+                                <option value="<?= $div['id'] ?>"><?= htmlspecialchars($div['division_name']) ?> (<?= htmlspecialchars($div['code']) ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fs-7 fw-bold">Activity Name <span class="text-danger">*</span></label>
                         <input type="text" name="activity_name" class="form-control" placeholder="e.g. Legal Compliance" required>
                     </div>
@@ -185,6 +233,15 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold">Parent Division</label>
+                        <select name="division_id" class="form-select">
+                            <option value="">Select Division (Optional)</option>
+                            <?php foreach ($divisions as $div): ?>
+                                <option value="<?= $div['id'] ?>"><?= htmlspecialchars($div['division_name']) ?> (<?= htmlspecialchars($div['code']) ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fs-7 fw-bold">Parent Activity <span class="text-danger">*</span></label>
                         <select name="activity_id" class="form-select" required>
                             <option value="">Select Parent Activity</option>
@@ -196,6 +253,15 @@
                     <div class="mb-3">
                         <label class="form-label fs-7 fw-bold">Sub-Activity Name <span class="text-danger">*</span></label>
                         <input type="text" name="sub_activity_name" class="form-control" placeholder="e.g. Contract Verification" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold">Default Assigned Employee</label>
+                        <select name="default_user_id" class="form-select">
+                            <option value="">Select Default Employee (Optional)</option>
+                            <?php foreach ($employees as $emp): ?>
+                                <option value="<?= $emp['id'] ?>"><?= htmlspecialchars($emp['full_name']) ?> (<?= htmlspecialchars($emp['user_code']) ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fs-7 fw-bold">Default SLA TAT Hours <span class="text-danger">*</span></label>

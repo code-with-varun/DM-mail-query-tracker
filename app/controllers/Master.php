@@ -35,13 +35,14 @@ class Master extends Controller {
             if ($formType === 'activity') {
                 $name = sanitize($_POST['activity_name'] ?? '');
                 $desc = sanitize($_POST['description'] ?? '');
+                $divId = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
 
                 if (!empty($name)) {
                     if ($id > 0) {
-                        $activityModel->update('activities', ['activity_name' => $name, 'description' => $desc], "id = ?", [$id]);
+                        $activityModel->update('activities', ['activity_name' => $name, 'description' => $desc, 'division_id' => $divId], "id = ?", [$id]);
                         Session::setFlash('success', 'Activity updated successfully.');
                     } else {
-                        $activityModel->createActivity($name, $desc);
+                        $activityModel->createActivity($name, $desc, $divId);
                         Session::setFlash('success', 'Activity created successfully.');
                     }
                 }
@@ -49,13 +50,21 @@ class Master extends Controller {
                 $actId = (int)($_POST['activity_id'] ?? 0);
                 $subName = sanitize($_POST['sub_activity_name'] ?? '');
                 $tat = (int)($_POST['default_tat_hours'] ?? 24);
+                $divId = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
+                $defaultUserId = !empty($_POST['default_user_id']) ? (int)$_POST['default_user_id'] : null;
 
                 if ($actId && !empty($subName)) {
                     if ($id > 0) {
-                        $activityModel->update('sub_activities', ['activity_id' => $actId, 'sub_activity_name' => $subName, 'default_tat_hours' => $tat], "id = ?", [$id]);
+                        $activityModel->update('sub_activities', [
+                            'activity_id' => $actId,
+                            'division_id' => $divId,
+                            'sub_activity_name' => $subName,
+                            'default_tat_hours' => $tat,
+                            'default_user_id' => $defaultUserId
+                        ], "id = ?", [$id]);
                         Session::setFlash('success', 'Sub-activity updated successfully.');
                     } else {
-                        $activityModel->createSubActivity($actId, $subName, $tat);
+                        $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId);
                         Session::setFlash('success', 'Sub-activity created successfully.');
                     }
                 }
@@ -63,10 +72,16 @@ class Master extends Controller {
             redirect('master/activities');
         }
 
+        $userModel = $this->model('User_model');
         $activities = $activityModel->getAllActivitiesWithSub();
+        $divisions = $activityModel->getDivisions();
+        $employees = $userModel->getEmployees();
+
         $this->render('master/activities', [
             'title' => 'Activities Master',
-            'activities' => $activities
+            'activities' => $activities,
+            'divisions' => $divisions,
+            'employees' => $employees
         ]);
     }
 

@@ -54,15 +54,19 @@ class Tickets extends Controller {
                 redirect('tickets/create');
             }
 
-            // Sub Activity TAT hours calculation
+            // Sub Activity TAT hours & default employee mapping lookup
             $subActs = $activityModel->getSubActivitiesByActivity($activityId);
             $defaultHours = 24;
+            $defaultUserId = null;
             foreach ($subActs as $sa) {
                 if ($sa['id'] == $subActivityId) {
                     $defaultHours = (int)$sa['default_tat_hours'];
+                    $defaultUserId = !empty($sa['default_user_id']) ? (int)$sa['default_user_id'] : null;
                     break;
                 }
             }
+
+            $allocatedTo = !empty($_POST['allocated_to']) ? (int)$_POST['allocated_to'] : $defaultUserId;
 
             $tatDatetime = !empty($_POST['tat_datetime']) 
                 ? date('Y-m-d H:i:s', strtotime($_POST['tat_datetime']))
@@ -76,10 +80,10 @@ class Tickets extends Controller {
                 'division_id' => !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null,
                 'activity_id' => $activityId,
                 'sub_activity_id' => $subActivityId,
-                'status' => !empty($_POST['allocated_to']) ? 'Assigned' : 'New',
+                'status' => $allocatedTo ? 'Assigned' : 'New',
                 'priority' => sanitize($_POST['priority'] ?? 'Medium'),
                 'tat_datetime' => $tatDatetime,
-                'allocated_to' => !empty($_POST['allocated_to']) ? (int)$_POST['allocated_to'] : null,
+                'allocated_to' => $allocatedTo,
                 'agency_code' => sanitize($_POST['agency_code'] ?? ''),
                 'manager_name' => sanitize($_POST['manager_name'] ?? ''),
                 'remarks' => sanitize($_POST['remarks'] ?? ''),
@@ -182,6 +186,7 @@ class Tickets extends Controller {
         $output = fopen('php://output', 'w');
         fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
+        // CSV Header
         fputcsv($output, [
             'Ticket Type',
             'Received Datetime',
@@ -197,16 +202,17 @@ class Tickets extends Controller {
             'Remarks'
         ]);
 
+        // Sample Data Rows (Minimal mandatory yellow headers + optional auto-populated headers)
         fputcsv($output, [
             'Query Ticket',
             date('Y-m-d H:i:s'),
             'vendor.billing@client.com',
             'Sample Query Regarding Payment Delay',
-            'Agency Billing',
+            '', // Auto-populated from Sub Activity
             'Billing Query',
-            'DIV01',
+            '', // Auto-populated from Sub Activity
             'Medium',
-            'EMP002',
+            '', // Auto-populated from Sub Activity Default Assignee (EMP002)
             'AGC101',
             'John Doe',
             'Sample imported query ticket'
@@ -217,11 +223,11 @@ class Tickets extends Controller {
             date('Y-m-d H:i:s'),
             'INTERNAL_TASK',
             'Sample Internal Compliance Task',
-            'Inhouse',
+            '', // Auto-populated
             'Internal Support',
-            'DIV02',
+            '', // Auto-populated
             'High',
-            'EMP003',
+            '', // Auto-populated
             '',
             '',
             'Sample imported task ticket'
@@ -280,7 +286,6 @@ class Tickets extends Controller {
             $userModel = $this->model('User_model');
 
             $activities = $activityModel->getActivities();
-            $subActivities = $activityModel->fetchAll("SELECT * FROM sub_activities");
             $divisions = $activityModel->getDivisions();
             $employees = $userModel->fetchAll("SELECT id, user_code, email, full_name FROM users WHERE status = 'Active'");
 
@@ -308,25 +313,29 @@ class Tickets extends Controller {
                     continue;
                 }
 
-                $activityId = 1;
-                foreach ($activities as $act) {
-                    if (strcasecmp($act['activity_name'], $activityName) === 0) {
-                        $activityId = $act['id'];
-                        break;
+                // Look up Sub Activity Detail for auto-population of Division, Activity, and Default Employee
+                $subDetail = null;
+                if (!empty($subActivityName)) {
+                    $subDetail = $activityModel->getSubActivityDetailByName($subActivityName);
+                }
+
+                // Resolve Activity ID (Auto-populate from Sub Activity if blank)
+                $activityId = $subDetail['activity_id'] ?? 1;
+                if (!empty($activityName)) {
+                    foreach ($activities as $act) {
+                        if (strcasecmp($act['activity_name'], $activityName) === 0) {
+                            $activityId = $act['id'];
+                            break;
+                        }
                     }
                 }
 
-                $subActivityId = 1;
-                $defaultTatHours = 24;
-                foreach ($subActivities as $sa) {
-                    if ($sa['activity_id'] == $activityId && strcasecmp($sa['sub_activity_name'], $subActivityName) === 0) {
-                        $subActivityId = $sa['id'];
-                        $defaultTatHours = (int)$sa['default_tat_hours'];
-                        break;
-                    }
-                }
+                // Resolve Sub-Activity ID & Default TAT
+                $subActivityId = $subDetail['id'] ?? 1;
+                $defaultTatHours = $subDetail['default_tat_hours'] ?? 24;
 
-                $divisionId = null;
+                // Resolve Division ID (Auto-populate from Sub Activity if blank)
+                $divisionId = $subDetail['division_id'] ?? null;
                 if (!empty($divisionCode)) {
                     foreach ($divisions as $div) {
                         if (strcasecmp($div['code'], $divisionCode) === 0 || strcasecmp($div['division_name'], $divisionCode) === 0) {
@@ -336,7 +345,8 @@ class Tickets extends Controller {
                     }
                 }
 
-                $allocatedTo = null;
+                // Resolve Allocated Employee ID (Auto-populate default assignee from Sub Activity if blank)
+                $allocatedTo = $subDetail['default_user_id'] ?? null;
                 if (!empty($empCode)) {
                     foreach ($employees as $emp) {
                         if (strcasecmp($emp['user_code'] ?? '', $empCode) === 0 || strcasecmp($emp['full_name'] ?? '', $empCode) === 0 || strcasecmp($emp['email'] ?? '', $empCode) === 0) {
@@ -387,7 +397,7 @@ class Tickets extends Controller {
 
             fclose($handle);
 
-            Session::setFlash('success', "Bulk Import Complete: Successfully imported {$successCount} tickets" . ($errorCount > 0 ? " ({$errorCount} rows skipped/failed)." : "."));
+            Session::setFlash('success', "Bulk Import Complete: Successfully imported {$successCount} tickets with auto-populated Divisions, Activities & Assignees" . ($errorCount > 0 ? " ({$errorCount} rows skipped/failed)." : "."));
             redirect('tickets');
         }
     }

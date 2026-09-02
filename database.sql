@@ -75,17 +75,19 @@ ON DUPLICATE KEY UPDATE `division_name` = VALUES(`division_name`);
 -- ----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `activities` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `division_id` INT NULL,
   `activity_name` VARCHAR(100) NOT NULL UNIQUE,
   `description` TEXT NULL,
   `status` ENUM('Active', 'Inactive') DEFAULT 'Active',
-  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`division_id`) REFERENCES `divisions`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `activities` (`id`, `activity_name`, `description`, `status`) VALUES
-(1, 'Agency Billing', 'Billing, payments, and agency account reconciliation', 'Active'),
-(2, 'Empanelment', 'Vendor registrations, contracts, and documentation', 'Active'),
-(3, 'Inhouse', 'Internal support, process clarification, system issues', 'Active'),
-(4, 'Vendor', 'Vendor support, contract queries, invoice queries', 'Active')
+INSERT INTO `activities` (`id`, `division_id`, `activity_name`, `description`, `status`) VALUES
+(1, 1, 'Agency Billing', 'Billing, payments, and agency account reconciliation', 'Active'),
+(2, 2, 'Empanelment', 'Vendor registrations, contracts, and documentation', 'Active'),
+(3, 3, 'Inhouse', 'Internal support, process clarification, system issues', 'Active'),
+(4, 4, 'Vendor', 'Vendor support, contract queries, invoice queries', 'Active')
 ON DUPLICATE KEY UPDATE `activity_name` = VALUES(`activity_name`);
 
 -- ----------------------------------------------------
@@ -94,27 +96,31 @@ ON DUPLICATE KEY UPDATE `activity_name` = VALUES(`activity_name`);
 CREATE TABLE IF NOT EXISTS `sub_activities` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `activity_id` INT NOT NULL,
+  `division_id` INT NULL,
   `sub_activity_name` VARCHAR(100) NOT NULL,
   `default_tat_hours` INT DEFAULT 24,
+  `default_user_id` INT NULL,
   `status` ENUM('Active', 'Inactive') DEFAULT 'Active',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`activity_id`) REFERENCES `activities`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`division_id`) REFERENCES `divisions`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`default_user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
   INDEX `idx_subact_activity` (`activity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `sub_activities` (`id`, `activity_id`, `sub_activity_name`, `default_tat_hours`) VALUES
-(1, 1, 'Billing Query', 24),
-(2, 1, 'Payment Query', 12),
-(3, 1, 'Reconciliation', 48),
-(4, 2, 'Vendor Registration', 48),
-(5, 2, 'Approval Query', 24),
-(6, 2, 'Documentation', 36),
-(7, 3, 'Internal Support', 8),
-(8, 3, 'System Issue', 4),
-(9, 3, 'Process Clarification', 12),
-(10, 4, 'Vendor Support', 24),
-(11, 4, 'Contract Query', 48),
-(12, 4, 'Invoice Query', 24)
+INSERT INTO `sub_activities` (`id`, `activity_id`, `division_id`, `sub_activity_name`, `default_tat_hours`, `default_user_id`) VALUES
+(1, 1, 1, 'Billing Query', 24, 2),
+(2, 1, 1, 'Payment Query', 12, 2),
+(3, 1, 1, 'Reconciliation', 48, 2),
+(4, 2, 2, 'Vendor Registration', 48, 2),
+(5, 2, 2, 'Approval Query', 24, 2),
+(6, 2, 2, 'Documentation', 36, 2),
+(7, 3, 3, 'Internal Support', 8, 2),
+(8, 3, 3, 'System Issue', 4, 2),
+(9, 3, 3, 'Process Clarification', 12, 2),
+(10, 4, 4, 'Vendor Support', 24, 2),
+(11, 4, 4, 'Contract Query', 48, 2),
+(12, 4, 4, 'Invoice Query', 24, 2)
 ON DUPLICATE KEY UPDATE `sub_activity_name` = VALUES(`sub_activity_name`);
 
 -- ----------------------------------------------------

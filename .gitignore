@@ -1,0 +1,9 @@
+# Temporary & Log files
+*.log
+scratch/
+.DS_Store
+Thumbs.db
+
+# Keep uploads folder structure
+public/uploads/*
+!public/uploads/.gitkeep

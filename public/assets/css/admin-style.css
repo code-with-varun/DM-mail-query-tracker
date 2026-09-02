@@ -1,0 +1,383 @@
+/* Mail Query Tracker (MQT) - Corporate AdminLTE Custom CSS */
+:root {
+  --mqt-primary: #1e3a8a;
+  --mqt-primary-hover: #1e40af;
+  --mqt-secondary: #0f172a;
+  --mqt-accent: #3b82f6;
+  --mqt-bg-light: #f8fafc;
+  --mqt-sidebar-bg: #1e293b;
+  --mqt-sidebar-text: #94a3b8;
+  --mqt-sidebar-active: #ffffff;
+  --mqt-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: #f1f5f9;
+  color: #334155;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+#wrapper {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Sidebar Styling - Scrollable, Fixed & Collapsible */
+#sidebar-wrapper {
+  height: 100vh;
+  width: 260px;
+  background-color: var(--mqt-sidebar-bg);
+  color: var(--mqt-sidebar-text);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1040;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom Sleek Dark Scrollbar for Sidebar */
+#sidebar-wrapper::-webkit-scrollbar {
+  width: 5px;
+}
+#sidebar-wrapper::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+#sidebar-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+#sidebar-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+#sidebar-wrapper .sidebar-brand {
+  padding: 1.25rem 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar-wrapper .sidebar-brand .brand-title-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow: hidden;
+}
+
+#sidebar-wrapper .sidebar-brand #sidebarToggle {
+  color: #94a3b8;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+#sidebar-wrapper .sidebar-brand #sidebarToggle:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+#sidebar-wrapper .nav-menu-container {
+  flex-grow: 1;
+  padding-bottom: 1rem;
+}
+
+#sidebar-wrapper .nav-link {
+  color: var(--mqt-sidebar-text);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#sidebar-wrapper .nav-link i {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+#sidebar-wrapper .nav-link:hover,
+#sidebar-wrapper .nav-link.active {
+  color: var(--mqt-sidebar-active);
+  background-color: rgba(255, 255, 255, 0.08);
+  border-left-color: var(--mqt-accent);
+}
+
+#sidebar-wrapper .sidebar-heading {
+  padding: 1.25rem 1.5rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Page Content Wrapper */
+#page-content-wrapper {
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  min-height: 100vh;
+  display: block;
+  background-color: #f1f5f9;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* COLLAPSED SIDEBAR MODE (Desktop Mini-Sidebar 70px) */
+#wrapper.collapsed #sidebar-wrapper {
+  width: 70px;
+}
+
+#wrapper.collapsed #page-content-wrapper {
+  margin-left: 70px;
+  width: calc(100% - 70px);
+}
+
+#wrapper.collapsed #sidebar-wrapper .sidebar-brand .brand-title-box,
+#wrapper.collapsed #sidebar-wrapper .nav-link span,
+#wrapper.collapsed #sidebar-wrapper .sidebar-heading {
+  display: none !important;
+}
+
+#wrapper.collapsed #sidebar-wrapper .sidebar-brand {
+  justify-content: center;
+  padding: 1.25rem 0;
+}
+
+#wrapper.collapsed #sidebar-wrapper .sidebar-brand #sidebarToggle {
+  margin: 0 !important;
+}
+
+#wrapper.collapsed #sidebar-wrapper .nav-link {
+  justify-content: center;
+  padding: 0.85rem 0;
+  border-left-width: 3px;
+}
+
+/* Responsive Mobile Mode (< 768px) */
+@media (max-width: 767.98px) {
+  #sidebar-wrapper {
+    transform: translateX(-100%);
+    width: 260px !important;
+  }
+  #page-content-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  #wrapper.toggled #sidebar-wrapper,
+  #wrapper.collapsed #sidebar-wrapper {
+    transform: translateX(0);
+  }
+}
+
+/* Top Navbar Styling */
+.main-navbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 1.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.main-navbar .navbar-brand {
+  margin-left: 0.5rem;
+}
+
+.main-navbar .user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--mqt-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Floating Toaster Toast Notifications */
+.toast-container-mqt {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 1090;
+  min-width: 320px;
+  max-width: 420px;
+}
+
+.toast-mqt {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.toast-mqt .toast-header {
+  border-bottom: none;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+}
+
+/* Dashboard Stat Cards */
+.stat-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: var(--mqt-card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+.stat-card .card-body {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-card .icon-box {
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.stat-card .stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-card .stat-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* DataTables & Responsive Table Wrappers */
+.card-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.card-header-actions .card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--mqt-secondary);
+  margin: 0;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+}
+
+/* Notification Bell Dropdown */
+.notification-bell {
+  position: relative;
+  cursor: pointer;
+}
+
+.notification-bell .badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 0.65rem;
+  padding: 0.25em 0.45em;
+  border-radius: 50%;
+}
+
+/* Login Page Styling */
+.login-page {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+
+.login-card .card-header {
+  background: transparent;
+  border: none;
+  padding: 2.5rem 2.5rem 1rem;
+  text-align: center;
+}
+
+.login-card .brand-logo {
+  width: 60px;
+  height: 60px;
+  background-color: var(--mqt-accent);
+  color: #ffffff;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+/* Responsive Footer */
+.main-footer {
+  margin-top: auto;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}

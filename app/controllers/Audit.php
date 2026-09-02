@@ -50,22 +50,20 @@ class Audit extends Controller {
             $db = Database::getInstance();
             $db->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
-            $tablesToTruncate = [
-                'tickets',
-                'task_tickets',
-                'ticket_comments',
-                'ticket_hold_history',
-                'ticket_attachments',
-                'recurring_templates',
-                'recurring_instances',
-                'input_tracker_logs',
-                'delivery_logs',
-                'notifications',
-                'audit_logs'
-            ];
+            // Preserve master data & core user accounts
+            $preserveTables = ['users', 'roles', 'activities', 'sub_activities', 'divisions', 'settings'];
 
-            foreach ($tablesToTruncate as $tbl) {
-                $db->exec("TRUNCATE TABLE `{$tbl}`");
+            $stmt = $db->query("SHOW TABLES");
+            $allTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach ($allTables as $tbl) {
+                if (!in_array(strtolower($tbl), $preserveTables)) {
+                    try {
+                        $db->exec("TRUNCATE TABLE `{$tbl}`");
+                    } catch (\Throwable $e) {
+                        // Silently ignore
+                    }
+                }
             }
 
             $db->exec("SET FOREIGN_KEY_CHECKS = 1;");

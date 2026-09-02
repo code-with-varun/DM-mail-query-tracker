@@ -180,9 +180,8 @@ class Tickets extends Controller {
         header('Content-Disposition: attachment; filename=MQT_Ticket_Import_Template.csv');
 
         $output = fopen('php://output', 'w');
-        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-        // CSV Header
         fputcsv($output, [
             'Ticket Type',
             'Received Datetime',
@@ -198,7 +197,6 @@ class Tickets extends Controller {
             'Remarks'
         ]);
 
-        // Sample Data Rows
         fputcsv($output, [
             'Query Ticket',
             date('Y-m-d H:i:s'),
@@ -234,76 +232,53 @@ class Tickets extends Controller {
     }
 
     /**
-     * Dedicated Bulk Import Page View
-     */
-    public function import_view() {
-        $this->requireAuth();
-        $this->requireRole([1, 2]);
-
-        $this->render('tickets/import', [
-            'title' => 'Bulk Ticket Import'
-        ]);
-    }
-
-    /**
-     * Bulk Ticket Excel / CSV Import Engine
+     * Unified Bulk Ticket CSV Import (GET: Page View, POST: Import Processor)
      */
     public function import() {
         $this->requireAuth();
         $this->requireRole([1, 2]);
 
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $this->render('tickets/import', [
+                'title' => 'Bulk Ticket Import'
+            ]);
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!Session::verifyCsrf()) {
                 Session::setFlash('danger', 'Invalid security token.');
-                redirect('tickets');
+                redirect('tickets/import');
             }
 
             if (empty($_FILES['csv_file']['tmp_name'])) {
-                Session::setFlash('danger', 'Please select a CSV or Excel file to upload.');
-                redirect('tickets/import_view');
+                Session::setFlash('danger', 'Please select a CSV file to upload.');
+                redirect('tickets/import');
             }
 
             $filePath = $_FILES['csv_file']['tmp_name'];
-            $content = file_get_contents($filePath);
-            $rows = [];
-
-            if (str_contains($content, '<Workbook') || str_contains($content, '<?xml')) {
-                // Parse XML Spreadsheet 2003 format
-                preg_match_all('/<Row[^>]*>(.*?)<\/Row>/is', $content, $rowMatches);
-                foreach ($rowMatches[1] as $rIndex => $rXml) {
-                    if ($rIndex === 0) continue; // Skip header row
-                    preg_match_all('/<Data[^>]*>(.*?)<\/Data>/is', $rXml, $cellMatches);
-                    if (!empty($cellMatches[1])) {
-                        $cleanCells = array_map(function($val) {
-                            return trim(html_entity_decode(strip_tags($val)));
-                        }, $cellMatches[1]);
-                        $rows[] = $cleanCells;
-                    }
-                }
-            } else {
-                // Parse Standard CSV file
-                $handle = fopen($filePath, 'r');
-                if ($handle) {
-                    $bom = fread($handle, 3);
-                    if ($bom !== "\xEF\xBB\xBF") rewind($handle);
-                    fgetcsv($handle); // Skip header row
-                    while (($data = fgetcsv($handle)) !== false) {
-                        $rows[] = $data;
-                    }
-                    fclose($handle);
-                }
+            $handle = fopen($filePath, 'r');
+            if (!$handle) {
+                Session::setFlash('danger', 'Failed to read uploaded file.');
+                redirect('tickets/import');
             }
 
-            if (empty($rows)) {
-                Session::setFlash('danger', 'No data rows found in uploaded file.');
-                redirect('tickets/import_view');
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+
+            $header = fgetcsv($handle);
+            if (!$header || count($header) < 3) {
+                Session::setFlash('danger', 'Invalid CSV format or missing headers.');
+                fclose($handle);
+                redirect('tickets/import');
             }
 
             $ticketModel = $this->model('Ticket_model');
             $activityModel = $this->model('Activity_model');
             $userModel = $this->model('User_model');
 
-            // Pre-cache lookup tables
             $activities = $activityModel->getActivities();
             $subActivities = $activityModel->fetchAll("SELECT * FROM sub_activities");
             $divisions = $activityModel->getDivisions();
@@ -312,7 +287,7 @@ class Tickets extends Controller {
             $successCount = 0;
             $errorCount = 0;
 
-            foreach ($rows as $row) {
+            while (($row = fgetcsv($handle)) !== false) {
                 if (count($row) < 3 || empty(array_filter($row))) continue;
 
                 $ticketType = sanitize($row[0] ?? 'Query Ticket');
@@ -333,7 +308,6 @@ class Tickets extends Controller {
                     continue;
                 }
 
-                // Resolve Activity ID
                 $activityId = 1;
                 foreach ($activities as $act) {
                     if (strcasecmp($act['activity_name'], $activityName) === 0) {
@@ -342,7 +316,6 @@ class Tickets extends Controller {
                     }
                 }
 
-                // Resolve Sub-Activity ID & Default TAT
                 $subActivityId = 1;
                 $defaultTatHours = 24;
                 foreach ($subActivities as $sa) {
@@ -353,7 +326,6 @@ class Tickets extends Controller {
                     }
                 }
 
-                // Resolve Division ID
                 $divisionId = null;
                 if (!empty($divisionCode)) {
                     foreach ($divisions as $div) {
@@ -364,7 +336,6 @@ class Tickets extends Controller {
                     }
                 }
 
-                // Resolve Allocated Employee ID
                 $allocatedTo = null;
                 if (!empty($empCode)) {
                     foreach ($employees as $emp) {
@@ -413,6 +384,8 @@ class Tickets extends Controller {
                     $errorCount++;
                 }
             }
+
+            fclose($handle);
 
             Session::setFlash('success', "Bulk Import Complete: Successfully imported {$successCount} tickets" . ($errorCount > 0 ? " ({$errorCount} rows skipped/failed)." : "."));
             redirect('tickets');

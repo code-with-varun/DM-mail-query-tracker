@@ -517,4 +517,29 @@ class Tickets extends Controller {
             redirect('tickets');
         }
     }
+
+    /**
+     * Delete Ticket (Super Admin Only)
+     */
+    public function delete(int $id) {
+        $this->requireAuth();
+        $this->requireRole([1]);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketModel = $this->model('Ticket_model');
+            $ticketModel->delete('tickets', "id = ?", [$id]);
+            $ticketModel->delete('task_tickets', "ticket_id = ?", [$id]);
+            $ticketModel->delete('ticket_comments', "ticket_id = ?", [$id]);
+            $ticketModel->delete('ticket_hold_history', "ticket_id = ?", [$id]);
+            $ticketModel->delete('ticket_attachments', "ticket_id = ?", [$id]);
+
+            Session::setFlash('success', 'Ticket deleted successfully.');
+            redirect('tickets');
+        }
+    }
 }

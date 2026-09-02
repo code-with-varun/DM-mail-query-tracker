@@ -6,18 +6,10 @@
 class Employees extends Controller {
     public function index() {
         $this->requireAuth();
-        $this->requireRole([1, 2]); // Super Admin or Admin
+        $this->requireRole([1, 2]);
 
         $userModel = $this->model('User_model');
-        $roleId = Session::get('role_id');
-        $userId = Session::get('user_id');
-
-        if ($roleId == 1) {
-            $users = $userModel->getAllUsers();
-        } else {
-            $users = $userModel->getTeamEmployees($userId);
-        }
-
+        $users = $userModel->getAllUsers();
         $admins = $userModel->getAdmins();
 
         $this->render('employees/index', [
@@ -37,44 +29,39 @@ class Employees extends Controller {
                 redirect('employees');
             }
 
-            $userCode = sanitize($_POST['user_code'] ?? '');
-            $fullName = sanitize($_POST['full_name'] ?? '');
-            $email = sanitize($_POST['email'] ?? '');
-            $password = $_POST['password'] ?? 'ChangeMe@123';
-            $targetRoleId = (int)($_POST['role_id'] ?? 3);
-
-            // Admins can only create Employees (role_id 3)
-            if (Session::get('role_id') == 2) {
-                $targetRoleId = 3;
-                $managerId = Session::get('user_id');
-            } else {
-                $managerId = !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null;
-            }
-
-            if (empty($userCode) || empty($fullName) || empty($email)) {
-                Session::setFlash('danger', 'Employee Code, Full Name, and Email are required.');
-                redirect('employees');
-            }
-
             $userModel = $this->model('User_model');
-            if ($userModel->getByEmailOrUsername($email) || $userModel->getByEmailOrUsername($userCode)) {
-                Session::setFlash('danger', 'User with this Email or Employee Code already exists.');
+            $id = (int)($_POST['id'] ?? 0);
+            $action = $_POST['action'] ?? 'save';
+
+            if ($action === 'delete' && $id > 0 && is_super_admin()) {
+                $userModel->delete('users', "id = ?", [$id]);
+                Session::setFlash('success', 'User account deleted successfully.');
                 redirect('employees');
             }
 
-            $userModel->createUser([
-                'user_code' => $userCode,
-                'full_name' => $fullName,
-                'email' => $email,
+            $userData = [
+                'user_code' => sanitize($_POST['user_code'] ?? ''),
+                'full_name' => sanitize($_POST['full_name'] ?? ''),
+                'email' => sanitize($_POST['email'] ?? ''),
                 'mobile' => sanitize($_POST['mobile'] ?? ''),
-                'password' => $password,
-                'role_id' => $targetRoleId,
+                'role_id' => (int)($_POST['role_id'] ?? 3),
                 'department' => sanitize($_POST['department'] ?? 'Operations'),
-                'manager_id' => $managerId,
-                'status' => 'Active'
-            ]);
+                'manager_id' => !empty($_POST['manager_id']) ? (int)$_POST['manager_id'] : null,
+                'status' => sanitize($_POST['status'] ?? 'Active')
+            ];
 
-            Session::setFlash('success', 'User account created successfully.');
+            if ($id > 0 && (is_super_admin() || is_admin())) {
+                if (!empty($_POST['password'])) {
+                    $userData['password'] = password_hash($_POST['password'], PASSWORD_BCRYPT);
+                }
+                $userModel->update('users', $userData, "id = ?", [$id]);
+                Session::setFlash('success', 'User account updated successfully.');
+            } else {
+                $userData['password'] = sanitize($_POST['password'] ?? 'ChangeMe@123');
+                $userModel->createUser($userData);
+                Session::setFlash('success', 'User account created successfully.');
+            }
+
             redirect('employees');
         }
     }

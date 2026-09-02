@@ -100,7 +100,15 @@
                             <td><?= get_status_badge($t['status']) ?></td>
                             <td><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
                             <td>
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-outline-primary p-1 px-2" title="View Ticket Details"><i class="fas fa-eye"></i></a>
+                                <?php if (is_super_admin()): ?>
+                                <form action="<?= base_url('tickets/delete/' . $t['id']) ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete ticket <?= htmlspecialchars($t['ticket_number']) ?>?');">
+                                    <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2 ms-1" title="Delete Ticket">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

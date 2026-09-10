@@ -340,6 +340,22 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------
+-- Table: contacts
+-- ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `contacts` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(150) NOT NULL,
+  `contact_number` VARCHAR(30) NULL,
+  `email` VARCHAR(150) NULL,
+  `organisation_type` ENUM('Client', 'Internal', 'Third Party') NOT NULL DEFAULT 'Client',
+  `remarks` TEXT NULL,
+  `created_by` INT NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------
 -- Table: settings
 -- ----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `settings` (

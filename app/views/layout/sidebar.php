@@ -36,6 +36,9 @@
             </a>
 
             <div class="sidebar-heading">TRACKERS</div>
+            <a href="<?= base_url('contacts') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'contacts')) ? 'active' : '' ?>" title="Contact Manager">
+                <i class="fas fa-address-book"></i> <span>Contact Manager</span>
+            </a>
             <a href="<?= base_url('tracker/input') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tracker/input')) ? 'active' : '' ?>" title="Input Tracker">
                 <i class="fas fa-inbox"></i> <span>Input Tracker</span>
             </a>

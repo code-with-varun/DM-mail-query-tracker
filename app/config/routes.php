@@ -38,6 +38,11 @@ $routes = [
     'employees' => 'Employees/index',
     'employees/create' => 'Employees/create',
 
+    'contacts' => 'Contacts/index',
+    'contacts/store' => 'Contacts/store',
+    'contacts/update' => 'Contacts/update',
+    'contacts/delete' => 'Contacts/delete',
+
     'reports' => 'Reports/index',
     'reports/export' => 'Reports/export_csv',
 

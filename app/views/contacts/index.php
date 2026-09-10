@@ -122,15 +122,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($contacts)): ?>
-                            <tr>
-                                <td colspan="8" class="text-center py-4 text-muted">
-                                    <i class="fas fa-address-book fa-2x mb-2 text-secondary d-block"></i>
-                                    No contacts found. Click "Add New Contact" to create one.
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($contacts as $index => $c): ?>
+                        <?php foreach ($contacts as $index => $c): ?>
                                 <tr>
                                     <td class="text-muted fs-7"><?= $index + 1 ?></td>
                                     <td>
@@ -214,7 +206,6 @@
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
-                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>

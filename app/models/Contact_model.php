@@ -32,6 +32,36 @@ class Contact_model extends Model {
         ", [$id]);
     }
 
+    public function getByEmail(string $email, ?int $excludeId = null): ?array {
+        $email = trim($email);
+        if (empty($email)) return null;
+
+        $sql = "SELECT * FROM contacts WHERE LOWER(email) = LOWER(?)";
+        $params = [$email];
+
+        if ($excludeId !== null) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+
+        return $this->fetchOne($sql, $params);
+    }
+
+    public function getByPhone(string $phone, ?int $excludeId = null): ?array {
+        $phone = trim($phone);
+        if (empty($phone)) return null;
+
+        $sql = "SELECT * FROM contacts WHERE contact_number = ?";
+        $params = [$phone];
+
+        if ($excludeId !== null) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+
+        return $this->fetchOne($sql, $params);
+    }
+
     public function createContact(array $data): int {
         $insertData = [
             'name' => $data['name'],

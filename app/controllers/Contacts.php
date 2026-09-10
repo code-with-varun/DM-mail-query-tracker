@@ -45,6 +45,25 @@ class Contacts extends Controller {
             }
 
             $contactModel = $this->model('Contact_model');
+
+            // Uniqueness Check for Email ID
+            if (!empty($email)) {
+                $existingEmail = $contactModel->getByEmail($email);
+                if ($existingEmail) {
+                    Session::setFlash('danger', "A contact with Email '{$email}' already exists ({$existingEmail['name']}).");
+                    redirect('contacts');
+                }
+            }
+
+            // Uniqueness Check for Contact Number
+            if (!empty($contactNumber)) {
+                $existingPhone = $contactModel->getByPhone($contactNumber);
+                if ($existingPhone) {
+                    Session::setFlash('danger', "A contact with Mobile Number '{$contactNumber}' already exists ({$existingPhone['name']}).");
+                    redirect('contacts');
+                }
+            }
+
             $contactModel->createContact([
                 'name' => $name,
                 'contact_number' => $contactNumber,
@@ -86,6 +105,25 @@ class Contacts extends Controller {
             }
 
             $contactModel = $this->model('Contact_model');
+
+            // Uniqueness Check for Email ID (excluding current ID)
+            if (!empty($email)) {
+                $existingEmail = $contactModel->getByEmail($email, $id);
+                if ($existingEmail) {
+                    Session::setFlash('danger', "Another contact with Email '{$email}' already exists ({$existingEmail['name']}).");
+                    redirect('contacts');
+                }
+            }
+
+            // Uniqueness Check for Contact Number (excluding current ID)
+            if (!empty($contactNumber)) {
+                $existingPhone = $contactModel->getByPhone($contactNumber, $id);
+                if ($existingPhone) {
+                    Session::setFlash('danger', "Another contact with Mobile Number '{$contactNumber}' already exists ({$existingPhone['name']}).");
+                    redirect('contacts');
+                }
+            }
+
             $updated = $contactModel->updateContact($id, [
                 'name' => $name,
                 'contact_number' => $contactNumber,

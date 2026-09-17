@@ -31,10 +31,10 @@
                 <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                 
                 <div class="mb-3">
-                    <label class="form-label fs-7 fw-bold">Username / Email / Employee Code</label>
+                    <label class="form-label fs-7 fw-bold">Employee Code</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-muted"></i></span>
-                        <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="Enter username or email" required autofocus>
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-id-badge text-muted"></i></span>
+                        <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="Enter your Employee Code" required autofocus>
                     </div>
                 </div>
 

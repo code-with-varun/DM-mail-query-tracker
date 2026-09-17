@@ -2,7 +2,6 @@
 <nav class="navbar navbar-expand-lg main-navbar">
     <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center ms-2">
-            <img src="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>" alt="Datamatics" style="height: 26px; max-width: 120px; object-fit: contain;" class="me-2">
             <span class="navbar-brand fw-bold fs-6 text-dark mb-0 ms-1">
                 <?= htmlspecialchars($title ?? APP_NAME) ?>
             </span>

@@ -40,6 +40,36 @@ $(document).ready(function () {
     });
   }
 
+  // Dynamic Activity loader based on selected Division dropdown (Cascading Top-Down Hierarchy)
+  $(document).on('change', '#division_id, select[name="division_id"]', function () {
+    var divisionId = $(this).val();
+    var activitySelect = $('#activity_id, select[name="activity_id"]');
+    var subActivitySelect = $('#sub_activity_id, select[name="sub_activity_id"]');
+    
+    activitySelect.empty().append('<option value="">Loading activities...</option>');
+    subActivitySelect.empty().append('<option value="">Select Activity First</option>');
+
+    $.ajax({
+      url: BASE_URL + '/api/activities',
+      type: 'GET',
+      data: { division_id: divisionId },
+      dataType: 'json',
+      success: function (response) {
+        activitySelect.empty().append('<option value="">Select Parent Activity</option>');
+        if (response.success && response.data.length > 0) {
+          $.each(response.data, function (index, item) {
+            activitySelect.append('<option value="' + item.id + '">' + item.activity_name + '</option>');
+          });
+        } else {
+          activitySelect.append('<option value="">No Activities found for this Division</option>');
+        }
+      },
+      error: function () {
+        activitySelect.empty().append('<option value="">Error loading activities</option>');
+      }
+    });
+  });
+
   // Dynamic Sub-Activity loader based on selected Activity dropdown
   $(document).on('change', '#activity_id', function () {
     var activityId = $(this).val();

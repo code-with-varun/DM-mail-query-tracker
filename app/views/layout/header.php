@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title ?? APP_NAME) ?></title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>">
     <!-- Offline Bundled CSS Assets -->
     <link rel="stylesheet" href="<?= base_url('public/assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('public/assets/css/fontawesome.min.css') ?>">

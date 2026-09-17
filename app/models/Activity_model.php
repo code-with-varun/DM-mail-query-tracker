@@ -14,6 +14,19 @@ class Activity_model extends Model {
         ");
     }
 
+    public function getActivitiesByDivision(?int $divisionId = null): array {
+        if ($divisionId && $divisionId > 0) {
+            return $this->fetchAll("
+                SELECT a.*, d.division_name, d.code as division_code 
+                FROM activities a 
+                LEFT JOIN divisions d ON a.division_id = d.id 
+                WHERE (a.division_id = ? OR a.division_id IS NULL) AND a.status = 'Active' 
+                ORDER BY a.activity_name ASC
+            ", [$divisionId]);
+        }
+        return $this->getActivities();
+    }
+
     public function getSubActivitiesByActivity(int $activityId): array {
         return $this->fetchAll("
             SELECT sa.*, d.division_name, d.code as division_code, u.full_name as default_user_name, u.user_code as default_user_code 

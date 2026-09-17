@@ -2,8 +2,8 @@
 <div id="sidebar-wrapper">
     <div class="sidebar-brand">
         <div class="brand-title-box">
-            <i class="fas fa-mail-bulk text-primary fs-5 flex-shrink-0"></i>
-            <span class="brand-text">Mail Query Tracker</span>
+            <img src="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>" alt="Datamatics" class="brand-logo-img me-1" style="height: 30px; max-width: 130px; object-fit: contain; filter: brightness(0) invert(1);">
+            <span class="brand-text fs-7 fw-bold text-white">Mail Query Tracker</span>
         </div>
         <!-- Hamburger Collapse Toggle Button on Sidebar Top -->
         <button class="btn btn-sm text-secondary border-0 p-1 ms-auto flex-shrink-0" id="sidebarToggle" type="button" title="Toggle Sidebar Collapse">

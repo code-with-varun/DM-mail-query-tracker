@@ -48,6 +48,7 @@ $routes = [
 
     'audit' => 'Audit/index',
 
+    'api/activities' => 'Api/get_activities',
     'api/sub-activities' => 'Api/get_sub_activities',
     'api/notifications' => 'Api/get_notifications',
     'api/mark-notification-read' => 'Api/mark_read',

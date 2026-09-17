@@ -4,6 +4,14 @@
  */
 
 class Api extends Controller {
+    public function get_activities() {
+        $divisionId = (int)($_GET['division_id'] ?? 0);
+        $activityModel = $this->model('Activity_model');
+        $activities = $activityModel->getActivitiesByDivision($divisionId);
+        
+        $this->json(['success' => true, 'data' => $activities]);
+    }
+
     public function get_sub_activities() {
         $activityId = (int)($_GET['activity_id'] ?? 0);
         if (!$activityId) {

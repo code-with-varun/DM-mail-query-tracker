@@ -4,17 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Mail Query Tracker</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>">
     <link rel="stylesheet" href="<?= base_url('public/assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('public/assets/css/fontawesome.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('public/assets/css/admin-style.css') ?>">
 </head>
 <body class="login-page">
     <div class="login-card card bg-white">
-        <div class="card-header">
-            <div class="brand-logo">
-                <i class="fas fa-mail-bulk"></i>
+        <div class="card-header text-center">
+            <div class="brand-logo-container mb-2">
+                <img src="<?= base_url('public/assets/logo/datamatics.png') ?>" alt="Datamatics" style="max-height: 50px; max-width: 220px; object-fit: contain;">
             </div>
-            <h4 class="fw-bold mb-1">Mail Query Tracker</h4>
+            <h4 class="fw-bold mb-1 text-dark">Mail Query Tracker</h4>
             <p class="text-muted fs-7 mb-0">Enterprise Internal Portal Sign In</p>
         </div>
         <div class="card-body p-4 pt-2">

@@ -92,7 +92,7 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label fs-7 fw-bold">Division</label>
-                        <select name="division_id" class="form-select">
+                        <select name="division_id" id="division_id" class="form-select">
                             <option value="">Select Division</option>
                             <?php foreach ($divisions as $d): ?>
                                 <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>

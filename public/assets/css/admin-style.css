@@ -1,20 +1,20 @@
-/* Mail Query Tracker (MQT) - Corporate AdminLTE Custom CSS */
+/* Mail Query Tracker (MQT) - Datamatics Corporate Red, White & Graphite CSS Theme */
 :root {
-  --mqt-primary: #1e3a8a;
-  --mqt-primary-hover: #1e40af;
-  --mqt-secondary: #0f172a;
-  --mqt-accent: #3b82f6;
-  --mqt-bg-light: #f8fafc;
-  --mqt-sidebar-bg: #1e293b;
-  --mqt-sidebar-text: #94a3b8;
-  --mqt-sidebar-active: #ffffff;
+  --mqt-primary: #E31B23;
+  --mqt-primary-hover: #C6151C;
+  --mqt-secondary: #1C2026;
+  --mqt-accent: #E31B23;
+  --mqt-bg-light: #F4F6F9;
+  --mqt-sidebar-bg: #1C2026;
+  --mqt-sidebar-text: #9CA3AF;
+  --mqt-sidebar-active: #FFFFFF;
   --mqt-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background-color: #f1f5f9;
-  color: #334155;
+  background-color: #F4F6F9;
+  color: #2D3748;
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
@@ -38,7 +38,7 @@ body {
   top: 0;
   left: 0;
   z-index: 1040;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.15);
+  box-shadow: 2px 0 12px rgba(0,0,0,0.25);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -50,26 +50,26 @@ body {
   width: 5px;
 }
 #sidebar-wrapper::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.15);
 }
 #sidebar-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 #sidebar-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(227, 27, 35, 0.6);
 }
 
 #sidebar-wrapper .sidebar-brand {
-  padding: 1.25rem 1rem;
+  padding: 1.1rem 1rem;
   font-size: 1.15rem;
   font-weight: 700;
   color: #ffffff;
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: #12151A;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 2px solid #E31B23;
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -83,7 +83,7 @@ body {
 }
 
 #sidebar-wrapper .sidebar-brand #sidebarToggle {
-  color: #94a3b8;
+  color: #9CA3AF;
   border-radius: 6px;
   transition: all 0.2s ease;
 }
@@ -122,8 +122,8 @@ body {
 #sidebar-wrapper .nav-link:hover,
 #sidebar-wrapper .nav-link.active {
   color: var(--mqt-sidebar-active);
-  background-color: rgba(255, 255, 255, 0.08);
-  border-left-color: var(--mqt-accent);
+  background-color: rgba(227, 27, 35, 0.15);
+  border-left-color: #E31B23;
 }
 
 #sidebar-wrapper .sidebar-heading {
@@ -132,7 +132,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #64748b;
+  color: #6B7280;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -143,7 +143,7 @@ body {
   width: calc(100% - 260px);
   min-height: 100vh;
   display: block;
-  background-color: #f1f5f9;
+  background-color: #F4F6F9;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -165,7 +165,7 @@ body {
 
 #wrapper.collapsed #sidebar-wrapper .sidebar-brand {
   justify-content: center;
-  padding: 1.25rem 0;
+  padding: 1.1rem 0;
 }
 
 #wrapper.collapsed #sidebar-wrapper .sidebar-brand #sidebarToggle {
@@ -197,23 +197,19 @@ body {
 /* Top Navbar Styling */
 .main-navbar {
   background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 2px solid #E31B23;
   padding: 0.75rem 1.75rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   position: sticky;
   top: 0;
   z-index: 1020;
-}
-
-.main-navbar .navbar-brand {
-  margin-left: 0.5rem;
 }
 
 .main-navbar .user-avatar {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background-color: var(--mqt-primary);
+  background-color: #E31B23;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -222,7 +218,61 @@ body {
   font-size: 0.95rem;
 }
 
-/* Floating Toaster Toast Notifications */
+/* Datamatics Red Brand Component Overrides */
+.btn-primary {
+  background-color: #E31B23 !important;
+  border-color: #E31B23 !important;
+  color: #FFFFFF !important;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: #C6151C !important;
+  border-color: #C6151C !important;
+  color: #FFFFFF !important;
+}
+
+.btn-outline-primary {
+  color: #E31B23 !important;
+  border-color: #E31B23 !important;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:active {
+  background-color: #E31B23 !important;
+  border-color: #E31B23 !important;
+  color: #FFFFFF !important;
+}
+
+.text-primary {
+  color: #E31B23 !important;
+}
+
+.bg-primary {
+  background-color: #E31B23 !important;
+}
+
+.border-primary {
+  border-color: #E31B23 !important;
+}
+
+.badge.bg-primary {
+  background-color: #E31B23 !important;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #E31B23 !important;
+}
+
+.page-item.active .page-link {
+  background-color: #E31B23 !important;
+  border-color: #E31B23 !important;
+}
+
+.form-check-input:checked {
+  background-color: #E31B23 !important;
+  border-color: #E31B23 !important;
+}
+
+/* Floating Toaster Notifications */
 .toast-container-mqt {
   position: fixed;
   top: 1.25rem;
@@ -333,9 +383,9 @@ body {
   border-radius: 50%;
 }
 
-/* Login Page Styling */
+/* Login Page Styling - Datamatics Dark Graphite & Red Accent */
 .login-page {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  background: linear-gradient(135deg, #12151A 0%, #1C2026 60%, #E31B23 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -348,7 +398,7 @@ body {
   max-width: 440px;
   border-radius: 16px;
   border: none;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
 }
 
 .login-card .card-header {
@@ -361,7 +411,7 @@ body {
 .login-card .brand-logo {
   width: 60px;
   height: 60px;
-  background-color: var(--mqt-accent);
+  background-color: #E31B23;
   color: #ffffff;
   border-radius: 14px;
   display: inline-flex;
@@ -369,7 +419,7 @@ body {
   justify-content: center;
   font-size: 1.8rem;
   margin-bottom: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 10px 15px -3px rgba(227, 27, 35, 0.4);
 }
 
 /* Responsive Footer */

@@ -418,7 +418,7 @@ a:hover {
 
 /* Login Page Styling - Datamatics Dark Graphite & Red Accent */
 .login-page {
-  background: linear-gradient(135deg, #12151A 0%, #1C2026 60%, #E31B23 100%);
+  background: linear-gradient(135deg, #111418 0%, #1A1F26 50%, #900B10 100%) !important;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -430,9 +430,10 @@ a:hover {
   width: 100%;
   max-width: 440px;
   border-radius: 16px;
-  border: none;
-  border-top: 4px solid #E31B23 !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  border: none !important;
+  border-top: 5px solid #E31B23 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background-color: #FFFFFF !important;
 }
 
 .login-card .card-header {
@@ -454,6 +455,31 @@ a:hover {
   font-size: 1.8rem;
   margin-bottom: 1rem;
   box-shadow: 0 10px 15px -3px rgba(227, 27, 35, 0.4);
+}
+
+.login-card .form-control:focus {
+  border-color: #E31B23 !important;
+  box-shadow: 0 0 0 0.25rem rgba(227, 27, 35, 0.25) !important;
+}
+
+.login-card .input-group:focus-within .input-group-text {
+  color: #E31B23 !important;
+  border-color: #E31B23 !important;
+}
+
+.login-card .btn-primary {
+  background-color: #E31B23 !important;
+  border-color: #E31B23 !important;
+  color: #FFFFFF !important;
+}
+
+.login-card .btn-primary:hover,
+.login-card .btn-primary:focus,
+.login-card .btn-primary:active {
+  background-color: #C6151C !important;
+  border-color: #C6151C !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 0 0.25rem rgba(227, 27, 35, 0.4) !important;
 }
 
 /* Responsive Footer */

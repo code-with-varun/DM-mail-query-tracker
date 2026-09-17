@@ -1,8 +1,8 @@
 <!-- Sidebar -->
 <div id="sidebar-wrapper">
     <div class="sidebar-brand">
-        <div class="brand-title-box">
-            <img src="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>" alt="Datamatics" class="brand-logo-img me-1" style="height: 30px; max-width: 130px; object-fit: contain; filter: brightness(0) invert(1);">
+        <div class="brand-title-box d-flex align-items-center gap-2">
+            <img src="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>" alt="Datamatics" class="brand-logo-img" style="height: 32px; width: 32px; object-fit: contain;">
             <span class="brand-text fs-7 fw-bold text-white">Mail Query Tracker</span>
         </div>
         <!-- Hamburger Collapse Toggle Button on Sidebar Top -->

@@ -7,10 +7,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>">
     <!-- Offline Bundled CSS Assets -->
-    <link rel="stylesheet" href="<?= base_url('public/assets/css/bootstrap.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('public/assets/css/fontawesome.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('public/assets/css/dataTables.bootstrap5.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('public/assets/css/admin-style.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('public/assets/css/bootstrap.min.css?v=2.2') ?>">
+    <link rel="stylesheet" href="<?= base_url('public/assets/css/fontawesome.min.css?v=2.2') ?>">
+    <link rel="stylesheet" href="<?= base_url('public/assets/css/dataTables.bootstrap5.css?v=2.2') ?>">
+    <link rel="stylesheet" href="<?= base_url('public/assets/css/admin-style.css?v=' . time()) ?>">
     <script>
         const BASE_URL = "<?= base_url() ?>";
     </script>

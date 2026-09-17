@@ -43,6 +43,14 @@ $routes = [
     'contacts/update' => 'Contacts/update',
     'contacts/delete' => 'Contacts/delete',
 
+    'error-tracker' => 'Errortracker/index',
+    'error-tracker/store' => 'Errortracker/store',
+    'error-tracker/update' => 'Errortracker/update',
+    'error-tracker/delete' => 'Errortracker/delete',
+    'error-tracker/export' => 'Errortracker/export_csv',
+    'error-tracker/import' => 'Errortracker/import',
+    'error-tracker/sample-template' => 'Errortracker/download_template',
+
     'reports' => 'Reports/index',
     'reports/export' => 'Reports/export_csv',
 

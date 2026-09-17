@@ -356,6 +356,27 @@ CREATE TABLE IF NOT EXISTS `contacts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------------------
+-- Table: error_tracker
+-- ----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `error_tracker` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `billing_month` DATE NOT NULL,
+  `checking_month` DATE NOT NULL,
+  `error_observation` VARCHAR(255) NOT NULL,
+  `error_description` TEXT NULL,
+  `resolution_solution` TEXT NULL,
+  `error_type` ENUM('Internal', 'External') NOT NULL DEFAULT 'Internal',
+  `maker_id` INT NULL,
+  `checker_id` INT NULL,
+  `created_by` INT NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`maker_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`checker_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------------------
 -- Table: settings
 -- ----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `settings` (

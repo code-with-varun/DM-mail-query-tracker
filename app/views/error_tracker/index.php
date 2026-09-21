@@ -89,74 +89,74 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 datatable">
-                    <thead class="table-light">
+                    <thead class="table-light align-middle text-nowrap">
                         <tr>
-                            <th style="width: 50px;">#</th>
-                            <th>Billing Month</th>
-                            <th>Checking Month</th>
-                            <th>Error Observation</th>
-                            <th>Error Type</th>
-                            <th>Maker</th>
-                            <th>Checker</th>
-                            <th>Resolution / Solution</th>
-                            <th style="width: 90px;" class="text-end">Actions</th>
+                            <th class="text-center" style="width: 45px;">#</th>
+                            <th style="min-width: 130px;">Billing Month</th>
+                            <th style="min-width: 130px;">Checking Month</th>
+                            <th style="min-width: 250px;">Error Observation</th>
+                            <th style="min-width: 110px;">Error Type</th>
+                            <th style="min-width: 140px;">Maker</th>
+                            <th style="min-width: 140px;">Checker</th>
+                            <th style="min-width: 260px;">Resolution / Solution</th>
+                            <th style="min-width: 90px;" class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($errors as $index => $err): ?>
                             <tr>
-                                <td class="text-muted fs-7"><?= $index + 1 ?></td>
-                                <td>
+                                <td class="text-center text-muted fs-7 fw-semibold"><?= $index + 1 ?></td>
+                                <td class="text-nowrap">
                                     <span class="badge bg-light text-dark border fw-bold px-2 py-1">
                                         <i class="far fa-calendar-alt me-1 text-primary"></i>
                                         <?= date('M Y', strtotime($err['billing_month'])) ?> (01)
                                     </span>
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
                                     <span class="badge bg-light text-dark border px-2 py-1">
                                         <i class="far fa-calendar-check me-1 text-secondary"></i>
                                         <?= date('M Y', strtotime($err['checking_month'])) ?> (01)
                                     </span>
                                 </td>
-                                <td>
-                                    <span class="fw-bold text-dark d-block"><?= htmlspecialchars($err['error_observation']) ?></span>
+                                <td style="min-width: 250px; max-width: 360px; white-space: normal;">
+                                    <span class="fw-bold text-dark d-block text-wrap mb-1"><?= htmlspecialchars($err['error_observation']) ?></span>
                                     <?php if (!empty($err['error_description'])): ?>
-                                        <small class="text-muted fs-8 d-block text-truncate" style="max-width: 250px;" title="<?= htmlspecialchars($err['error_description']) ?>">
+                                        <small class="text-muted fs-8 d-block text-wrap" title="<?= htmlspecialchars($err['error_description']) ?>">
                                             <?= htmlspecialchars($err['error_description']) ?>
                                         </small>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
                                     <?php if ($err['error_type'] === 'Internal'): ?>
                                         <span class="badge bg-warning bg-opacity-10 text-warning-dark border border-warning text-dark px-2 py-1"><i class="fas fa-building me-1"></i>Internal</span>
                                     <?php else: ?>
                                         <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2 py-1"><i class="fas fa-globe me-1"></i>External</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
                                     <?php if (!empty($err['maker_name'])): ?>
                                         <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-edit me-1 text-secondary"></i><?= htmlspecialchars($err['maker_name']) ?></span>
                                     <?php else: ?>
                                         <span class="text-muted fs-8">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
                                     <?php if (!empty($err['checker_name'])): ?>
                                         <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-check me-1 text-secondary"></i><?= htmlspecialchars($err['checker_name']) ?></span>
                                     <?php else: ?>
                                         <span class="text-muted fs-8">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td style="min-width: 260px; max-width: 360px; white-space: normal;">
                                     <?php if (!empty($err['resolution_solution'])): ?>
-                                        <span class="text-success fs-8 fw-semibold d-inline-block text-truncate" style="max-width: 220px;" title="<?= htmlspecialchars($err['resolution_solution']) ?>">
+                                        <span class="text-success fs-8 fw-semibold d-block text-wrap">
                                             <i class="fas fa-check-circle me-1"></i><?= htmlspecialchars($err['resolution_solution']) ?>
                                         </span>
                                     <?php else: ?>
-                                        <span class="text-muted fs-8"><i class="fas fa-clock me-1 text-warning"></i>Pending Resolution</span>
+                                        <span class="text-muted fs-8 text-nowrap"><i class="fas fa-clock me-1 text-warning"></i>Pending Resolution</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
                                     <div class="btn-group btn-group-sm">
                                         <!-- Edit Action (Accessible to anyone) -->
                                         <button type="button" class="btn btn-outline-primary btn-edit-error"

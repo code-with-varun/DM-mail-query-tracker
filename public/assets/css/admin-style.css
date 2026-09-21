@@ -197,7 +197,7 @@ body {
 /* Top Navbar Styling */
 .main-navbar {
   background-color: #ffffff;
-  border-bottom: 2px solid #E31B23;
+  border-bottom: 1px solid #e2e8f0;
   padding: 0.75rem 1.75rem;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   position: sticky;
@@ -209,7 +209,7 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background-color: #E31B23;
+  background-color: #1C2026;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -218,92 +218,8 @@ body {
   font-size: 0.95rem;
 }
 
-/* Datamatics Red Brand Component Overrides */
-a {
-  color: #E31B23;
-  text-decoration: none;
-}
-a:hover {
-  color: #C6151C;
-}
+/* Section & Panel Component Styling - Default Bootstrap Theme */
 
-.btn-primary {
-  background-color: #E31B23 !important;
-  border-color: #E31B23 !important;
-  color: #FFFFFF !important;
-}
-
-.btn-primary:hover, .btn-primary:focus, .btn-primary:active, .btn-primary.active, .show > .btn-primary.dropdown-toggle {
-  background-color: #C6151C !important;
-  border-color: #C6151C !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 0 0 0.25rem rgba(227, 27, 35, 0.3) !important;
-}
-
-.btn-outline-primary {
-  color: #E31B23 !important;
-  border-color: #E31B23 !important;
-}
-
-.btn-outline-primary:hover, .btn-outline-primary:active, .btn-outline-primary:focus, .btn-outline-primary.active {
-  background-color: #E31B23 !important;
-  border-color: #E31B23 !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 0 0 0.25rem rgba(227, 27, 35, 0.3) !important;
-}
-
-.text-primary {
-  color: #E31B23 !important;
-}
-
-.bg-primary {
-  background-color: #E31B23 !important;
-}
-
-.border-primary {
-  border-color: #E31B23 !important;
-}
-
-.badge.bg-primary {
-  background-color: #E31B23 !important;
-}
-
-.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-  background-color: #E31B23 !important;
-}
-
-.page-item.active .page-link {
-  background-color: #E31B23 !important;
-  border-color: #E31B23 !important;
-  color: #ffffff !important;
-}
-
-.page-link {
-  color: #E31B23 !important;
-}
-
-.page-link:hover {
-  color: #C6151C !important;
-}
-
-.form-control:focus, .form-select:focus {
-  border-color: #E31B23 !important;
-  box-shadow: 0 0 0 0.25rem rgba(227, 27, 35, 0.25) !important;
-}
-
-.form-check-input:checked {
-  background-color: #E31B23 !important;
-  border-color: #E31B23 !important;
-}
-
-.form-check-input:focus {
-  border-color: #E31B23 !important;
-  box-shadow: 0 0 0 0.25rem rgba(227, 27, 35, 0.25) !important;
-}
-
-.dropdown-item.active, .dropdown-item:active {
-  background-color: #E31B23 !important;
-}
 
 /* Floating Toaster Notifications */
 .toast-container-mqt {

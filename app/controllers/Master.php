@@ -123,6 +123,12 @@ class Master extends Controller {
             redirect('master/divisions');
         }
 
+        $this->render('master/divisions', [
+            'title' => 'Divisions Master',
+            'divisions' => $activityModel->getDivisions()
+        ]);
+    }
+
     public function subactivities() {
         $this->requireAuth();
         $this->requireRole([1]);

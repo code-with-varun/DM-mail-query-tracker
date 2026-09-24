@@ -71,9 +71,9 @@
                     <tbody>
                         <?php foreach ($performance as $p): ?>
                         <?php 
-                            $compliance = ($p['completed_count'] > 0) 
-                                ? round(($p['within_sla_count'] / $p['completed_count']) * 100, 1) 
-                                : 100;
+                            $total = intval($p['total_assigned']);
+                            $overdue = intval($p['overdue_count']);
+                            $compliance = ($total > 0) ? max(0, round((($total - $overdue) / $total) * 100, 1)) : 100;
                         ?>
                         <tr>
                             <td class="fw-bold text-primary"><?= htmlspecialchars($p['user_code']) ?></td>

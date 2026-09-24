@@ -11,7 +11,7 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 datatable">
-                    <thead class="table-light">
+                    <thead class="table-light align-middle text-nowrap">
                         <tr>
                             <th>Ticket #</th>
                             <th>Task Title</th>
@@ -20,28 +20,34 @@
                             <th>Assigned By</th>
                             <th>Due Date</th>
                             <th>Status</th>
-                            <th>Action</th>
+                            <th class="text-end text-nowrap" style="width: 90px;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($tasks as $task): ?>
+                        <?php 
+                            $statusDisplay = $task['ticket_status'];
+                            if ($statusDisplay === 'New' && !empty($task['allocated_user_name']) && $task['allocated_user_name'] !== 'Unassigned') {
+                                $statusDisplay = 'Assigned';
+                            }
+                        ?>
                         <tr>
-                            <td class="fw-bold text-primary"><?= htmlspecialchars($task['ticket_number']) ?></td>
+                            <td class="fw-bold text-primary text-nowrap"><?= htmlspecialchars($task['ticket_number']) ?></td>
                             <td>
                                 <div class="fw-bold fs-7"><?= htmlspecialchars($task['task_title']) ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($task['description']) ?></small>
                             </td>
-                            <td>
+                            <td class="text-nowrap">
                                 <span class="badge bg-<?= $task['priority'] === 'Critical' ? 'danger' : ($task['priority'] === 'High' ? 'warning text-dark' : 'secondary') ?>">
                                     <?= $task['priority'] ?>
                                 </span>
                             </td>
-                            <td><?= htmlspecialchars($task['allocated_user_name'] ?? 'Unassigned') ?></td>
-                            <td><?= htmlspecialchars($task['creator_name'] ?? 'System') ?></td>
-                            <td class="fs-8"><?= format_datetime($task['due_date']) ?></td>
-                            <td><?= get_status_badge($task['ticket_status']) ?></td>
-                            <td>
-                                <a href="<?= base_url('tickets/view/' . $task['ticket_id']) ?>" class="btn btn-sm btn-light border"><i class="fas fa-eye text-primary"></i> View</a>
+                            <td class="text-nowrap"><?= htmlspecialchars($task['allocated_user_name'] ?? 'Unassigned') ?></td>
+                            <td class="text-nowrap"><?= htmlspecialchars($task['creator_name'] ?? 'System') ?></td>
+                            <td class="fs-8 text-nowrap"><?= format_datetime($task['due_date']) ?></td>
+                            <td class="text-nowrap"><?= get_status_badge($statusDisplay) ?></td>
+                            <td class="text-end text-nowrap">
+                                <a href="<?= base_url('tickets/view/' . $task['ticket_id']) ?>" class="btn btn-sm btn-outline-primary fw-bold p-1 px-2" title="View Task Details"><i class="fas fa-eye me-1"></i>View</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>

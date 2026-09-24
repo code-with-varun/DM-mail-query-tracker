@@ -172,4 +172,106 @@ class Contacts extends Controller {
 
         redirect('contacts');
     }
+
+    /**
+     * Download CSV Template for Contact Bulk Import
+     */
+    public function download_template() {
+        $this->requireAuth();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=MQT_Contact_Import_Template.csv');
+
+        $output = fopen('php://output', 'w');
+        fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($output, ['Contact Name', 'Organisation Type', 'Contact Number', 'Email Address', 'Remark Notes']);
+        fputcsv($output, ['John Doe', 'Client', '+91 9876543210', 'john.doe@client.com', 'Key billing contact']);
+        fputcsv($output, ['Jane Smith', 'Third Party', '+91 9123456789', 'jane.smith@vendor.com', 'Audit consultant']);
+
+        fclose($output);
+        exit();
+    }
+
+    /**
+     * Bulk Contact CSV Import Engine
+     */
+    public function import() {
+        $this->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('contacts');
+            }
+
+            if (empty($_FILES['import_file']['tmp_name'])) {
+                Session::setFlash('danger', 'Please select a CSV file to upload.');
+                redirect('contacts');
+            }
+
+            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
+            if (!$handle) {
+                Session::setFlash('danger', 'Failed to read uploaded file.');
+                redirect('contacts');
+            }
+
+            $bom = fread($handle, 3);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+
+            $header = fgetcsv($handle);
+            $contactModel = $this->model('Contact_model');
+            $importedCount = 0;
+            $skippedCount = 0;
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (empty(array_filter($row))) continue;
+
+                $name = sanitize($row[0] ?? '');
+                $orgType = sanitize($row[1] ?? 'Client');
+                $phone = sanitize($row[2] ?? '');
+                $email = sanitize($row[3] ?? '');
+                $remarks = sanitize($row[4] ?? '');
+
+                if (empty($name)) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                if (!in_array($orgType, ['Client', 'Internal', 'Third Party'])) {
+                    $orgType = 'Client';
+                }
+
+                // Skip if duplicate email or phone exists
+                if (!empty($email) && $contactModel->getByEmail($email)) {
+                    $skippedCount++;
+                    continue;
+                }
+                if (!empty($phone) && $contactModel->getByPhone($phone)) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                try {
+                    $contactModel->createContact([
+                        'name' => $name,
+                        'organisation_type' => $orgType,
+                        'contact_number' => $phone,
+                        'email' => $email,
+                        'remarks' => $remarks,
+                        'created_by' => Session::get('user_id')
+                    ]);
+                    $importedCount++;
+                } catch (\Exception $e) {
+                    $skippedCount++;
+                }
+            }
+
+            fclose($handle);
+            Session::setFlash('success', "Bulk Contact Import Complete: Successfully imported {$importedCount} contacts" . ($skippedCount > 0 ? " ({$skippedCount} skipped/duplicates)." : "."));
+        }
+
+        redirect('contacts');
+    }
 }

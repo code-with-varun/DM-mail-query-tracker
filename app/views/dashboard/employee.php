@@ -57,6 +57,31 @@
         </div>
     </div>
 
+    <!-- Interactive Charts Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-pie text-primary me-2"></i>My Work Breakdown</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-3">
+                    <canvas id="empStatusChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-line text-success me-2"></i>Monthly Work Trend</h6>
+                </div>
+                <div class="card-body p-3">
+                    <canvas id="empTrendChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- My Tickets Table -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
@@ -99,3 +124,51 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusData = <?= json_encode($status_breakdown ?? []) ?>;
+    const statusLabels = statusData.map(item => item.status);
+    const statusCounts = statusData.map(item => item.count);
+    
+    new Chart(document.getElementById('empStatusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels.length ? statusLabels : ['No Data'],
+            datasets: [{
+                data: statusCounts.length ? statusCounts : [1],
+                backgroundColor: ['#0d6efd', '#6610f2', '#ffc107', '#fd7e14', '#dc3545', '#198754', '#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    const trendData = <?= json_encode($monthly_trend ?? []) ?>;
+    const trendLabels = trendData.map(item => item.month_name);
+    const trendCounts = trendData.map(item => item.count);
+
+    new Chart(document.getElementById('empTrendChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels.length ? trendLabels : ['Current Month'],
+            datasets: [{
+                label: 'Assigned Work',
+                data: trendCounts.length ? trendCounts : [0],
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+});
+</script>

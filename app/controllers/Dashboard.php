@@ -32,6 +32,9 @@ class Dashboard extends Controller {
         $data['title'] = 'Dashboard - ' . Session::get('role_name');
         $data['stats'] = $stats;
         $data['recent_tickets'] = $recentTickets;
+        $data['status_breakdown'] = $ticketModel->getStatusBreakdown($userId, $roleId);
+        $data['division_breakdown'] = $ticketModel->getDivisionBreakdown($userId, $roleId);
+        $data['monthly_trend'] = $ticketModel->getMonthlyTrend($userId, $roleId);
 
         $this->render("dashboard/{$viewName}", $data);
     }

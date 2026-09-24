@@ -123,10 +123,106 @@ class Master extends Controller {
             redirect('master/divisions');
         }
 
+    public function subactivities() {
+        $this->requireAuth();
+        $this->requireRole([1]);
+
+        $activityModel = $this->model('Activity_model');
+        $userModel = $this->model('User_model');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('master/subactivities');
+            }
+
+            $action = $_POST['action'] ?? 'save';
+            $id = (int)($_POST['id'] ?? 0);
+
+            if ($action === 'delete' && $id > 0) {
+                $activityModel->delete('sub_activities', "id = ?", [$id]);
+                Session::setFlash('success', 'Sub-activity deleted successfully.');
+                redirect('master/subactivities');
+            }
+
+            $actId = (int)($_POST['activity_id'] ?? 0);
+            $subName = sanitize($_POST['sub_activity_name'] ?? '');
+            $tat = (int)($_POST['default_tat_hours'] ?? 24);
+            $divId = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
+            $defaultUserId = !empty($_POST['default_user_id']) ? (int)$_POST['default_user_id'] : null;
+
+            if ($actId && !empty($subName)) {
+                if ($id > 0) {
+                    $activityModel->update('sub_activities', [
+                        'activity_id' => $actId,
+                        'division_id' => $divId,
+                        'sub_activity_name' => $subName,
+                        'default_tat_hours' => $tat,
+                        'default_user_id' => $defaultUserId
+                    ], "id = ?", [$id]);
+                    Session::setFlash('success', 'Sub-activity updated successfully.');
+                } else {
+                    $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId);
+                    Session::setFlash('success', 'Sub-activity created successfully.');
+                }
+            }
+            redirect('master/subactivities');
+        }
+
+        $allSubActivities = $activityModel->getAllSubActivitiesWithHierarchy();
+        $activities = $activityModel->getActivities();
         $divisions = $activityModel->getDivisions();
-        $this->render('master/divisions', [
-            'title' => 'Divisions Master',
-            'divisions' => $divisions
+        $employees = $userModel->getEmployees();
+
+        $this->render('master/subactivities', [
+            'title' => 'Sub-activities Master',
+            'subActivities' => $allSubActivities,
+            'activities' => $activities,
+            'divisions' => $divisions,
+            'employees' => $employees
+        ]);
+    }
+
+    public function categories() {
+        $this->requireAuth();
+        $this->requireRole([1]);
+
+        $categoryModel = $this->model('Category_model');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('master/categories');
+            }
+
+            $action = $_POST['action'] ?? 'save';
+            $id = (int)($_POST['id'] ?? 0);
+
+            if ($action === 'delete' && $id > 0) {
+                $categoryModel->deleteCategory($id);
+                Session::setFlash('success', 'Category deleted successfully.');
+                redirect('master/categories');
+            }
+
+            $name = sanitize($_POST['category_name'] ?? '');
+            $status = sanitize($_POST['status'] ?? 'Active');
+
+            if (!empty($name)) {
+                if ($id > 0) {
+                    $categoryModel->updateCategory($id, $name, $status);
+                    Session::setFlash('success', 'Category updated successfully.');
+                } else {
+                    $categoryModel->createCategory($name, $status);
+                    Session::setFlash('success', 'Category created successfully.');
+                }
+            }
+            redirect('master/categories');
+        }
+
+        $categories = $categoryModel->getAllCategories();
+        $this->render('master/categories', [
+            'title' => 'Ticket Categories Master',
+            'categories' => $categories
         ]);
     }
 

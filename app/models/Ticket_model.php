@@ -245,6 +245,62 @@ class Ticket_model extends Model {
         ];
     }
 
+    public function getStatusBreakdown(?int $userId = null, ?int $roleId = null): array {
+        $where = " WHERE 1=1";
+        $params = [];
+        if ($roleId == 3 && $userId) {
+            $where .= " AND (allocated_to = ? OR created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($roleId == 2 && $userId) {
+            $where .= " AND (allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+        $sql = "SELECT status, COUNT(*) as count FROM tickets {$where} GROUP BY status";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getDivisionBreakdown(?int $userId = null, ?int $roleId = null): array {
+        $where = " WHERE 1=1";
+        $params = [];
+        if ($roleId == 3 && $userId) {
+            $where .= " AND (t.allocated_to = ? OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($roleId == 2 && $userId) {
+            $where .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+        $sql = "SELECT COALESCE(d.division_name, 'Unassigned') as division_name, COUNT(t.id) as count 
+                FROM tickets t 
+                LEFT JOIN divisions d ON t.division_id = d.id 
+                {$where} GROUP BY d.division_name";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getMonthlyTrend(?int $userId = null, ?int $roleId = null): array {
+        $where = " WHERE YEAR(t.created_at) = YEAR(CURRENT_DATE())";
+        $params = [];
+        if ($roleId == 3 && $userId) {
+            $where .= " AND (t.allocated_to = ? OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($roleId == 2 && $userId) {
+            $where .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+        $sql = "SELECT DATE_FORMAT(t.created_at, '%b') as month_name, MONTH(t.created_at) as month_num, COUNT(t.id) as count 
+                FROM tickets t 
+                {$where} GROUP BY month_name, month_num ORDER BY month_num ASC";
+        return $this->fetchAll($sql, $params);
+    }
+
     public function createNotification(int $userId, string $title, string $message, ?string $link = null): int {
         return $this->insert('notifications', [
             'user_id' => $userId,

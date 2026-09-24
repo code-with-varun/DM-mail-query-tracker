@@ -57,6 +57,31 @@
         </div>
     </div>
 
+    <!-- Interactive Charts Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-pie text-warning me-2"></i>Team Ticket Status Breakdown</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-3">
+                    <canvas id="adminStatusChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Division Distribution</h6>
+                </div>
+                <div class="card-body p-3">
+                    <canvas id="adminDivisionChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Team Tickets List -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
@@ -101,3 +126,49 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusData = <?= json_encode($status_breakdown ?? []) ?>;
+    const statusLabels = statusData.map(item => item.status);
+    const statusCounts = statusData.map(item => item.count);
+    
+    new Chart(document.getElementById('adminStatusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels.length ? statusLabels : ['No Data'],
+            datasets: [{
+                data: statusCounts.length ? statusCounts : [1],
+                backgroundColor: ['#0d6efd', '#6610f2', '#ffc107', '#fd7e14', '#dc3545', '#198754', '#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    const divisionData = <?= json_encode($division_breakdown ?? []) ?>;
+    const divLabels = divisionData.map(item => item.division_name);
+    const divCounts = divisionData.map(item => item.count);
+
+    new Chart(document.getElementById('adminDivisionChart'), {
+        type: 'bar',
+        data: {
+            labels: divLabels.length ? divLabels : ['General'],
+            datasets: [{
+                label: 'Tickets',
+                data: divCounts.length ? divCounts : [0],
+                backgroundColor: '#0d6efd',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+});
+</script>

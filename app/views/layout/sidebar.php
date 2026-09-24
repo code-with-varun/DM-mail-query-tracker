@@ -61,8 +61,14 @@
 
             <?php if (is_super_admin()): ?>
             <div class="sidebar-heading">ADMINISTRATION</div>
-            <a href="<?= base_url('master/activities') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'master/activities')) ? 'active' : '' ?>" title="Activities Master">
+            <a href="<?= base_url('master/activities') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'master/activities') && !str_contains($_SERVER['REQUEST_URI'], 'subactivities')) ? 'active' : '' ?>" title="Activities Master">
                 <i class="fas fa-sitemap"></i> <span>Activities Master</span>
+            </a>
+            <a href="<?= base_url('master/subactivities') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'master/subactivities')) ? 'active' : '' ?>" title="Sub-Activities Master">
+                <i class="fas fa-list-ol"></i> <span>Sub-Activities Master</span>
+            </a>
+            <a href="<?= base_url('master/categories') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'master/categories')) ? 'active' : '' ?>" title="Category Master">
+                <i class="fas fa-tags"></i> <span>Category Master</span>
             </a>
             <a href="<?= base_url('master/divisions') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'master/divisions')) ? 'active' : '' ?>" title="Divisions Master">
                 <i class="fas fa-building"></i> <span>Divisions Master</span>

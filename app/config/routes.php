@@ -33,7 +33,9 @@ $routes = [
     'tracker/delivery' => 'Tracker/delivery',
 
     'master/activities' => 'Master/activities',
+    'master/subactivities' => 'Master/subactivities',
     'master/divisions' => 'Master/divisions',
+    'master/categories' => 'Master/categories',
 
     'employees' => 'Employees/index',
     'employees/create' => 'Employees/create',
@@ -42,6 +44,8 @@ $routes = [
     'contacts/store' => 'Contacts/store',
     'contacts/update' => 'Contacts/update',
     'contacts/delete' => 'Contacts/delete',
+    'contacts/import' => 'Contacts/import',
+    'contacts/sample-template' => 'Contacts/download_template',
 
     'error-tracker' => 'Errortracker/index',
     'error-tracker/store' => 'Errortracker/store',
@@ -55,6 +59,8 @@ $routes = [
     'reports/export' => 'Reports/export_csv',
 
     'audit' => 'Audit/index',
+    'audit/reset' => 'Audit/reset',
+    'audit/export-backup' => 'Audit/export_backup',
 
     'api/activities' => 'Api/get_activities',
     'api/sub-activities' => 'Api/get_sub_activities',

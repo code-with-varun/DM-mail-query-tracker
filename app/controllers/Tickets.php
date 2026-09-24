@@ -72,6 +72,18 @@ class Tickets extends Controller {
                 ? date('Y-m-d H:i:s', strtotime($_POST['tat_datetime']))
                 : date('Y-m-d H:i:s', strtotime("+{$defaultHours} hours"));
 
+            $categoryId = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+            $categoryModel = $this->model('Category_model');
+            $categoryInfo = $categoryId ? $categoryModel->getById($categoryId) : null;
+            $categorySlug = $categoryInfo['category_slug'] ?? '';
+
+            $initialStatus = $allocatedTo ? 'Assigned' : 'New';
+            if ($categorySlug === 'hold') {
+                $initialStatus = 'On Hold';
+            } elseif ($categorySlug === 'release') {
+                $initialStatus = 'Released';
+            }
+
             $ticketData = [
                 'ticket_type' => sanitize($_POST['ticket_type'] ?? 'Query Ticket'),
                 'received_datetime' => date('Y-m-d H:i:s', strtotime($receivedDatetime)),
@@ -80,17 +92,29 @@ class Tickets extends Controller {
                 'division_id' => !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null,
                 'activity_id' => $activityId,
                 'sub_activity_id' => $subActivityId,
-                'status' => $allocatedTo ? 'Assigned' : 'New',
+                'category_id' => $categoryId,
+                'status' => $initialStatus,
                 'priority' => sanitize($_POST['priority'] ?? 'Medium'),
                 'tat_datetime' => $tatDatetime,
                 'allocated_to' => $allocatedTo,
                 'agency_code' => sanitize($_POST['agency_code'] ?? ''),
                 'manager_name' => sanitize($_POST['manager_name'] ?? ''),
+                'pending_reason' => ($categorySlug === 'hold') ? 'Categorized as Hold Claims' : null,
                 'remarks' => sanitize($_POST['remarks'] ?? ''),
                 'created_by' => Session::get('user_id')
             ];
 
             $ticketId = $ticketModel->createTicket($ticketData);
+
+            if ($categorySlug === 'hold') {
+                $ticketModel->insert('ticket_hold_history', [
+                    'ticket_id' => $ticketId,
+                    'action' => 'Put On Hold',
+                    'reason' => 'Categorized as Hold Claims',
+                    'performed_by' => Session::get('user_id'),
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
 
             // File Attachment Handling
             if (!empty($_FILES['attachment']['name'])) {
@@ -118,10 +142,13 @@ class Tickets extends Controller {
             redirect('tickets/view/' . $ticketId);
         }
 
+        $categoryModel = $this->model('Category_model');
+
         $this->render('tickets/create', [
             'title' => 'Create New Ticket',
             'activities' => $activityModel->getActivities(),
             'divisions' => $activityModel->getDivisions(),
+            'categories' => $categoryModel->getCategories(),
             'users' => $userModel->getEmployees()
         ]);
     }

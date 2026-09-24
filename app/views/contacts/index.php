@@ -5,9 +5,12 @@
             <h4 class="fw-bold mb-1"><i class="fas fa-address-book text-primary me-2"></i>Contact Manager</h4>
             <p class="text-muted fs-7 mb-0">Directory of Client, Internal, and Third Party organizational contacts</p>
         </div>
-        <div>
-            <button type="button" class="btn btn-primary fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addContactModal">
-                <i class="fas fa-user-plus me-2"></i>Add New Contact
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-primary fw-bold shadow-sm btn-sm" data-bs-toggle="modal" data-bs-target="#importContactModal">
+                <i class="fas fa-file-upload me-1"></i>Import Contacts
+            </button>
+            <button type="button" class="btn btn-primary fw-bold shadow-sm btn-sm" data-bs-toggle="modal" data-bs-target="#addContactModal">
+                <i class="fas fa-user-plus me-1"></i>Add New Contact
             </button>
         </div>
     </div>
@@ -109,7 +112,7 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 datatable">
-                    <thead class="table-light">
+                    <thead class="table-light align-middle text-nowrap">
                         <tr>
                             <th style="width: 50px;">#</th>
                             <th>Contact Name</th>
@@ -118,7 +121,7 @@
                             <th>Email Address</th>
                             <th>Remark Notes</th>
                             <th>Added By</th>
-                            <th style="width: 100px;" class="text-end">Actions</th>
+                            <th style="width: 100px;" class="text-end text-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,7 +138,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="text-nowrap">
                                         <?php if ($c['organisation_type'] === 'Client'): ?>
                                             <span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1"><i class="fas fa-user-tie me-1"></i>Client</span>
                                         <?php elseif ($c['organisation_type'] === 'Internal'): ?>
@@ -144,7 +147,7 @@
                                             <span class="badge bg-warning bg-opacity-10 text-warning-dark border border-warning text-dark px-2 py-1"><i class="fas fa-handshake me-1"></i>Third Party</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-nowrap">
                                         <?php if (!empty($c['contact_number'])): ?>
                                             <a href="tel:<?= htmlspecialchars($c['contact_number']) ?>" class="text-decoration-none text-dark">
                                                 <i class="fas fa-phone-alt me-1 text-secondary fs-8"></i><?= htmlspecialchars($c['contact_number']) ?>
@@ -153,7 +156,7 @@
                                             <span class="text-muted fs-8">N/A</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-nowrap">
                                         <?php if (!empty($c['email'])): ?>
                                             <a href="mailto:<?= htmlspecialchars($c['email']) ?>" class="text-decoration-none text-primary">
                                                 <i class="fas fa-envelope me-1 fs-8"></i><?= htmlspecialchars($c['email']) ?>
@@ -171,7 +174,7 @@
                                             <span class="text-muted fs-8">-</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-nowrap">
                                         <small class="text-muted d-block fs-8">
                                             <i class="fas fa-user me-1"></i><?= htmlspecialchars($c['creator_name'] ?? 'System') ?>
                                         </small>
@@ -179,7 +182,7 @@
                                             <?= date('d M Y', strtotime($c['created_at'])) ?>
                                         </small>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end text-nowrap">
                                         <div class="btn-group btn-group-sm">
                                             <!-- Edit Contact Button (Available for any logged in user) -->
                                             <button type="button" class="btn btn-outline-primary btn-edit-contact" 
@@ -349,6 +352,48 @@
     </div>
 </div>
 <?php endif; ?>
+
+<!-- Modal 4: Bulk Import Contacts CSV Modal -->
+<div class="modal fade" id="importContactModal" tabindex="-1" aria-labelledby="importContactModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="importContactModalLabel">
+                    <i class="fas fa-file-upload me-2"></i>Import Contacts via CSV
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?= base_url('contacts/import') ?>" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 shadow-sm mb-3 fs-7">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Upload a CSV file containing contact records. Columns: Name, Organisation Type (Client/Internal/Third Party), Contact Number, Email, Remark Notes.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Select CSV File <span class="text-danger">*</span></label>
+                        <input type="file" name="import_file" class="form-control" accept=".csv" required>
+                    </div>
+
+                    <div class="p-3 bg-light rounded border">
+                        <small class="fw-bold d-block text-dark mb-1"><i class="fas fa-download me-1 text-primary"></i>Sample Template</small>
+                        <small class="text-muted d-block mb-2">Download a sample formatted CSV template for contact bulk import.</small>
+                        <a href="<?= base_url('contacts/sample-template') ?>" class="btn btn-sm btn-outline-primary fw-bold">
+                            <i class="fas fa-file-csv me-1"></i>Download Sample CSV Template
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="fas fa-upload me-1"></i>Upload & Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- JavaScript for Modal Population -->
 <script>

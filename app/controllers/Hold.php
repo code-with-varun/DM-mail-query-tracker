@@ -8,7 +8,13 @@ class Hold extends Controller {
         $this->requireAuth();
         $ticketModel = $this->model('Ticket_model');
         
-        $tickets = $ticketModel->getTickets(['status' => 'On Hold'], Session::get('user_id'), Session::get('role_id'));
+        $sql = "SELECT t.*, u_alloc.full_name as allocated_user_name, c.category_name
+                FROM tickets t
+                LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                LEFT JOIN ticket_categories c ON t.category_id = c.id
+                WHERE t.status IN ('On Hold', 'Released') OR c.category_slug IN ('hold', 'release')
+                ORDER BY t.id DESC";
+        $tickets = $ticketModel->fetchAll($sql);
 
         $this->render('hold/index', [
             'title' => 'Hold & Release Management',

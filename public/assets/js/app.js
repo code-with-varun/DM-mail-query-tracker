@@ -91,7 +91,8 @@ $(document).ready(function () {
         subActivitySelect.empty().append('<option value="">Select Sub-Activity</option>');
         if (response.success && response.data.length > 0) {
           $.each(response.data, function (index, item) {
-            subActivitySelect.append('<option value="' + item.id + '" data-tat="' + item.default_tat_hours + '">' + item.sub_activity_name + ' (' + item.default_tat_hours + 'h SLA)</option>');
+            var userAttr = item.default_user_id ? ' data-user="' + item.default_user_id + '"' : '';
+            subActivitySelect.append('<option value="' + item.id + '" data-tat="' + item.default_tat_hours + '"' + userAttr + '>' + item.sub_activity_name + ' (' + item.default_tat_hours + 'h SLA)</option>');
           });
         } else {
           subActivitySelect.append('<option value="">No Sub-Activities found</option>');
@@ -103,17 +104,23 @@ $(document).ready(function () {
     });
   });
 
-  // Auto-calculate TAT Datetime field on Sub-Activity change if empty
-  $(document).on('change', '#sub_activity_id', function () {
+  // Auto-calculate TAT Datetime field & auto-select allocated employee on Sub-Activity change
+  $(document).on('change', '#sub_activity_id, select[name="sub_activity_id"]', function () {
     var selectedOption = $(this).find('option:selected');
     var tatHours = selectedOption.data('tat');
+    var defaultUser = selectedOption.data('user');
     var tatInput = $('#tat_datetime');
+    var allocatedSelect = $('#allocated_to, select[name="allocated_to"]');
 
     if (tatHours && tatInput.length && !tatInput.val()) {
       var now = new Date();
       now.setHours(now.getHours() + parseInt(tatHours));
       var formatted = now.toISOString().slice(0, 16);
       tatInput.val(formatted);
+    }
+
+    if (defaultUser && allocatedSelect.length) {
+      allocatedSelect.val(defaultUser);
     }
   });
 

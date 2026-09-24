@@ -2,12 +2,17 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1">System Audit Logs & Project Reset</h4>
-            <p class="text-muted fs-7 mb-0">Immutable system activity logs and Super Admin project reset</p>
+            <p class="text-muted fs-7 mb-0">Immutable system activity logs, database dumps, and Super Admin project reset</p>
         </div>
         <?php if (is_super_admin()): ?>
-        <button type="button" class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#resetSystemModal">
-            <i class="fas fa-undo-alt me-1"></i>Reset System Data (Start Fresh)
-        </button>
+        <div class="d-flex gap-2">
+            <a href="<?= base_url('audit/export-backup') ?>" class="btn btn-outline-primary btn-sm fw-bold">
+                <i class="fas fa-database me-1"></i>Download Database Backup (.sql)
+            </a>
+            <button type="button" class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#resetSystemModal">
+                <i class="fas fa-undo-alt me-1"></i>Reset System Data (Start Fresh)
+            </button>
+        </div>
         <?php endif; ?>
     </div>
 
@@ -16,15 +21,12 @@
     <div class="card border-danger shadow-sm mb-4 bg-light">
         <div class="card-body p-3 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-                <i class="fas fa-exclamation-triangle fs-3 text-danger"></i>
+                <i class="fas fa-shield-alt fs-3 text-danger"></i>
                 <div>
-                    <strong class="d-block text-danger fs-6">Super Admin Start Fresh Reset Control</strong>
-                    <span class="text-muted fs-7">Wipe all tickets, tasks, comments, file attachments, and tracker logs to restart testing with a clean system. User accounts and master configurations remain intact.</span>
+                    <strong class="d-block text-danger fs-6">Database Backup & Super Admin Reset Control</strong>
+                    <span class="text-muted fs-7">Download complete SQL dumps for offsite backup. System reset will wipe operational tickets, tasks, and non-superadmin accounts while retaining Super Admin credentials.</span>
                 </div>
             </div>
-            <button type="button" class="btn btn-outline-danger fw-bold text-nowrap" data-bs-toggle="modal" data-bs-target="#resetSystemModal">
-                <i class="fas fa-trash-alt me-1"></i>Full Project Reset
-            </button>
         </div>
     </div>
     <?php endif; ?>

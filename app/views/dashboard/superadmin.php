@@ -68,6 +68,31 @@
         </div>
     </div>
 
+    <!-- Interactive Charts Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-pie text-primary me-2"></i>Ticket Status Breakdown</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-3">
+                    <canvas id="statusChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-bar text-danger me-2"></i>Division Performance Analytics</h6>
+                </div>
+                <div class="card-body p-3">
+                    <canvas id="divisionChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Tickets DataTable -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
@@ -113,3 +138,51 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Doughnut Chart
+    const statusData = <?= json_encode($status_breakdown ?? []) ?>;
+    const statusLabels = statusData.map(item => item.status);
+    const statusCounts = statusData.map(item => item.count);
+    
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels.length ? statusLabels : ['No Data'],
+            datasets: [{
+                data: statusCounts.length ? statusCounts : [1],
+                backgroundColor: ['#0d6efd', '#6610f2', '#ffc107', '#fd7e14', '#dc3545', '#198754', '#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // Division Bar Chart
+    const divisionData = <?= json_encode($division_breakdown ?? []) ?>;
+    const divLabels = divisionData.map(item => item.division_name);
+    const divCounts = divisionData.map(item => item.count);
+
+    new Chart(document.getElementById('divisionChart'), {
+        type: 'bar',
+        data: {
+            labels: divLabels.length ? divLabels : ['General'],
+            datasets: [{
+                label: 'Tickets',
+                data: divCounts.length ? divCounts : [0],
+                backgroundColor: '#dc3545',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+});
+</script>

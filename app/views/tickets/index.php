@@ -63,10 +63,11 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 datatable">
-                    <thead class="table-light">
+                    <thead class="table-light align-middle text-nowrap">
                         <tr>
                             <th>Ticket #</th>
                             <th>Type</th>
+                            <th>Category</th>
                             <th>Received Date</th>
                             <th>From / Agency</th>
                             <th>Subject</th>
@@ -74,15 +75,22 @@
                             <th>Assigned To</th>
                             <th>Status</th>
                             <th>TAT SLA</th>
-                            <th>Action</th>
+                            <th class="text-end text-nowrap" style="width: 100px;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($tickets as $t): ?>
                         <tr>
                             <td class="fw-bold text-primary"><?= htmlspecialchars($t['ticket_number']) ?></td>
-                            <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($t['ticket_type']) ?></span></td>
-                            <td class="fs-8"><?= format_datetime($t['received_datetime']) ?></td>
+                            <td class="text-nowrap"><span class="badge bg-light text-dark border"><?= htmlspecialchars($t['ticket_type']) ?></span></td>
+                            <td class="text-nowrap">
+                                <?php if (!empty($t['category_name'])): ?>
+                                    <span class="badge bg-secondary px-2 py-1"><?= htmlspecialchars($t['category_name']) ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted fs-8">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="fs-8 text-nowrap"><?= format_datetime($t['received_datetime']) ?></td>
                             <td>
                                 <div class="fw-bold fs-7"><?= htmlspecialchars($t['from_address']) ?></div>
                                 <?php if (!empty($t['agency_code'])): ?>
@@ -96,19 +104,21 @@
                                 <div><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($t['sub_activity_name'] ?? '') ?></small>
                             </td>
-                            <td class="fs-8"><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></td>
-                            <td><?= get_status_badge($t['status']) ?></td>
-                            <td><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
-                            <td>
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-outline-primary p-1 px-2" title="View Ticket Details"><i class="fas fa-eye"></i></a>
-                                <?php if (is_super_admin()): ?>
-                                <form action="<?= base_url('tickets/delete/' . $t['id']) ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete ticket <?= htmlspecialchars($t['ticket_number']) ?>?');">
-                                    <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2 ms-1" title="Delete Ticket">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
-                                <?php endif; ?>
+                            <td class="fs-8 text-nowrap"><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></td>
+                            <td class="text-nowrap"><?= get_status_badge($t['status']) ?></td>
+                            <td class="text-nowrap"><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
+                            <td class="text-end text-nowrap">
+                                <div class="d-inline-flex gap-1 align-items-center justify-content-end">
+                                    <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-outline-primary p-1 px-2" title="View Ticket Details"><i class="fas fa-eye"></i></a>
+                                    <?php if (is_super_admin()): ?>
+                                    <form action="<?= base_url('tickets/delete/' . $t['id']) ?>" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete ticket <?= htmlspecialchars($t['ticket_number']) ?>?');">
+                                        <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Delete Ticket">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>

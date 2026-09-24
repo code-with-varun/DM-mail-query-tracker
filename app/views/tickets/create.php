@@ -121,17 +121,27 @@
                 </div>
 
                 <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold">Allocated To (Employee)</label>
-                        <select name="allocated_to" class="form-select">
-                            <option value="">Unassigned (Open Pool)</option>
-                            <?php foreach ($users as $u): ?>
-                                <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['full_name']) ?> (<?= $u['department'] ?>)</option>
+                    <div class="col-md-3">
+                        <label class="form-label fs-7 fw-bold">Category</label>
+                        <select name="category_id" id="category_id" class="form-select">
+                            <option value="">General Query / Unclassified</option>
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label fs-7 fw-bold">Allocated To (Employee)</label>
+                        <select name="allocated_to" id="allocated_to" class="form-select">
+                            <option value="">Unassigned (Open Pool)</option>
+                            <?php foreach ($users as $u): ?>
+                                <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
                         <label class="form-label fs-7 fw-bold">Priority</label>
                         <select name="priority" class="form-select">
                             <option value="Low">Low</option>
@@ -141,7 +151,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fs-7 fw-bold">TAT Target Date & Time</label>
                         <input type="datetime-local" name="tat_datetime" id="tat_datetime" class="form-control" placeholder="Auto calculated from SLA">
                         <small class="text-muted fs-8">Leaves empty to auto-calculate based on Sub-Activity SLA</small>

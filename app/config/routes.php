@@ -14,10 +14,18 @@ $routes = [
     'dashboard' => 'Dashboard/index',
 
     'tickets' => 'Tickets/index',
+    'tickets/my-bucket' => 'Tickets/my_bucket',
     'tickets/create' => 'Tickets/create',
     'tickets/view/(:num)' => 'Tickets/view/$1',
     'tickets/edit/(:num)' => 'Tickets/edit/$1',
     'tickets/update-status' => 'Tickets/update_status',
+    'tickets/submit-to-checker' => 'Tickets/submit_to_checker',
+    'tickets/checker-action' => 'Tickets/checker_action',
+    'tickets/deliver' => 'Tickets/deliver',
+    'tickets/reschedule' => 'Tickets/reschedule',
+    'tickets/reassign' => 'Tickets/reassign',
+
+    'roster' => 'Roster/index',
 
     'tasks' => 'Tasks/index',
     'tasks/create' => 'Tasks/create',

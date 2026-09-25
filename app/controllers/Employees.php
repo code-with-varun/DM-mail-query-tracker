@@ -9,13 +9,28 @@ class Employees extends Controller {
         $this->requireRole([1, 2]);
 
         $userModel = $this->model('User_model');
+        $activityModel = $this->model('Activity_model');
+
         $users = $userModel->getAllUsers();
         $admins = $userModel->getAdmins();
+        $subActivities = $activityModel->getAllSubActivitiesWithHierarchy();
+
+        $userSkillsMap = [];
+        foreach ($users as $u) {
+            $skills = $userModel->getUserSkills($u['id']);
+            $mapped = [];
+            foreach ($skills as $sk) {
+                $mapped[$sk['sub_activity_id']] = $sk['role_type'];
+            }
+            $userSkillsMap[$u['id']] = $mapped;
+        }
 
         $this->render('employees/index', [
-            'title' => 'Employee & User Management',
+            'title' => 'Employee & User Management & Skill Matrix',
             'users' => $users,
-            'admins' => $admins
+            'admins' => $admins,
+            'subActivities' => $subActivities,
+            'userSkillsMap' => $userSkillsMap
         ]);
     }
 
@@ -35,6 +50,7 @@ class Employees extends Controller {
 
             if ($action === 'delete' && $id > 0 && is_super_admin()) {
                 $userModel->delete('users', "id = ?", [$id]);
+                $userModel->delete('user_sub_activities', "user_id = ?", [$id]);
                 Session::setFlash('success', 'User account deleted successfully.');
                 redirect('employees');
             }
@@ -55,11 +71,17 @@ class Employees extends Controller {
                     $userData['password'] = password_hash($_POST['password'], PASSWORD_BCRYPT);
                 }
                 $userModel->update('users', $userData, "id = ?", [$id]);
-                Session::setFlash('success', 'User account updated successfully.');
+                $targetUserId = $id;
+                Session::setFlash('success', 'User account & skill matrix updated successfully.');
             } else {
                 $userData['password'] = sanitize($_POST['password'] ?? 'ChangeMe@123');
-                $userModel->createUser($userData);
-                Session::setFlash('success', 'User account created successfully.');
+                $targetUserId = $userModel->createUser($userData);
+                Session::setFlash('success', 'User account & skill matrix created successfully.');
+            }
+
+            // Save Sub-Activities & Maker-Checker Mapping
+            if (isset($_POST['skills']) && is_array($_POST['skills'])) {
+                $userModel->setUserSkills($targetUserId, $_POST['skills']);
             }
 
             redirect('employees');

@@ -88,4 +88,49 @@ class User_model extends Model {
     public function updateLastLogin(int $id): void {
         $this->update('users', ['last_login' => date('Y-m-d H:i:s')], "id = ?", [$id]);
     }
+
+    public function getUserSkills(int $userId): array {
+        return $this->fetchAll("
+            SELECT usa.*, sa.sub_activity_name, a.activity_name 
+            FROM user_sub_activities usa 
+            JOIN sub_activities sa ON usa.sub_activity_id = sa.id 
+            JOIN activities a ON sa.activity_id = a.id 
+            WHERE usa.user_id = ? 
+            ORDER BY a.activity_name ASC, sa.sub_activity_name ASC
+        ", [$userId]);
+    }
+
+    public function setUserSkills(int $userId, array $skills): void {
+        $this->delete('user_sub_activities', 'user_id = ?', [$userId]);
+        foreach ($skills as $skill) {
+            if (!empty($skill['sub_activity_id'])) {
+                $this->insert('user_sub_activities', [
+                    'user_id' => $userId,
+                    'sub_activity_id' => (int)$skill['sub_activity_id'],
+                    'role_type' => $skill['role_type'] ?? 'Maker',
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+    }
+
+    public function getCheckersForSubActivity(int $subActivityId): array {
+        return $this->fetchAll("
+            SELECT u.* 
+            FROM users u 
+            JOIN user_sub_activities usa ON u.id = usa.user_id 
+            WHERE usa.sub_activity_id = ? AND usa.role_type IN ('Checker', 'Both') AND u.status = 'Active' 
+            ORDER BY u.full_name ASC
+        ", [$subActivityId]);
+    }
+
+    public function getMakersForSubActivity(int $subActivityId): array {
+        return $this->fetchAll("
+            SELECT u.* 
+            FROM users u 
+            JOIN user_sub_activities usa ON u.id = usa.user_id 
+            WHERE usa.sub_activity_id = ? AND usa.role_type IN ('Maker', 'Both') AND u.status = 'Active' 
+            ORDER BY u.full_name ASC
+        ", [$subActivityId]);
+    }
 }

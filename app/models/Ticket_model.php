@@ -367,4 +367,202 @@ class Ticket_model extends Model {
             'created_at' => date('Y-m-d H:i:s')
         ]);
     }
+
+    public function submitToChecker(int $ticketId, int $checkerId, string $remarks, int $userId): bool {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return false;
+
+        $this->update('tickets', [
+            'stage' => 'Checker Phase',
+            'checker_id' => $checkerId,
+            'updated_at' => date('Y-m-d H:i:s')
+        ], "id = ?", [$ticketId]);
+
+        $this->addComment($ticketId, $userId, "Maker completed work and submitted to Checker. Remarks: {$remarks}");
+        $this->createNotification($checkerId, "Checker Review Requested", "Ticket {$ticket['ticket_number']} assigned to you for checker audit.", "/tickets/view/{$ticketId}");
+        return true;
+    }
+
+    public function rejectByChecker(int $ticketId, string $errorCategory, string $errorDesc, string $errorType, string $solution, int $userId): bool {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return false;
+
+        $this->update('tickets', [
+            'stage' => 'Maker Phase',
+            'status' => 'In Progress',
+            'updated_at' => date('Y-m-d H:i:s')
+        ], "id = ?", [$ticketId]);
+
+        // Log to Error Tracker
+        $this->insert('error_tracker', [
+            'billing_month' => date('Y-m-01'),
+            'checking_month' => date('Y-m-01'),
+            'error_observation' => $errorCategory,
+            'error_description' => $errorDesc,
+            'resolution_solution' => $solution,
+            'error_type' => in_array($errorType, ['Internal', 'External']) ? $errorType : 'Internal',
+            'maker_id' => $ticket['allocated_to'],
+            'checker_id' => $userId,
+            'created_by' => $userId,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+
+        $this->addComment($ticketId, $userId, "Checker Rejected File. Error: {$errorCategory} - {$errorDesc}. Retargeted to Maker Phase.");
+        if ($ticket['allocated_to']) {
+            $this->createNotification($ticket['allocated_to'], "Ticket Returned by Checker", "Checker identified error on ticket {$ticket['ticket_number']}. Please revise.", "/tickets/view/{$ticketId}");
+        }
+        return true;
+    }
+
+    public function approveByChecker(int $ticketId, string $remarks, int $userId): bool {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return false;
+
+        $this->update('tickets', [
+            'stage' => 'Delivery Phase',
+            'updated_at' => date('Y-m-d H:i:s')
+        ], "id = ?", [$ticketId]);
+
+        $this->addComment($ticketId, $userId, "Checker Audit Approved. Ticket moved to Delivery Phase. Remarks: {$remarks}");
+        if ($ticket['allocated_to']) {
+            $this->createNotification($ticket['allocated_to'], "Checker Approved Ticket", "Ticket {$ticket['ticket_number']} approved by checker. Ready for delivery.", "/tickets/view/{$ticketId}");
+        }
+        return true;
+    }
+
+    public function completeDelivery(int $ticketId, ?string $attachmentPath, string $remarks, int $userId): bool {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return false;
+
+        $this->update('tickets', [
+            'stage' => 'Completed',
+            'status' => 'Closed',
+            'closure_attachment' => $attachmentPath,
+            'replied_by' => $userId,
+            'replied_datetime' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ], "id = ?", [$ticketId]);
+
+        $delivNo = 'DEL-' . date('Ymd') . '-' . str_pad((string)$ticketId, 4, '0', STR_PAD_LEFT);
+        $this->insert('delivery_tracker', [
+            'delivery_number' => $delivNo,
+            'ticket_id' => $ticketId,
+            'delivered_to' => $ticket['from_address'] ?? 'N/A',
+            'delivery_date' => date('Y-m-d H:i:s'),
+            'delivery_mode' => 'Email',
+            'ack_received' => 'Yes',
+            'remarks' => $remarks ?: 'Delivered and closed.',
+            'attachment_path' => $attachmentPath,
+            'created_by' => $userId,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+
+        $this->addComment($ticketId, $userId, "Ticket delivered and closed. Proof attached: " . ($attachmentPath ? basename($attachmentPath) : 'None') . ". Delivery Ref: {$delivNo}");
+        return true;
+    }
+
+    public function syncToInputTracker(int $ticketId, int $userId): void {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return;
+
+        $existing = $this->fetchOne("SELECT id FROM input_tracker WHERE document_reference = ?", [$ticket['ticket_number']]);
+        if (!$existing) {
+            $this->insert('input_tracker', [
+                'source' => 'Mail Ticket',
+                'received_date' => $ticket['received_datetime'] ?? date('Y-m-d H:i:s'),
+                'received_from' => $ticket['from_address'] ?? 'N/A',
+                'document_reference' => $ticket['ticket_number'],
+                'assigned_to' => $ticket['allocated_to'],
+                'status' => 'Received',
+                'remarks' => $ticket['subject'] . ($ticket['remarks'] ? ' - ' . $ticket['remarks'] : ''),
+                'created_by' => $userId,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+        }
+    }
+
+    public function rescheduleTicket(int $ticketId, string $scheduledDate, string $remarks, int $userId): bool {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return false;
+
+        $this->update('tickets', [
+            'scheduled_date' => $scheduledDate,
+            'updated_at' => date('Y-m-d H:i:s')
+        ], "id = ?", [$ticketId]);
+
+        $this->addComment($ticketId, $userId, "Ticket scheduled date updated to {$scheduledDate}. Remarks: {$remarks}");
+        return true;
+    }
+
+    public function reassignTicket(int $ticketId, int $newUserId, string $remarks, int $userId): bool {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return false;
+
+        $this->update('tickets', [
+            'allocated_to' => $newUserId,
+            'status' => 'Assigned',
+            'updated_at' => date('Y-m-d H:i:s')
+        ], "id = ?", [$ticketId]);
+
+        $this->addComment($ticketId, $userId, "Ticket reassigned to user ID {$newUserId}. Remarks: {$remarks}");
+        $this->createNotification($newUserId, "Ticket Reassigned to You", "Ticket {$ticket['ticket_number']} has been reassigned to you.", "/tickets/view/{$ticketId}");
+        return true;
+    }
+
+    public function getMyBucketTickets(int $userId, array $filters = []): array {
+        $sql = "SELECT t.*, 
+                       a.activity_name, sa.sub_activity_name,
+                       u_alloc.full_name as allocated_user_name,
+                       u_chk.full_name as checker_user_name
+                FROM tickets t
+                LEFT JOIN activities a ON t.activity_id = a.id
+                LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
+                LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                LEFT JOIN users u_chk ON t.checker_id = u_chk.id
+                WHERE (t.allocated_to = ? OR t.checker_id = ?) AND t.status NOT IN ('Closed', 'Cancelled')";
+        $params = [$userId, $userId];
+
+        if (!empty($filters['stage'])) {
+            $sql .= " AND t.stage = ?";
+            $params[] = $filters['stage'];
+        }
+        if (!empty($filters['search'])) {
+            $searchTerm = "%" . $filters['search'] . "%";
+            $sql .= " AND (t.ticket_number LIKE ? OR t.subject LIKE ? OR t.from_address LIKE ?)";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+
+        $sql .= " ORDER BY t.id DESC";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getRosterTickets(string $targetDate, ?int $userId = null, ?int $roleId = null): array {
+        $sql = "SELECT t.*, 
+                       a.activity_name, sa.sub_activity_name,
+                       u_alloc.full_name as allocated_user_name
+                FROM tickets t
+                LEFT JOIN activities a ON t.activity_id = a.id
+                LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
+                LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                WHERE 1=1";
+        $params = [];
+
+        // Role restriction
+        if ($roleId == 3 && $userId) {
+            $sql .= " AND (t.allocated_to = ? OR t.checker_id = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+
+        // Target Date or pending items scheduled on or before target date
+        $sql .= " AND (t.scheduled_date = ? OR (t.scheduled_date < ? AND t.status NOT IN ('Completed', 'Closed', 'Cancelled')) OR (t.scheduled_date IS NULL AND DATE(t.created_at) <= ? AND t.status NOT IN ('Completed', 'Closed', 'Cancelled')))";
+        $params[] = $targetDate;
+        $params[] = $targetDate;
+        $params[] = $targetDate;
+
+        $sql .= " ORDER BY t.priority DESC, t.id DESC";
+        return $this->fetchAll($sql, $params);
+    }
 }

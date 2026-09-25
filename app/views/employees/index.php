@@ -127,6 +127,49 @@
                                                 <label class="form-label fs-7 fw-bold">Reset Password (Leave blank to keep current)</label>
                                                 <input type="text" name="password" class="form-control" placeholder="Enter new password to reset">
                                             </div>
+
+                                            <!-- Skill Matrix: Sub-Activities & Maker-Checker -->
+                                            <hr class="my-3">
+                                            <h6 class="fw-bold text-dark mb-2"><i class="fas fa-tasks me-2 text-primary"></i>Sub-Activity & Maker-Checker Mapping</h6>
+                                            <p class="text-muted fs-8 mb-2">Tick sub-activities assigned to this employee and set their role (Maker / Checker / Both).</p>
+                                            <div class="border rounded p-2 bg-light" style="max-height: 220px; overflow-y: auto;">
+                                                <table class="table table-sm align-middle table-borderless mb-0 fs-8">
+                                                    <thead>
+                                                        <tr class="text-muted border-bottom">
+                                                            <th style="width: 50px;">Assign</th>
+                                                            <th>Sub-Activity</th>
+                                                            <th>Activity / Division</th>
+                                                            <th>Role Type</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php foreach ($subActivities as $sa): 
+                                                            $userSkillRole = $userSkillsMap[$u['id']][$sa['id']] ?? null;
+                                                            $isAssigned = !empty($userSkillRole);
+                                                        ?>
+                                                        <tr>
+                                                            <td>
+                                                                <input type="checkbox" name="skills[<?= $sa['id'] ?>][selected]" value="1" class="form-check-input" <?= $isAssigned ? 'checked' : '' ?>>
+                                                            </td>
+                                                            <td class="fw-bold text-dark"><?= htmlspecialchars($sa['sub_activity_name']) ?></td>
+                                                            <td class="text-muted"><?= htmlspecialchars($sa['activity_name']) ?> <?= !empty($sa['division_name']) ? '('.htmlspecialchars($sa['division_name']).')' : '' ?></td>
+                                                            <td>
+                                                                <div class="btn-group btn-group-sm" role="group">
+                                                                    <input type="radio" class="btn-check" name="skills[<?= $sa['id'] ?>][role_type]" id="role_m_<?= $u['id'] ?>_<?= $sa['id'] ?>" value="Maker" <?= ($userSkillRole === 'Maker' || !$userSkillRole) ? 'checked' : '' ?>>
+                                                                    <label class="btn btn-outline-primary py-0 px-2 fs-8" for="role_m_<?= $u['id'] ?>_<?= $sa['id'] ?>">Maker</label>
+
+                                                                    <input type="radio" class="btn-check" name="skills[<?= $sa['id'] ?>][role_type]" id="role_c_<?= $u['id'] ?>_<?= $sa['id'] ?>" value="Checker" <?= $userSkillRole === 'Checker' ? 'checked' : '' ?>>
+                                                                    <label class="btn btn-outline-warning py-0 px-2 fs-8 text-dark" for="role_c_<?= $u['id'] ?>_<?= $sa['id'] ?>">Checker</label>
+
+                                                                    <input type="radio" class="btn-check" name="skills[<?= $sa['id'] ?>][role_type]" id="role_b_<?= $u['id'] ?>_<?= $sa['id'] ?>" value="Both" <?= $userSkillRole === 'Both' ? 'checked' : '' ?>>
+                                                                    <label class="btn btn-outline-success py-0 px-2 fs-8" for="role_b_<?= $u['id'] ?>_<?= $sa['id'] ?>">Both</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <?php endforeach; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                         <div class="modal-footer bg-light">
                                             <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
@@ -210,6 +253,46 @@
                         <label class="form-label fs-7 fw-bold">Initial Password</label>
                         <input type="text" name="password" class="form-control" value="ChangeMe@123" required>
                         <small class="text-muted fs-8">Default: <code>ChangeMe@123</code></small>
+                    </div>
+
+                    <!-- Skill Matrix: Sub-Activities & Maker-Checker -->
+                    <hr class="my-3">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-tasks me-2 text-primary"></i>Sub-Activity & Maker-Checker Mapping</h6>
+                    <p class="text-muted fs-8 mb-2">Tick sub-activities assigned to this employee and set their role (Maker / Checker / Both).</p>
+                    <div class="border rounded p-2 bg-light" style="max-height: 220px; overflow-y: auto;">
+                        <table class="table table-sm align-middle table-borderless mb-0 fs-8">
+                            <thead>
+                                <tr class="text-muted border-bottom">
+                                    <th style="width: 50px;">Assign</th>
+                                    <th>Sub-Activity</th>
+                                    <th>Activity / Division</th>
+                                    <th>Role Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($subActivities as $sa): ?>
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="skills[<?= $sa['id'] ?>][selected]" value="1" class="form-check-input">
+                                    </td>
+                                    <td class="fw-bold text-dark"><?= htmlspecialchars($sa['sub_activity_name']) ?></td>
+                                    <td class="text-muted"><?= htmlspecialchars($sa['activity_name']) ?> <?= !empty($sa['division_name']) ? '('.htmlspecialchars($sa['division_name']).')' : '' ?></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <input type="radio" class="btn-check" name="skills[<?= $sa['id'] ?>][role_type]" id="new_role_m_<?= $sa['id'] ?>" value="Maker" checked>
+                                            <label class="btn btn-outline-primary py-0 px-2 fs-8" for="new_role_m_<?= $sa['id'] ?>">Maker</label>
+
+                                            <input type="radio" class="btn-check" name="skills[<?= $sa['id'] ?>][role_type]" id="new_role_c_<?= $sa['id'] ?>" value="Checker">
+                                            <label class="btn btn-outline-warning py-0 px-2 fs-8 text-dark" for="new_role_c_<?= $sa['id'] ?>">Checker</label>
+
+                                            <input type="radio" class="btn-check" name="skills[<?= $sa['id'] ?>][role_type]" id="new_role_b_<?= $sa['id'] ?>" value="Both">
+                                            <label class="btn btn-outline-success py-0 px-2 fs-8" for="new_role_b_<?= $sa['id'] ?>">Both</label>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">

@@ -156,19 +156,14 @@ class Master extends Controller {
             $tat = (int)($_POST['default_tat_hours'] ?? 24);
             $divId = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
             $defaultUserId = !empty($_POST['default_user_id']) ? (int)$_POST['default_user_id'] : null;
+            $defaultOccurrenceDay = !empty($_POST['default_occurrence_day']) ? (int)$_POST['default_occurrence_day'] : null;
 
             if ($actId && !empty($subName)) {
                 if ($id > 0) {
-                    $activityModel->update('sub_activities', [
-                        'activity_id' => $actId,
-                        'division_id' => $divId,
-                        'sub_activity_name' => $subName,
-                        'default_tat_hours' => $tat,
-                        'default_user_id' => $defaultUserId
-                    ], "id = ?", [$id]);
+                    $activityModel->updateSubActivity($id, $actId, $subName, $tat, $divId, $defaultUserId, $defaultOccurrenceDay);
                     Session::setFlash('success', 'Sub-activity updated successfully.');
                 } else {
-                    $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId);
+                    $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId, $defaultOccurrenceDay);
                     Session::setFlash('success', 'Sub-activity created successfully.');
                 }
             }

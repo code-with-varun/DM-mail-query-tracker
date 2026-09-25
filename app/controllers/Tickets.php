@@ -106,6 +106,10 @@ class Tickets extends Controller {
 
             $ticketId = $ticketModel->createTicket($ticketData);
 
+            if ($categorySlug === 'input' || stripos($categoryInfo['category_name'] ?? '', 'input') !== false) {
+                $ticketModel->syncToInputTracker($ticketId, Session::get('user_id'));
+            }
+
             if ($categorySlug === 'hold') {
                 $ticketModel->insert('ticket_hold_history', [
                     'ticket_id' => $ticketId,
@@ -168,13 +172,19 @@ class Tickets extends Controller {
         $attachments = $ticketModel->fetchAll("SELECT * FROM ticket_attachments WHERE ticket_id = ?", [$id]);
         $userModel = $this->model('User_model');
 
+        $checkers = $userModel->getCheckersForSubActivity($ticket['sub_activity_id'] ?? 0);
+        if (empty($checkers)) {
+            $checkers = $userModel->getEmployees();
+        }
+
         $this->render('tickets/view', [
             'title' => 'Ticket ' . $ticket['ticket_number'],
             'ticket' => $ticket,
             'comments' => $comments,
             'holdHistory' => $holdHistory,
             'attachments' => $attachments,
-            'users' => $userModel->getEmployees()
+            'users' => $userModel->getEmployees(),
+            'checkers' => $checkers
         ]);
     }
 
@@ -420,6 +430,187 @@ class Tickets extends Controller {
 
             Session::setFlash('success', 'Ticket deleted successfully.');
             redirect('tickets');
+        }
+    }
+
+    /**
+     * My Bucket View
+     */
+    public function my_bucket() {
+        $this->requireAuth();
+
+        $ticketModel = $this->model('Ticket_model');
+        $filters = [
+            'search' => sanitize($_GET['search'] ?? ''),
+            'stage' => sanitize($_GET['stage'] ?? '')
+        ];
+
+        $tickets = $ticketModel->getMyBucketTickets(Session::get('user_id'), $filters);
+
+        $this->render('tickets/my_bucket', [
+            'title' => 'My Bucket',
+            'tickets' => $tickets,
+            'filters' => $filters
+        ]);
+    }
+
+    /**
+     * Maker submits ticket to Checker
+     */
+    public function submit_to_checker() {
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $checkerId = (int)($_POST['checker_id'] ?? 0);
+            $remarks = sanitize($_POST['remarks'] ?? '');
+
+            if (!$ticketId || !$checkerId) {
+                Session::setFlash('danger', 'Please select a valid Checker.');
+                redirect('tickets/view/' . $ticketId);
+            }
+
+            $ticketModel = $this->model('Ticket_model');
+            if ($ticketModel->submitToChecker($ticketId, $checkerId, $remarks, Session::get('user_id'))) {
+                Session::setFlash('success', 'Ticket successfully submitted to Checker for quality audit!');
+            } else {
+                Session::setFlash('danger', 'Failed to submit to checker.');
+            }
+            redirect('tickets/view/' . $ticketId);
+        }
+    }
+
+    /**
+     * Checker Action (Approve / Reject)
+     */
+    public function checker_action() {
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $decision = sanitize($_POST['decision'] ?? ''); // approve or reject
+            $remarks = sanitize($_POST['remarks'] ?? '');
+
+            $ticketModel = $this->model('Ticket_model');
+
+            if ($decision === 'approve') {
+                if ($ticketModel->approveByChecker($ticketId, $remarks, Session::get('user_id'))) {
+                    Session::setFlash('success', 'Checker audit approved! Ticket moved to Delivery Phase.');
+                }
+            } elseif ($decision === 'reject') {
+                $errorCategory = sanitize($_POST['error_observation'] ?? 'Quality Defect');
+                $errorDesc = sanitize($_POST['error_description'] ?? '');
+                $errorType = sanitize($_POST['error_type'] ?? 'Internal');
+                $solution = sanitize($_POST['resolution_solution'] ?? '');
+
+                if ($ticketModel->rejectByChecker($ticketId, $errorCategory, $errorDesc, $errorType, $solution, Session::get('user_id'))) {
+                    Session::setFlash('warning', 'Checker rejected ticket & logged error observation into Error Tracker. Ticket returned to Maker.');
+                }
+            }
+            redirect('tickets/view/' . $ticketId);
+        }
+    }
+
+    /**
+     * Deliver File & Close Ticket (with Proof Screenshot Upload)
+     */
+    public function deliver() {
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $remarks = sanitize($_POST['remarks'] ?? '');
+
+            $attachmentPath = null;
+            if (!empty($_FILES['closure_attachment']['name'])) {
+                $uploadDir = __DIR__ . '/../../public/uploads/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+
+                $fileName = time() . '_proof_' . basename($_FILES['closure_attachment']['name']);
+                $targetFile = $uploadDir . $fileName;
+
+                if (move_uploaded_file($_FILES['closure_attachment']['tmp_name'], $targetFile)) {
+                    $attachmentPath = 'public/uploads/' . $fileName;
+                }
+            }
+
+            $ticketModel = $this->model('Ticket_model');
+            if ($ticketModel->completeDelivery($ticketId, $attachmentPath, $remarks, Session::get('user_id'))) {
+                Session::setFlash('success', 'Ticket delivered and closed successfully! Logged in Delivery Tracker.');
+            } else {
+                Session::setFlash('danger', 'Failed to complete delivery.');
+            }
+            redirect('tickets/view/' . $ticketId);
+        }
+    }
+
+    /**
+     * Reschedule Ticket Date
+     */
+    public function reschedule() {
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $scheduledDate = sanitize($_POST['scheduled_date'] ?? '');
+            $remarks = sanitize($_POST['remarks'] ?? 'Rescheduled');
+
+            if (empty($scheduledDate) || $scheduledDate < date('Y-m-d')) {
+                Session::setFlash('danger', 'Reschedule date must be today or a future date.');
+                redirect('tickets/view/' . $ticketId);
+            }
+
+            $ticketModel = $this->model('Ticket_model');
+            if ($ticketModel->rescheduleTicket($ticketId, $scheduledDate, $remarks, Session::get('user_id'))) {
+                Session::setFlash('success', "Ticket rescheduled for work on {$scheduledDate}.");
+            }
+            redirect('tickets/view/' . $ticketId);
+        }
+    }
+
+    /**
+     * Reassign Ticket to Another Employee
+     */
+    public function reassign() {
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $newUserId = (int)($_POST['allocated_to'] ?? 0);
+            $remarks = sanitize($_POST['remarks'] ?? 'Reassigned');
+
+            if (!$ticketId || !$newUserId) {
+                Session::setFlash('danger', 'Please select a valid employee.');
+                redirect('tickets/view/' . $ticketId);
+            }
+
+            $ticketModel = $this->model('Ticket_model');
+            if ($ticketModel->reassignTicket($ticketId, $newUserId, $remarks, Session::get('user_id'))) {
+                Session::setFlash('success', 'Ticket successfully reassigned!');
+            }
+            redirect('tickets/view/' . $ticketId);
         }
     }
 }

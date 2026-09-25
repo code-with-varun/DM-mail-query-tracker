@@ -26,6 +26,7 @@
                             <th>Parent Activity</th>
                             <th>Division</th>
                             <th>Default SLA TAT</th>
+                            <th>Occurrence Day</th>
                             <th>Default Mapped Employee</th>
                             <th style="width: 90px;" class="text-end text-nowrap">Actions</th>
                         </tr>
@@ -45,6 +46,13 @@
                             </td>
                             <td class="text-nowrap"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary"><?= $sa['default_tat_hours'] ?> Hours</span></td>
                             <td class="text-nowrap">
+                                <?php if (!empty($sa['default_occurrence_day'])): ?>
+                                    <span class="badge bg-purple bg-opacity-10 text-purple border border-purple fw-bold"><i class="fas fa-calendar-day me-1"></i>Day <?= $sa['default_occurrence_day'] ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted fs-8">Daily / Ad-hoc</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-nowrap">
                                 <?php if (!empty($sa['default_user_name'])): ?>
                                     <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-check me-1 text-success"></i><?= htmlspecialchars($sa['default_user_name']) ?> (<?= $sa['default_user_code'] ?>)</span>
                                 <?php else: ?>
@@ -59,6 +67,7 @@
                                             data-activity_id="<?= $sa['activity_id'] ?>"
                                             data-division_id="<?= $sa['division_id'] ?? '' ?>"
                                             data-tat="<?= $sa['default_tat_hours'] ?>"
+                                            data-occurrence_day="<?= $sa['default_occurrence_day'] ?? '' ?>"
                                             data-user_id="<?= $sa['default_user_id'] ?? '' ?>"
                                             title="Edit Sub-Activity">
                                         <i class="fas fa-edit"></i>
@@ -108,18 +117,23 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">Division Mapping</label>
                             <select name="division_id" id="sub_division_id" class="form-select">
-                                <option value="">Auto (Use Activity Division)</option>
+                                <option value="">Auto Division</option>
                                 <?php foreach ($divisions as $d): ?>
                                     <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Default SLA TAT (Hours) <span class="text-danger">*</span></label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-dark">SLA TAT (Hours) <span class="text-danger">*</span></label>
                             <input type="number" name="default_tat_hours" id="sub_tat" class="form-control" value="24" min="1" max="720" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-dark">Occurrence Day</label>
+                            <input type="number" name="default_occurrence_day" id="sub_occurrence_day" class="form-control" placeholder="1-31" min="1" max="31">
+                            <small class="text-muted fs-8">Day of month (e.g. 23)</small>
                         </div>
                     </div>
 
@@ -153,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sub_activity_id_val').value = this.dataset.activity_id;
             document.getElementById('sub_division_id').value = this.dataset.division_id;
             document.getElementById('sub_tat').value = this.dataset.tat;
+            document.getElementById('sub_occurrence_day').value = this.dataset.occurrence_day;
             document.getElementById('sub_user_id').value = this.dataset.user_id;
 
             var modal = new bootstrap.Modal(document.getElementById('subActivityModal'));

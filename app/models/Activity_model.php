@@ -96,16 +96,28 @@ class Activity_model extends Model {
         ]);
     }
 
-    public function createSubActivity(int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null): int {
+    public function createSubActivity(int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null): int {
         return $this->insert('sub_activities', [
             'activity_id' => $activityId,
             'sub_activity_name' => $name,
             'division_id' => $divisionId,
             'default_tat_hours' => $tatHours,
             'default_user_id' => $defaultUserId,
+            'default_occurrence_day' => $occurrenceDay,
             'status' => 'Active',
             'created_at' => date('Y-m-d H:i:s')
         ]);
+    }
+
+    public function updateSubActivity(int $id, int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null): bool {
+        return $this->update('sub_activities', [
+            'activity_id' => $activityId,
+            'sub_activity_name' => $name,
+            'division_id' => $divisionId,
+            'default_tat_hours' => $tatHours,
+            'default_user_id' => $defaultUserId,
+            'default_occurrence_day' => $occurrenceDay
+        ], "id = ?", [$id]);
     }
 
     public function createDivision(string $name, string $code): int {

@@ -94,11 +94,13 @@ class Audit extends Controller {
             $db = Database::getInstance();
             $db->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
-            // Clear all operational tables and reset AUTO_INCREMENT primary keys
+            // Clear all operational & master tables and reset AUTO_INCREMENT primary keys
             $tablesToClear = [
-                'tickets', 'ticket_history', 'ticket_categories', 'tasks', 'task_comments',
-                'contacts', 'error_logs', 'input_tracker', 'delivery_tracker',
-                'recurring_tasks', 'audit_logs', 'notifications', 'hold_history'
+                'tickets', 'ticket_comments', 'ticket_history', 'ticket_categories',
+                'task_tickets', 'tasks', 'task_comments',
+                'contacts', 'error_tracker', 'input_tracker', 'delivery_tracker',
+                'recurring_templates', 'recurring_tasks', 'audit_logs', 'notifications', 'hold_history',
+                'sub_activities', 'activities', 'divisions'
             ];
 
             foreach ($tablesToClear as $tbl) {

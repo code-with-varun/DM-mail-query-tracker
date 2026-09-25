@@ -88,9 +88,11 @@
                         This will permanently delete:
                         <ul class="mb-0 mt-1 ps-3">
                             <li>All Query Tickets & Task Tickets</li>
+                            <li>Divisions, Activities, Sub-activities & Master Categories</li>
+                            <li>Error Tracker Observations & Logs</li>
+                            <li>Contact Directory & Delivery Trackers</li>
                             <li>All Comments & Status History</li>
                             <li>All Uploaded File Attachments</li>
-                            <li>All Input & Delivery Tracker Logs</li>
                             <li>All Recurring Task Templates & History</li>
                         </ul>
                     </div>

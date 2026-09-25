@@ -95,7 +95,8 @@ class Audit extends Controller {
 
         file_put_contents($tempJsonPath, json_encode($dbData, JSON_UNESCAPED_UNICODE));
 
-        $scriptPath = escapeshellarg(BASE_PATH . '/cron/json_to_excel.py');
+        $basePath = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__, 2);
+        $scriptPath = escapeshellarg($basePath . '/cron/json_to_excel.py');
         $cmd = "python {$scriptPath} " . escapeshellarg($tempJsonPath) . " " . escapeshellarg($tempXlsxPath);
         exec($cmd, $output, $returnCode);
 
@@ -141,7 +142,8 @@ class Audit extends Controller {
                 redirect('audit');
             }
 
-            $scriptPath = escapeshellarg(BASE_PATH . '/cron/excel_to_json.py');
+            $basePath = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__, 2);
+            $scriptPath = escapeshellarg($basePath . '/cron/excel_to_json.py');
             $cmd = "python {$scriptPath} " . escapeshellarg($tmpFile);
             $outputStr = shell_exec($cmd);
 

@@ -24,7 +24,11 @@
                     <tbody>
                         <?php foreach ($tickets as $t): ?>
                         <tr>
-                            <td class="fw-bold text-primary"><?= htmlspecialchars($t['ticket_number']) ?></td>
+                            <td class="text-nowrap">
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link" title="Click to view ticket details">
+                                    <?= htmlspecialchars($t['ticket_number']) ?>
+                                </a>
+                            </td>
                             <td>
                                 <div class="fw-bold fs-7"><?= htmlspecialchars($t['subject']) ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($t['from_address']) ?></small>
@@ -45,10 +49,10 @@
                                     <span class="text-secondary"><?= htmlspecialchars($t['status']) ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></td>
-                            <td><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
+                            <td class="text-nowrap"><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></td>
+                            <td class="text-nowrap"><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
                             <td class="text-end text-nowrap">
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-info text-white fw-bold"><i class="fas fa-play-circle me-1"></i>View & Release</a>
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-outline-primary p-1 px-2" title="View & Release Ticket"><i class="fas fa-play-circle"></i></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>

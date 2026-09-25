@@ -27,8 +27,17 @@
                     <tbody>
                         <?php foreach ($logs as $l): ?>
                         <tr>
-                            <td class="fw-bold text-primary"><?= htmlspecialchars($l['delivery_number']) ?></td>
-                            <td><?= $l['ticket_number'] ? htmlspecialchars($l['ticket_number']) : 'N/A' ?></td>
+                            <td class="text-nowrap">
+                                <?php if (!empty($l['ticket_number']) && !empty($l['ticket_id'])): ?>
+                                    <a href="<?= base_url('tickets/view/' . $l['ticket_id']) ?>" class="ticket-no-link" title="Click to view ticket details">
+                                        <?= htmlspecialchars($l['ticket_number']) ?>
+                                    </a>
+                                <?php elseif (!empty($l['ticket_number'])): ?>
+                                    <span class="fw-bold text-primary"><?= htmlspecialchars($l['ticket_number']) ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted fs-8">N/A</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="fw-bold text-dark"><?= htmlspecialchars($l['delivered_to']) ?></td>
                             <td><span class="badge bg-secondary"><?= htmlspecialchars($l['delivery_mode']) ?></span></td>
                             <td class="fs-8"><?= format_datetime($l['delivery_date']) ?></td>

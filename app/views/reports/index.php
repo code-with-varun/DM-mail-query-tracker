@@ -120,7 +120,11 @@
                     <tbody>
                         <?php foreach ($tickets as $t): ?>
                         <tr>
-                            <td class="fw-bold text-primary"><?= htmlspecialchars($t['ticket_number']) ?></td>
+                            <td class="text-nowrap">
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link" title="Click to view ticket details">
+                                    <?= htmlspecialchars($t['ticket_number']) ?>
+                                </a>
+                            </td>
                             <td>
                                 <div class="fw-bold fs-7"><?= htmlspecialchars($t['subject']) ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($t['from_address']) ?></small>

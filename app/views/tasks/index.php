@@ -20,7 +20,6 @@
                             <th>Assigned By</th>
                             <th>Due Date</th>
                             <th>Status</th>
-                            <th class="text-end text-nowrap" style="width: 90px;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -32,7 +31,11 @@
                             }
                         ?>
                         <tr>
-                            <td class="fw-bold text-primary text-nowrap"><?= htmlspecialchars($task['ticket_number']) ?></td>
+                            <td class="text-nowrap">
+                                <a href="<?= base_url('tickets/view/' . $task['ticket_id']) ?>" class="ticket-no-link" title="Click to view task details">
+                                    <?= htmlspecialchars($task['ticket_number']) ?>
+                                </a>
+                            </td>
                             <td>
                                 <div class="fw-bold fs-7"><?= htmlspecialchars($task['task_title']) ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($task['description']) ?></small>
@@ -46,9 +49,6 @@
                             <td class="text-nowrap"><?= htmlspecialchars($task['creator_name'] ?? 'System') ?></td>
                             <td class="fs-8 text-nowrap"><?= format_datetime($task['due_date']) ?></td>
                             <td class="text-nowrap"><?= get_status_badge($statusDisplay) ?></td>
-                            <td class="text-end text-nowrap">
-                                <a href="<?= base_url('tickets/view/' . $task['ticket_id']) ?>" class="btn btn-sm btn-outline-primary fw-bold p-1 px-2" title="View Task Details"><i class="fas fa-eye me-1"></i>View</a>
-                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

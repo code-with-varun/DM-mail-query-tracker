@@ -52,14 +52,14 @@
                             </td>
                             <td class="text-end text-nowrap">
                                 <button type="button" class="btn btn-sm btn-outline-primary p-1 px-2 me-1" data-bs-toggle="modal" data-bs-target="#editActModal<?= $act['id'] ?>" title="Edit Activity">
-                                    <i class="fas fa-edit me-1"></i>Edit
+                                    <i class="fas fa-edit"></i>
                                 </button>
-                                <form action="<?= base_url('master/activities') ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete activity <?= htmlspecialchars($act['activity_name']) ?>?');">
+                                <form action="<?= base_url('master/activities') ?>" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete activity <?= htmlspecialchars($act['activity_name']) ?>?');">
                                     <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= $act['id'] ?>">
                                     <button type="submit" class="btn btn-sm btn-outline-danger p-1 px-2" title="Delete Activity">
-                                        <i class="fas fa-trash-alt me-1"></i>Delete
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
                             </td>

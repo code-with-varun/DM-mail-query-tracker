@@ -129,15 +129,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($tickets)): ?>
-                        <tr>
-                            <td colspan="9" class="text-center py-4 text-muted fs-7">
-                                <i class="fas fa-check-circle text-success fs-4 d-block mb-2"></i>
-                                Your bucket is completely clear! Great job.
-                            </td>
-                        </tr>
-                        <?php endif; ?>
-
                         <?php foreach ($tickets as $t): ?>
                         <tr>
                             <td class="fw-bold">

@@ -101,36 +101,41 @@
                 <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                 <input type="hidden" name="id" id="sub_id" value="0">
                 <div class="modal-body p-4">
+                    <!-- Step 1: Select Division -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Parent Activity <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold text-dark">1. Select Division</label>
+                        <select name="division_id" id="sub_division_id" class="form-select">
+                            <option value="">All Divisions / Auto Division</option>
+                            <?php foreach ($divisions as $d): ?>
+                                <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted fs-8 d-block mt-1">Selecting a division will filter the parent activities below.</small>
+                    </div>
+
+                    <!-- Step 2: Select Parent Activity -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">2. Select Parent Activity <span class="text-danger">*</span></label>
                         <select name="activity_id" id="sub_activity_id_val" class="form-select" required>
                             <option value="">Select Parent Activity</option>
                             <?php foreach ($activities as $act): ?>
-                                <option value="<?= $act['id'] ?>"><?= htmlspecialchars($act['activity_name']) ?></option>
+                                <option value="<?= $act['id'] ?>" data-division_id="<?= $act['division_id'] ?? '' ?>"><?= htmlspecialchars($act['activity_name']) ?> <?= !empty($act['division_code']) ? '('.$act['division_code'].')' : '' ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
+                    <!-- Step 3: Sub-Activity Name -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Sub-Activity Name <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold text-dark">3. Sub-Activity Name <span class="text-danger">*</span></label>
                         <input type="text" name="sub_activity_name" id="sub_name" class="form-control" placeholder="e.g. Contract Query (24h SLA)" required>
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold text-dark">Division Mapping</label>
-                            <select name="division_id" id="sub_division_id" class="form-select">
-                                <option value="">Auto Division</option>
-                                <?php foreach ($divisions as $d): ?>
-                                    <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label fw-bold text-dark">SLA TAT (Hours) <span class="text-danger">*</span></label>
                             <input type="number" name="default_tat_hours" id="sub_tat" class="form-control" value="24" min="1" max="720" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label fw-bold text-dark">Occurrence Day</label>
                             <input type="number" name="default_occurrence_day" id="sub_occurrence_day" class="form-control" placeholder="1-31" min="1" max="31">
                             <small class="text-muted fs-8">Day of month (e.g. 23)</small>
@@ -159,13 +164,44 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var divisionSelect = document.getElementById('sub_division_id');
+    var activitySelect = document.getElementById('sub_activity_id_val');
+
+    function filterActivitiesByDivision() {
+        var selectedDivId = divisionSelect.value;
+        var options = activitySelect.querySelectorAll('option');
+
+        options.forEach(function(opt) {
+            if (opt.value === "") return;
+            var optDivId = opt.getAttribute('data-division_id');
+            if (!selectedDivId || !optDivId || optDivId == selectedDivId) {
+                opt.style.display = "";
+            } else {
+                opt.style.display = "none";
+            }
+        });
+
+        // Reset activity selection if hidden
+        var selectedOption = activitySelect.options[activitySelect.selectedIndex];
+        if (selectedOption && selectedOption.style.display === "none") {
+            activitySelect.value = "";
+        }
+    }
+
+    if (divisionSelect) {
+        divisionSelect.addEventListener('change', filterActivitiesByDivision);
+    }
+
     document.querySelectorAll('.btn-edit-sub').forEach(function(btn) {
         btn.addEventListener('click', function() {
             document.getElementById('subModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Sub-Activity';
             document.getElementById('sub_id').value = this.dataset.id;
             document.getElementById('sub_name').value = this.dataset.name;
-            document.getElementById('sub_activity_id_val').value = this.dataset.activity_id;
             document.getElementById('sub_division_id').value = this.dataset.division_id;
+            
+            filterActivitiesByDivision();
+            document.getElementById('sub_activity_id_val').value = this.dataset.activity_id;
+
             document.getElementById('sub_tat').value = this.dataset.tat;
             document.getElementById('sub_occurrence_day').value = this.dataset.occurrence_day;
             document.getElementById('sub_user_id').value = this.dataset.user_id;

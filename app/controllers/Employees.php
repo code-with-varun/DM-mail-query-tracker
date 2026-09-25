@@ -16,6 +16,7 @@ class Employees extends Controller {
         $subActivities = $activityModel->getAllSubActivitiesWithHierarchy();
 
         $userSkillsMap = [];
+        $userFullSkillsMap = [];
         foreach ($users as $u) {
             $skills = $userModel->getUserSkills($u['id']);
             $mapped = [];
@@ -23,6 +24,7 @@ class Employees extends Controller {
                 $mapped[$sk['sub_activity_id']] = $sk['role_type'];
             }
             $userSkillsMap[$u['id']] = $mapped;
+            $userFullSkillsMap[$u['id']] = $skills;
         }
 
         $this->render('employees/index', [
@@ -30,7 +32,8 @@ class Employees extends Controller {
             'users' => $users,
             'admins' => $admins,
             'subActivities' => $subActivities,
-            'userSkillsMap' => $userSkillsMap
+            'userSkillsMap' => $userSkillsMap,
+            'userFullSkillsMap' => $userFullSkillsMap
         ]);
     }
 

@@ -72,15 +72,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($tickets)): ?>
-                        <tr>
-                            <td colspan="10" class="text-center py-4 text-muted fs-7">
-                                <i class="fas fa-calendar-check text-success fs-4 d-block mb-2"></i>
-                                No scheduled work items for this date.
-                            </td>
-                        </tr>
-                        <?php endif; ?>
-
                         <?php foreach ($tickets as $t): ?>
                         <tr class="<?= (!empty($t['scheduled_date']) && $t['scheduled_date'] < $targetDate) ? 'table-warning bg-opacity-10' : '' ?>">
                             <td class="fw-bold">

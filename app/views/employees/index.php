@@ -23,6 +23,7 @@
                             <th>Role</th>
                             <th>Department</th>
                             <th>Reporting Manager</th>
+                            <th>Aligned Activities</th>
                             <th>Status</th>
                             <th>Last Login</th>
                             <?php if (is_super_admin() || is_admin()): ?>
@@ -43,11 +44,21 @@
                             </td>
                             <td><?= htmlspecialchars($u['department']) ?></td>
                             <td class="fs-8"><?= htmlspecialchars($u['manager_name'] ?? 'None / Super Admin') ?></td>
+                            <td>
+                                <?php $assignedSkills = $userFullSkillsMap[$u['id']] ?? []; ?>
+                                <?php if (!empty($assignedSkills)): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-info fw-bold p-1 px-2" data-bs-toggle="modal" data-bs-target="#viewSkillsModal<?= $u['id'] ?>" title="Click to view aligned activities">
+                                        <i class="fas fa-tasks me-1"></i><?= count($assignedSkills) ?> Sub-Activities
+                                    </button>
+                                <?php else: ?>
+                                    <span class="badge bg-light text-muted border">None Mapped</span>
+                                <?php endif; ?>
+                            </td>
                             <td><span class="badge bg-<?= $u['status'] === 'Active' ? 'success' : 'secondary' ?>"><?= $u['status'] ?></span></td>
                             <td class="fs-8 text-muted"><?= $u['last_login'] ? format_datetime($u['last_login']) : 'Never' ?></td>
                             <?php if (is_super_admin() || is_admin()): ?>
                             <td>
-                                <button type="button" class="btn btn-sm btn-outline-primary p-1 px-2 me-1" data-bs-toggle="modal" data-bs-target="#editUserModal<?= $u['id'] ?>" title="Edit User">
+                                <button type="button" class="btn btn-sm btn-outline-primary p-1 px-2 me-1" data-bs-toggle="modal" data-bs-target="#editUserModal<?= $u['id'] ?>" title="Edit User Account & Skill Matrix">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <?php if (is_super_admin() && $u['role_id'] != 1): ?>
@@ -130,10 +141,13 @@
 
                                             <!-- Skill Matrix: Sub-Activities & Maker-Checker -->
                                             <hr class="my-3">
-                                            <h6 class="fw-bold text-dark mb-2"><i class="fas fa-tasks me-2 text-primary"></i>Sub-Activity & Maker-Checker Mapping</h6>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-tasks me-2 text-primary"></i>Sub-Activity & Maker-Checker Mapping</h6>
+                                                <input type="text" class="form-control form-control-sm w-50" id="searchEditSkills_<?= $u['id'] ?>" placeholder="Filter sub-activities..." onkeyup="filterSkillEditRows('searchEditSkills_<?= $u['id'] ?>', 'editSkillsTable_<?= $u['id'] ?>')">
+                                            </div>
                                             <p class="text-muted fs-8 mb-2">Tick sub-activities assigned to this employee and set their role (Maker / Checker / Both).</p>
                                             <div class="border rounded p-2 bg-light" style="max-height: 220px; overflow-y: auto;">
-                                                <table class="table table-sm align-middle table-borderless mb-0 fs-8">
+                                                <table class="table table-sm align-middle table-borderless mb-0 fs-8" id="editSkillsTable_<?= $u['id'] ?>">
                                                     <thead>
                                                         <tr class="text-muted border-bottom">
                                                             <th style="width: 50px;">Assign</th>
@@ -180,6 +194,64 @@
                             </div>
                         </div>
                         <?php endif; ?>
+
+                        <!-- Modal: View Aligned Activities -->
+                        <div class="modal fade" id="viewSkillsModal<?= $u['id'] ?>" tabindex="-1">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content border-0 shadow">
+                                    <div class="modal-header bg-info text-white">
+                                        <h5 class="modal-title fw-bold"><i class="fas fa-tasks me-2"></i>Aligned Activities - <?= htmlspecialchars($u['full_name']) ?> (<?= htmlspecialchars($u['user_code']) ?>)</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <?php $userSkills = $userFullSkillsMap[$u['id']] ?? []; ?>
+                                        <?php if (empty($userSkills)): ?>
+                                            <div class="text-center py-4 text-muted fs-7">
+                                                <i class="fas fa-info-circle fs-4 d-block mb-2"></i>
+                                                No sub-activities currently assigned to this employee.
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <span class="fw-bold text-dark fs-7">Total Assigned Sub-Activities: <span class="badge bg-primary"><?= count($userSkills) ?></span></span>
+                                                <input type="text" class="form-control form-control-sm w-50" id="filterUserSkills_<?= $u['id'] ?>" placeholder="Search sub-activities..." onkeyup="filterUserSkillTable(<?= $u['id'] ?>)">
+                                            </div>
+                                            <div class="table-responsive border rounded" style="max-height: 350px; overflow-y: auto;">
+                                                <table class="table table-hover align-middle mb-0 fs-8" id="userSkillsTable_<?= $u['id'] ?>">
+                                                    <thead class="table-light sticky-top">
+                                                        <tr>
+                                                            <th style="width: 40px;">#</th>
+                                                            <th>Sub-Activity Name</th>
+                                                            <th>Parent Activity</th>
+                                                            <th>Assigned Role</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php foreach ($userSkills as $skIdx => $sk): ?>
+                                                        <tr>
+                                                            <td class="text-muted"><?= $skIdx + 1 ?></td>
+                                                            <td class="fw-bold text-dark"><?= htmlspecialchars($sk['sub_activity_name']) ?></td>
+                                                            <td class="text-muted"><?= htmlspecialchars($sk['activity_name']) ?></td>
+                                                            <td>
+                                                                <?php
+                                                                    $rBadge = 'bg-primary';
+                                                                    if ($sk['role_type'] === 'Checker') $rBadge = 'bg-warning text-dark';
+                                                                    elseif ($sk['role_type'] === 'Both') $rBadge = 'bg-success';
+                                                                ?>
+                                                                <span class="badge <?= $rBadge ?> fw-bold"><?= htmlspecialchars($sk['role_type']) ?></span>
+                                                            </td>
+                                                        </tr>
+                                                        <?php endforeach; ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <?php endforeach; ?>
                     </tbody>
@@ -304,3 +376,37 @@
     </div>
 </div>
 <?php endif; ?>
+
+<script>
+function filterUserSkillTable(userId) {
+    var input = document.getElementById("filterUserSkills_" + userId);
+    var filter = input.value.toLowerCase();
+    var table = document.getElementById("userSkillsTable_" + userId);
+    if (!table) return;
+    var tr = table.getElementsByTagName("tr");
+    for (var i = 1; i < tr.length; i++) {
+        var txt = tr[i].textContent || tr[i].innerText;
+        if (txt.toLowerCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+        } else {
+            tr[i].style.display = "none";
+        }
+    }
+}
+
+function filterSkillEditRows(inputId, tableId) {
+    var input = document.getElementById(inputId);
+    var filter = input.value.toLowerCase();
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var tr = table.getElementsByTagName("tr");
+    for (var i = 1; i < tr.length; i++) {
+        var txt = tr[i].textContent || tr[i].innerText;
+        if (txt.toLowerCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+        } else {
+            tr[i].style.display = "none";
+        }
+    }
+}
+</script>

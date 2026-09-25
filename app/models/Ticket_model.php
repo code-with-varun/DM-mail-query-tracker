@@ -243,11 +243,11 @@ class Ticket_model extends Model {
             $params[] = $filters['priority'];
         }
         if (!empty($filters['start_date'])) {
-            $where .= " AND DATE({$prefix}created_at) >= ?";
+            $where .= " AND DATE(COALESCE({$prefix}received_datetime, {$prefix}created_at)) >= ?";
             $params[] = $filters['start_date'];
         }
         if (!empty($filters['end_date'])) {
-            $where .= " AND DATE({$prefix}created_at) <= ?";
+            $where .= " AND DATE(COALESCE({$prefix}received_datetime, {$prefix}created_at)) <= ?";
             $params[] = $filters['end_date'];
         }
 

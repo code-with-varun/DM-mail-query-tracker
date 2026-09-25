@@ -245,7 +245,7 @@ body {
   padding: 0.75rem 1rem;
 }
 
-/* Dashboard Stat Cards */
+/* Dashboard Stat Cards & Executive KPI Styling */
 .stat-card {
   border: none;
   border-radius: 12px;
@@ -255,38 +255,88 @@ body {
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
 
-.stat-card .card-body {
-  padding: 1.5rem;
+.stat-card-executive {
+  border: none;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.stat-card-executive:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card-executive .card-body {
+  padding: 1.15rem 1.25rem;
+}
+
+.stat-card-executive .stat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 0.65rem;
 }
 
-.stat-card .icon-box {
-  width: 54px;
-  height: 54px;
+.stat-card-executive .stat-label {
+  font-size: 0.725rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #64748B;
+}
+
+.stat-card-executive .icon-box-sm {
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-.stat-card .stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  line-height: 1.2;
+.stat-card-executive .stat-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
 }
 
-.stat-card .stat-label {
-  font-size: 0.85rem;
-  color: #64748b;
+.stat-card-executive .stat-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.735rem;
   font-weight: 600;
-  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.border-purple {
+  border-color: #6f42c1 !important;
+}
+
+.text-purple {
+  color: #6f42c1 !important;
+}
+
+.bg-purple {
+  background-color: #6f42c1 !important;
+}
+
+.bg-purple-subtle {
+  background-color: rgba(111, 66, 193, 0.1) !important;
+  color: #6f42c1 !important;
 }
 
 /* DataTables & Responsive Table Wrappers */

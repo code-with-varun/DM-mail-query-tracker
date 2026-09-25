@@ -5,26 +5,34 @@
             <p class="text-muted fs-7 mb-0">Immutable system activity logs, database dumps, and Super Admin project reset</p>
         </div>
         <?php if (is_super_admin()): ?>
-        <div class="d-flex gap-2">
-            <a href="<?= base_url('audit/export-backup') ?>" class="btn btn-outline-primary btn-sm fw-bold">
-                <i class="fas fa-database me-1"></i>Download Database Backup (.sql)
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="<?= base_url('audit/export-excel') ?>" class="btn btn-outline-success btn-sm fw-bold" title="Export all database tables into a multi-sheet Excel workbook">
+                <i class="fas fa-file-excel me-1"></i>Export Master Excel (.xlsx)
+            </a>
+            <button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#importExcelModal" title="Import multi-sheet Excel file into database tables">
+                <i class="fas fa-file-import me-1"></i>Import Master Excel (.xlsx)
+            </button>
+            <a href="<?= base_url('audit/export-backup') ?>" class="btn btn-outline-primary btn-sm fw-bold" title="Download raw SQL dump">
+                <i class="fas fa-database me-1"></i>SQL Dump (.sql)
             </a>
             <button type="button" class="btn btn-danger btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#resetSystemModal">
-                <i class="fas fa-undo-alt me-1"></i>Reset System Data (Start Fresh)
+                <i class="fas fa-undo-alt me-1"></i>Reset System Data
             </button>
         </div>
         <?php endif; ?>
     </div>
 
-    <!-- Warning Reset Card for Super Admin -->
+    <!-- Info Card for Super Admin -->
     <?php if (is_super_admin()): ?>
-    <div class="card border-danger shadow-sm mb-4 bg-light">
+    <div class="card border-primary shadow-sm mb-4 bg-light">
         <div class="card-body p-3 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-                <i class="fas fa-shield-alt fs-3 text-danger"></i>
+                <i class="fas fa-file-excel fs-2 text-success"></i>
                 <div>
-                    <strong class="d-block text-danger fs-6">Database Backup & Super Admin Reset Control</strong>
-                    <span class="text-muted fs-7">Download complete SQL dumps for offsite backup. System reset will wipe operational tickets, tasks, and non-superadmin accounts while retaining Super Admin credentials.</span>
+                    <strong class="d-block text-dark fs-6">Master Excel Data Backup & Multi-Sheet Restore</strong>
+                    <span class="text-muted fs-7">
+                        Export all system tables into a multi-sheet Excel workbook (`.xlsx`), or upload master Excel templates (like <code>DM-ISPARK-MASTER.xlsx</code>) to restore users, contacts, divisions, activities, sub-activities, and error logs after a system reset.
+                    </span>
                 </div>
             </div>
         </div>
@@ -111,6 +119,38 @@
                     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger fw-bold px-4">
                         <i class="fas fa-trash-restore me-1"></i>Confirm & Reset Project
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Import Master Excel Data -->
+<div class="modal fade" id="importExcelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="<?= base_url('audit/import_excel') ?>" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-file-import me-2"></i>Import Master Excel Data (.xlsx)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info mb-3 fs-7">
+                        <i class="fas fa-info-circle me-1 fs-5 float-start"></i>
+                        Upload a multi-sheet Excel file (e.g. <code>DM-ISPARK-MASTER.xlsx</code> or exported master backup). Each sheet name must match a database table (e.g. <code>users</code>, <code>contacts</code>, <code>divisions</code>, <code>activities</code>, <code>sub_activities</code>, <code>error_tracker</code>).
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold text-dark">Select Excel File (.xlsx, .xls) <span class="text-danger">*</span></label>
+                        <input type="file" name="excel_file" class="form-control" accept=".xlsx, .xls" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">
+                        <i class="fas fa-upload me-1"></i>Start Excel Import
                     </button>
                 </div>
             </form>

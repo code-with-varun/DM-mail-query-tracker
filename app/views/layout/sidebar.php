@@ -20,11 +20,11 @@
             </a>
 
             <a href="<?= base_url('tickets/my-bucket') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tickets/my-bucket')) ? 'active' : '' ?>" title="My Bucket">
-                <i class="fas fa-user-clock text-warning"></i> <span>My Bucket</span>
+                <i class="fas fa-user-clock"></i> <span>My Bucket</span>
             </a>
 
             <a href="<?= base_url('roster') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'roster')) ? 'active' : '' ?>" title="Daily Roster & Planner">
-                <i class="fas fa-calendar-alt text-info"></i> <span>Daily Roster</span>
+                <i class="fas fa-calendar-alt"></i> <span>Daily Roster</span>
             </a>
             
             <a href="<?= base_url('tickets') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tickets') && !str_contains($_SERVER['REQUEST_URI'], 'create') && !str_contains($_SERVER['REQUEST_URI'], 'my-bucket')) ? 'active' : '' ?>" title="Mail Tickets">
@@ -36,7 +36,7 @@
             </a>
 
             <a href="<?= base_url('tasks') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tasks')) ? 'active' : '' ?>" title="Internal Tasks">
-                <i class="fas fa-tasks text-purple"></i> <span>Internal Tasks</span>
+                <i class="fas fa-tasks"></i> <span>Internal Tasks</span>
             </a>
 
             <a href="<?= base_url('hold') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'hold')) ? 'active' : '' ?>" title="Hold / Release List">
@@ -48,13 +48,13 @@
                 <i class="fas fa-address-book"></i> <span>Contact Manager</span>
             </a>
             <a href="<?= base_url('tracker/input') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tracker/input')) ? 'active' : '' ?>" title="Input Tracker">
-                <i class="fas fa-inbox text-info"></i> <span>Input Tracker</span>
+                <i class="fas fa-inbox"></i> <span>Input Tracker</span>
             </a>
             <a href="<?= base_url('tracker/delivery') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tracker/delivery')) ? 'active' : '' ?>" title="Delivery Tracker">
-                <i class="fas fa-paper-plane text-success"></i> <span>Delivery Tracker</span>
+                <i class="fas fa-paper-plane"></i> <span>Delivery Tracker</span>
             </a>
             <a href="<?= base_url('error-tracker') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'error-tracker')) ? 'active' : '' ?>" title="Error Tracker">
-                <i class="fas fa-exclamation-triangle text-danger"></i> <span>Error Tracker</span>
+                <i class="fas fa-exclamation-triangle"></i> <span>Error Tracker</span>
             </a>
 
             <?php if (is_super_admin() || is_admin()): ?>

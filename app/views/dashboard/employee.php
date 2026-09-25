@@ -2,56 +2,76 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1">Employee Workspace</h4>
-            <p class="text-muted fs-7 mb-0">My Assigned Queries, Tasks & SLA Priorities</p>
+            <p class="text-muted fs-7 mb-0">My Assigned Queries, Tasks, Priority Actions & SLA Status</p>
         </div>
         <div>
-            <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary fw-bold"><i class="fas fa-plus-circle me-2"></i>Create Query</a>
+            <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary fw-bold btn-sm"><i class="fas fa-plus-circle me-1"></i>Create Ticket</a>
         </div>
     </div>
 
     <!-- Stat Cards Row -->
+    <?php 
+        $tot = intval($stats['total'] ?? 0);
+        $overdue = intval($stats['overdue'] ?? 0);
+        $slaPct = ($tot > 0) ? max(0, round((($tot - $overdue) / $tot) * 100, 1)) : 100;
+    ?>
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div>
-                        <div class="stat-label">Assigned Tickets</div>
-                        <div class="stat-value text-primary"><?= $stats['open'] ?></div>
-                    </div>
-                    <div class="icon-box bg-primary bg-opacity-10 text-primary"><i class="fas fa-tasks"></i></div>
+        <div class="col-md-2">
+            <div class="card stat-card bg-white h-100 shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="stat-label fs-8 text-uppercase fw-bold text-muted mb-1">My Total</div>
+                    <div class="stat-value text-dark fw-bold fs-4"><?= $stats['total'] ?></div>
+                    <div class="fs-8 text-primary mt-1"><i class="fas fa-list-alt me-1"></i>Assigned Queue</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div>
-                        <div class="stat-label">Overdue Tasks</div>
-                        <div class="stat-value text-danger"><?= $stats['overdue'] ?></div>
-                    </div>
-                    <div class="icon-box bg-danger bg-opacity-10 text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+
+        <div class="col-md-2">
+            <div class="card stat-card bg-white h-100 shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="stat-label fs-8 text-uppercase fw-bold text-muted mb-1">Active / Pending</div>
+                    <div class="stat-value text-primary fw-bold fs-4"><?= $stats['open'] ?></div>
+                    <div class="fs-8 text-info mt-1"><i class="fas fa-tasks me-1"></i>In Work</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div>
-                        <div class="stat-label">On Hold</div>
-                        <div class="stat-value text-dark"><?= $stats['on_hold'] ?></div>
-                    </div>
-                    <div class="icon-box bg-dark bg-opacity-10 text-dark"><i class="fas fa-pause"></i></div>
+
+        <div class="col-md-2">
+            <div class="card stat-card bg-white h-100 shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="stat-label fs-8 text-uppercase fw-bold text-muted mb-1">Overdue Tasks</div>
+                    <div class="stat-value text-danger fw-bold fs-4"><?= $stats['overdue'] ?></div>
+                    <div class="fs-8 text-danger mt-1"><i class="fas fa-exclamation-triangle me-1"></i>Urgent Action</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div>
-                        <div class="stat-label">Completed</div>
-                        <div class="stat-value text-success"><?= $stats['closed'] ?></div>
-                    </div>
-                    <div class="icon-box bg-success bg-opacity-10 text-success"><i class="fas fa-check"></i></div>
+
+        <div class="col-md-2">
+            <div class="card stat-card bg-white h-100 shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="stat-label fs-8 text-uppercase fw-bold text-muted mb-1">On Hold</div>
+                    <div class="stat-value text-warning fw-bold fs-4"><?= $stats['on_hold'] ?></div>
+                    <div class="fs-8 text-warning mt-1"><i class="fas fa-pause me-1"></i>Pending Release</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="card stat-card bg-white h-100 shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="stat-label fs-8 text-uppercase fw-bold text-muted mb-1">Completed</div>
+                    <div class="stat-value text-success fw-bold fs-4"><?= $stats['closed'] ?></div>
+                    <div class="fs-8 text-success mt-1"><i class="fas fa-check-circle me-1"></i>Resolved</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="card stat-card bg-white h-100 shadow-sm border-0">
+                <div class="card-body p-3">
+                    <div class="stat-label fs-8 text-uppercase fw-bold text-muted mb-1">SLA Compliance</div>
+                    <div class="stat-value text-<?= $slaPct >= 90 ? 'success' : ($slaPct >= 75 ? 'warning' : 'danger') ?> fw-bold fs-4"><?= $slaPct ?>%</div>
+                    <div class="fs-8 text-muted mt-1"><i class="fas fa-shield-alt me-1"></i>Personal Score</div>
                 </div>
             </div>
         </div>
@@ -59,24 +79,35 @@
 
     <!-- Interactive Charts Row -->
     <div class="row g-3 mb-4">
-        <div class="col-md-5">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-pie text-primary me-2"></i>My Work Breakdown</h6>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-pie text-primary me-2"></i>My Status Breakdown</h6>
                 </div>
                 <div class="card-body d-flex align-items-center justify-content-center p-3">
-                    <canvas id="empStatusChart" style="max-height: 250px;"></canvas>
+                    <canvas id="empStatusChart" style="max-height: 240px;"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-7">
+        <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-chart-line text-success me-2"></i>Monthly Work Trend</h6>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-pie text-danger me-2"></i>My Priority Distribution</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-3">
+                    <canvas id="empPriorityChart" style="max-height: 240px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-line text-success me-2"></i>Monthly Work Trend</h6>
                 </div>
                 <div class="card-body p-3">
-                    <canvas id="empTrendChart" style="max-height: 250px;"></canvas>
+                    <canvas id="empTrendChart" style="max-height: 240px;"></canvas>
                 </div>
             </div>
         </div>
@@ -138,6 +169,26 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 data: statusCounts.length ? statusCounts : [1],
                 backgroundColor: ['#0d6efd', '#6610f2', '#ffc107', '#fd7e14', '#dc3545', '#198754', '#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    const priorityData = <?= json_encode($priority_breakdown ?? []) ?>;
+    const prioLabels = priorityData.map(item => item.priority || 'Medium');
+    const prioCounts = priorityData.map(item => item.count);
+
+    new Chart(document.getElementById('empPriorityChart'), {
+        type: 'pie',
+        data: {
+            labels: prioLabels.length ? prioLabels : ['Medium'],
+            datasets: [{
+                data: prioCounts.length ? prioCounts : [1],
+                backgroundColor: ['#ffc107', '#dc3545', '#0d6efd', '#6c757d']
             }]
         },
         options: {

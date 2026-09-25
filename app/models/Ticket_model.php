@@ -301,6 +301,43 @@ class Ticket_model extends Model {
         return $this->fetchAll($sql, $params);
     }
 
+    public function getPriorityBreakdown(?int $userId = null, ?int $roleId = null): array {
+        $where = " WHERE 1=1";
+        $params = [];
+        if ($roleId == 3 && $userId) {
+            $where .= " AND (allocated_to = ? OR created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($roleId == 2 && $userId) {
+            $where .= " AND (allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+        $sql = "SELECT priority, COUNT(*) as count FROM tickets {$where} GROUP BY priority";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getCategoryBreakdown(?int $userId = null, ?int $roleId = null): array {
+        $where = " WHERE 1=1";
+        $params = [];
+        if ($roleId == 3 && $userId) {
+            $where .= " AND (t.allocated_to = ? OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($roleId == 2 && $userId) {
+            $where .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+        $sql = "SELECT COALESCE(c.category_name, 'General') as category_name, COUNT(t.id) as count 
+                FROM tickets t 
+                LEFT JOIN ticket_categories c ON t.category_id = c.id 
+                {$where} GROUP BY c.category_name";
+        return $this->fetchAll($sql, $params);
+    }
+
     public function createNotification(int $userId, string $title, string $message, ?string $link = null): int {
         return $this->insert('notifications', [
             'user_id' => $userId,

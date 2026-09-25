@@ -94,22 +94,26 @@ class Audit extends Controller {
             $db = Database::getInstance();
             $db->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
-            // Clear all operational tables
+            // Clear all operational tables and reset AUTO_INCREMENT primary keys
             $tablesToClear = [
                 'tickets', 'ticket_history', 'ticket_categories', 'tasks', 'task_comments',
                 'contacts', 'error_logs', 'input_tracker', 'delivery_tracker',
-                'recurring_tasks', 'audit_logs'
+                'recurring_tasks', 'audit_logs', 'notifications', 'hold_history'
             ];
 
             foreach ($tablesToClear as $tbl) {
                 try {
                     $db->exec("TRUNCATE TABLE `{$tbl}`");
+                    $db->exec("ALTER TABLE `{$tbl}` AUTO_INCREMENT = 1");
                 } catch (\Throwable $e) {}
             }
 
-            // Remove non-superadmin users (role_id != 1) so only Super Admin remains
+            // Remove non-superadmin users (role_id != 1) and reset users AUTO_INCREMENT
             try {
                 $db->exec("DELETE FROM `users` WHERE `role_id` != 1");
+                $maxUser = $db->query("SELECT MAX(id) as max_id FROM `users`")->fetch(PDO::FETCH_ASSOC);
+                $nextId = (int)($maxUser['max_id'] ?? 1) + 1;
+                $db->exec("ALTER TABLE `users` AUTO_INCREMENT = {$nextId}");
             } catch (\Throwable $e) {}
 
             $db->exec("SET FOREIGN_KEY_CHECKS = 1;");

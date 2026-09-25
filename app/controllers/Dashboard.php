@@ -35,6 +35,8 @@ class Dashboard extends Controller {
         $data['status_breakdown'] = $ticketModel->getStatusBreakdown($userId, $roleId);
         $data['division_breakdown'] = $ticketModel->getDivisionBreakdown($userId, $roleId);
         $data['monthly_trend'] = $ticketModel->getMonthlyTrend($userId, $roleId);
+        $data['priority_breakdown'] = $ticketModel->getPriorityBreakdown($userId, $roleId);
+        $data['category_breakdown'] = $ticketModel->getCategoryBreakdown($userId, $roleId);
 
         $this->render("dashboard/{$viewName}", $data);
     }

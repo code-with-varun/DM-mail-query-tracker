@@ -69,6 +69,8 @@ $routes = [
     'audit' => 'Audit/index',
     'audit/reset' => 'Audit/reset',
     'audit/export-backup' => 'Audit/export_backup',
+    'audit/export-excel' => 'Audit/export_excel',
+    'audit/import-excel' => 'Audit/import_excel',
 
     'settings' => 'Settings/index',
 

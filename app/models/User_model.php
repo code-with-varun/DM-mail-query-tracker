@@ -102,12 +102,24 @@ class User_model extends Model {
 
     public function setUserSkills(int $userId, array $skills): void {
         $this->delete('user_sub_activities', 'user_id = ?', [$userId]);
-        foreach ($skills as $skill) {
-            if (!empty($skill['sub_activity_id'])) {
+        foreach ($skills as $key => $skill) {
+            $subActId = 0;
+            if (isset($skill['sub_activity_id'])) {
+                $subActId = (int)$skill['sub_activity_id'];
+            } elseif (is_numeric($key)) {
+                $subActId = (int)$key;
+            }
+
+            $isSelected = !empty($skill['selected']) || (isset($skill['selected']) && $skill['selected'] == '1');
+            if ($subActId > 0 && $isSelected) {
+                $roleType = $skill['role_type'] ?? 'Maker';
+                if (!in_array($roleType, ['Maker', 'Checker', 'Both'])) {
+                    $roleType = 'Maker';
+                }
                 $this->insert('user_sub_activities', [
                     'user_id' => $userId,
-                    'sub_activity_id' => (int)$skill['sub_activity_id'],
-                    'role_type' => $skill['role_type'] ?? 'Maker',
+                    'sub_activity_id' => $subActId,
+                    'role_type' => $roleType,
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
             }

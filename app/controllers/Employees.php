@@ -27,11 +27,19 @@ class Employees extends Controller {
             $userFullSkillsMap[$u['id']] = $skills;
         }
 
+        $groupedSubActivities = [];
+        foreach ($subActivities as $sa) {
+            $divName = !empty($sa['division_name']) ? $sa['division_name'] : 'General Operations';
+            $actName = $sa['activity_name'] ?? 'General Activities';
+            $groupedSubActivities[$divName][$actName][] = $sa;
+        }
+
         $this->render('employees/index', [
             'title' => 'Employee & User Management & Skill Matrix',
             'users' => $users,
             'admins' => $admins,
             'subActivities' => $subActivities,
+            'groupedSubActivities' => $groupedSubActivities,
             'userSkillsMap' => $userSkillsMap,
             'userFullSkillsMap' => $userFullSkillsMap
         ]);
@@ -55,6 +63,13 @@ class Employees extends Controller {
                 $userModel->delete('users', "id = ?", [$id]);
                 $userModel->delete('user_sub_activities', "user_id = ?", [$id]);
                 Session::setFlash('success', 'User account deleted successfully.');
+                redirect('employees');
+            }
+
+            if ($action === 'update_skills' && $id > 0) {
+                $skillsData = $_POST['skills'] ?? [];
+                $userModel->setUserSkills($id, $skillsData);
+                Session::setFlash('success', 'Skill matrix updated successfully for user.');
                 redirect('employees');
             }
 

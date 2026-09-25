@@ -64,7 +64,7 @@
                                         <i class="fas fa-user-edit"></i>
                                     </button>
                                     <button type="button" class="btn btn-outline-success p-1 px-2" data-bs-toggle="modal" data-bs-target="#manageSkillsModal<?= $u['id'] ?>" title="Manage Skill Matrix & Aligned Sub-Activities">
-                                        <i class="fas fa-sliders-h me-1"></i>Matrix
+                                        <i class="fas fa-sliders-h"></i>
                                     </button>
                                     <?php if (is_super_admin() && $u['role_id'] != 1): ?>
                                     <form action="<?= base_url('employees/create') ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete account <?= htmlspecialchars($u['user_code']) ?>?');">

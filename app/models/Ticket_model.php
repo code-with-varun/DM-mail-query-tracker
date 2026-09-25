@@ -211,20 +211,51 @@ class Ticket_model extends Model {
         return $this->fetchAll($sql, [$ticketId]);
     }
 
-    public function getDashboardStats(?int $userId = null, ?int $roleId = null): array {
+    private function buildSlicerWhere(array $filters, ?int $userId = null, ?int $roleId = null, string $prefix = 't.'): array {
         $where = " WHERE 1=1";
         $params = [];
 
         if ($roleId == 3 && $userId) {
-            $where .= " AND (allocated_to = ? OR created_by = ?)";
+            $where .= " AND ({$prefix}allocated_to = ? OR {$prefix}created_by = ?)";
             $params[] = $userId;
             $params[] = $userId;
         } elseif ($roleId == 2 && $userId) {
-            $where .= " AND (allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR created_by = ?)";
+            $where .= " AND ({$prefix}allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR {$prefix}created_by = ?)";
             $params[] = $userId;
             $params[] = $userId;
             $params[] = $userId;
         }
+
+        if (!empty($filters['division_id'])) {
+            $where .= " AND {$prefix}division_id = ?";
+            $params[] = (int)$filters['division_id'];
+        }
+        if (!empty($filters['activity_id'])) {
+            $where .= " AND {$prefix}activity_id = ?";
+            $params[] = (int)$filters['activity_id'];
+        }
+        if (!empty($filters['allocated_to'])) {
+            $where .= " AND {$prefix}allocated_to = ?";
+            $params[] = (int)$filters['allocated_to'];
+        }
+        if (!empty($filters['priority'])) {
+            $where .= " AND {$prefix}priority = ?";
+            $params[] = $filters['priority'];
+        }
+        if (!empty($filters['start_date'])) {
+            $where .= " AND DATE({$prefix}created_at) >= ?";
+            $params[] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $where .= " AND DATE({$prefix}created_at) <= ?";
+            $params[] = $filters['end_date'];
+        }
+
+        return [$where, $params];
+    }
+
+    public function getDashboardStats(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, '');
 
         $total = $this->fetchOne("SELECT COUNT(*) as count FROM tickets {$where}", $params)['count'] ?? 0;
         $open = $this->fetchOne("SELECT COUNT(*) as count FROM tickets {$where} AND status NOT IN ('Completed', 'Closed', 'Cancelled')", $params)['count'] ?? 0;
@@ -245,36 +276,14 @@ class Ticket_model extends Model {
         ];
     }
 
-    public function getStatusBreakdown(?int $userId = null, ?int $roleId = null): array {
-        $where = " WHERE 1=1";
-        $params = [];
-        if ($roleId == 3 && $userId) {
-            $where .= " AND (allocated_to = ? OR created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            $where .= " AND (allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-            $params[] = $userId;
-        }
+    public function getStatusBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, '');
         $sql = "SELECT status, COUNT(*) as count FROM tickets {$where} GROUP BY status";
         return $this->fetchAll($sql, $params);
     }
 
-    public function getDivisionBreakdown(?int $userId = null, ?int $roleId = null): array {
-        $where = " WHERE 1=1";
-        $params = [];
-        if ($roleId == 3 && $userId) {
-            $where .= " AND (t.allocated_to = ? OR t.created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            $where .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-            $params[] = $userId;
-        }
+    public function getDivisionBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
         $sql = "SELECT COALESCE(d.division_name, 'Unassigned') as division_name, COUNT(t.id) as count 
                 FROM tickets t 
                 LEFT JOIN divisions d ON t.division_id = d.id 
@@ -282,60 +291,70 @@ class Ticket_model extends Model {
         return $this->fetchAll($sql, $params);
     }
 
-    public function getMonthlyTrend(?int $userId = null, ?int $roleId = null): array {
-        $where = " WHERE YEAR(t.created_at) = YEAR(CURRENT_DATE())";
-        $params = [];
-        if ($roleId == 3 && $userId) {
-            $where .= " AND (t.allocated_to = ? OR t.created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            $where .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-            $params[] = $userId;
-        }
+    public function getMonthlyTrend(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
         $sql = "SELECT DATE_FORMAT(t.created_at, '%b') as month_name, MONTH(t.created_at) as month_num, COUNT(t.id) as count 
                 FROM tickets t 
                 {$where} GROUP BY month_name, month_num ORDER BY month_num ASC";
         return $this->fetchAll($sql, $params);
     }
 
-    public function getPriorityBreakdown(?int $userId = null, ?int $roleId = null): array {
-        $where = " WHERE 1=1";
-        $params = [];
-        if ($roleId == 3 && $userId) {
-            $where .= " AND (allocated_to = ? OR created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            $where .= " AND (allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-            $params[] = $userId;
-        }
+    public function getPriorityBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, '');
         $sql = "SELECT priority, COUNT(*) as count FROM tickets {$where} GROUP BY priority";
         return $this->fetchAll($sql, $params);
     }
 
-    public function getCategoryBreakdown(?int $userId = null, ?int $roleId = null): array {
-        $where = " WHERE 1=1";
-        $params = [];
-        if ($roleId == 3 && $userId) {
-            $where .= " AND (t.allocated_to = ? OR t.created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            $where .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
-            $params[] = $userId;
-        }
+    public function getCategoryBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
         $sql = "SELECT COALESCE(c.category_name, 'General') as category_name, COUNT(t.id) as count 
                 FROM tickets t 
                 LEFT JOIN ticket_categories c ON t.category_id = c.id 
                 {$where} GROUP BY c.category_name";
         return $this->fetchAll($sql, $params);
+    }
+
+    public function getEmployeeBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
+        $sql = "SELECT COALESCE(u.full_name, 'Unassigned') as employee_name, COUNT(t.id) as count 
+                FROM tickets t 
+                LEFT JOIN users u ON t.allocated_to = u.id 
+                {$where} GROUP BY u.full_name ORDER BY count DESC LIMIT 10";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getActivityBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
+        $sql = "SELECT COALESCE(a.activity_name, 'General') as activity_name, COUNT(t.id) as count 
+                FROM tickets t 
+                LEFT JOIN activities a ON t.activity_id = a.id 
+                {$where} GROUP BY a.activity_name ORDER BY count DESC LIMIT 10";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getTicketTypeBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
+        $sql = "SELECT ticket_type, COUNT(t.id) as count 
+                FROM tickets t 
+                {$where} GROUP BY ticket_type";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getQualitySlaBreakdown(?int $userId = null, ?int $roleId = null, array $filters = []): array {
+        list($where, $params) = $this->buildSlicerWhere($filters, $userId, $roleId, 't.');
+        $now = date('Y-m-d H:i:s');
+        
+        $within = $this->fetchOne("SELECT COUNT(*) as count FROM tickets t {$where} AND status IN ('Completed', 'Closed') AND (replied_datetime IS NULL OR replied_datetime <= tat_datetime)", $params)['count'] ?? 0;
+        $overdue = $this->fetchOne("SELECT COUNT(*) as count FROM tickets t {$where} AND status NOT IN ('Completed', 'Closed', 'Cancelled') AND tat_datetime < '{$now}'", $params)['count'] ?? 0;
+        $onHold = $this->fetchOne("SELECT COUNT(*) as count FROM tickets t {$where} AND status = 'On Hold'", $params)['count'] ?? 0;
+        $inTimeOpen = $this->fetchOne("SELECT COUNT(*) as count FROM tickets t {$where} AND status NOT IN ('Completed', 'Closed', 'Cancelled', 'On Hold') AND tat_datetime >= '{$now}'", $params)['count'] ?? 0;
+
+        return [
+            ['metric' => 'Within SLA', 'count' => $within],
+            ['metric' => 'In-Time Open', 'count' => $inTimeOpen],
+            ['metric' => 'On Hold', 'count' => $onHold],
+            ['metric' => 'Overdue Breach', 'count' => $overdue]
+        ];
     }
 
     public function createNotification(int $userId, string $title, string $message, ?string $link = null): int {

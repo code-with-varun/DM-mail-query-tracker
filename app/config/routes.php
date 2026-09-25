@@ -62,6 +62,8 @@ $routes = [
     'audit/reset' => 'Audit/reset',
     'audit/export-backup' => 'Audit/export_backup',
 
+    'settings' => 'Settings/index',
+
     'api/activities' => 'Api/get_activities',
     'api/sub-activities' => 'Api/get_sub_activities',
     'api/notifications' => 'Api/get_notifications',

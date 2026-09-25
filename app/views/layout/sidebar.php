@@ -76,6 +76,9 @@
             <a href="<?= base_url('audit') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'audit')) ? 'active' : '' ?>" title="System Audit Logs">
                 <i class="fas fa-history"></i> <span>System Audit Logs</span>
             </a>
+            <a href="<?= base_url('settings') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'settings')) ? 'active' : '' ?>" title="System Settings">
+                <i class="fas fa-cog"></i> <span>System Settings</span>
+            </a>
             <?php endif; ?>
 
             <div class="sidebar-heading">REPORTS</div>

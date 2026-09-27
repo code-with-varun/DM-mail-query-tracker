@@ -321,48 +321,106 @@ function onOutlookFileSelected(input) {
     }
 }
 
-// Cascading Filter Dropdowns for Modal
+// Dynamic Dependent Dropdowns for Modal & Filters
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function onModalDivisionChange(divId) {
     var actSelect = document.getElementById('modal_activity_id');
     var subSelect = document.getElementById('modal_sub_activity_id');
     
-    Array.from(actSelect.options).forEach(function(opt) {
-        if (opt.value === '') return;
-        var div = opt.getAttribute('data-div');
-        opt.style.display = (!divId || div == divId) ? '' : 'none';
-    });
+    actSelect.innerHTML = '<option value="">Loading Activities...</option>';
+    subSelect.innerHTML = '<option value="">Select Activity First</option>';
 
-    actSelect.value = '';
-    subSelect.value = '';
+    var url = '<?= base_url("api/activities") ?>' + (divId ? '?division_id=' + divId : '');
+    fetch(url)
+        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            var html = '<option value="">Select Activity</option>';
+            if (res.success && res.data && res.data.length > 0) {
+                res.data.forEach(function(act) {
+                    html += '<option value="' + act.id + '">' + escapeHtml(act.activity_name) + '</option>';
+                });
+            } else {
+                html = '<option value="">No Activities Found</option>';
+            }
+            actSelect.innerHTML = html;
+        })
+        .catch(function() {
+            actSelect.innerHTML = '<option value="">Select Activity</option>';
+        });
 }
 
 function onModalActivityChange(actId) {
     var subSelect = document.getElementById('modal_sub_activity_id');
-    Array.from(subSelect.options).forEach(function(opt) {
-        if (opt.value === '') return;
-        var act = opt.getAttribute('data-act');
-        opt.style.display = (!actId || act == actId) ? '' : 'none';
-    });
+    if (!actId) {
+        subSelect.innerHTML = '<option value="">Select Activity First</option>';
+        return;
+    }
 
-    subSelect.value = '';
+    subSelect.innerHTML = '<option value="">Loading Sub-Activities...</option>';
+
+    fetch('<?= base_url("api/sub-activities?activity_id=") ?>' + actId)
+        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            var html = '<option value="">Select Sub-Activity</option>';
+            if (res.success && res.data && res.data.length > 0) {
+                res.data.forEach(function(sa) {
+                    html += '<option value="' + sa.id + '">' + escapeHtml(sa.sub_activity_name) + '</option>';
+                });
+            } else {
+                html = '<option value="">No Sub-Activities Found</option>';
+            }
+            subSelect.innerHTML = html;
+        })
+        .catch(function() {
+            subSelect.innerHTML = '<option value="">Select Sub-Activity</option>';
+        });
 }
 
 function onFilterDivisionChange(divId) {
     var actSelect = document.getElementById('filter_activity_id');
-    Array.from(actSelect.options).forEach(function(opt) {
-        if (opt.value === '') return;
-        var div = opt.getAttribute('data-div');
-        opt.style.display = (!divId || div == divId) ? '' : 'none';
-    });
+    var subSelect = document.getElementById('filter_sub_activity_id');
+
+    actSelect.innerHTML = '<option value="">Loading Activities...</option>';
+    subSelect.innerHTML = '<option value="">All Sub-Activities</option>';
+
+    var url = '<?= base_url("api/activities") ?>' + (divId ? '?division_id=' + divId : '');
+    fetch(url)
+        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            var html = '<option value="">All Activities</option>';
+            if (res.success && res.data && res.data.length > 0) {
+                res.data.forEach(function(act) {
+                    html += '<option value="' + act.id + '">' + escapeHtml(act.activity_name) + '</option>';
+                });
+            }
+            actSelect.innerHTML = html;
+        });
 }
 
 function onFilterActivityChange(actId) {
     var subSelect = document.getElementById('filter_sub_activity_id');
-    Array.from(subSelect.options).forEach(function(opt) {
-        if (opt.value === '') return;
-        var act = opt.getAttribute('data-act');
-        opt.style.display = (!actId || act == actId) ? '' : 'none';
-    });
+    if (!actId) {
+        subSelect.innerHTML = '<option value="">All Sub-Activities</option>';
+        return;
+    }
+
+    subSelect.innerHTML = '<option value="">Loading Sub-Activities...</option>';
+
+    fetch('<?= base_url("api/sub-activities?activity_id=") ?>' + actId)
+        .then(function(res) { return res.json(); })
+        .then(function(res) {
+            var html = '<option value="">All Sub-Activities</option>';
+            if (res.success && res.data && res.data.length > 0) {
+                res.data.forEach(function(sa) {
+                    html += '<option value="' + sa.id + '">' + escapeHtml(sa.sub_activity_name) + '</option>';
+                });
+            }
+            subSelect.innerHTML = html;
+        });
 }
 
 // Mail Preview AJAX Call

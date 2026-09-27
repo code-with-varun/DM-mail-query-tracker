@@ -502,6 +502,20 @@ class Tickets extends Controller {
             $remarks = sanitize($_POST['remarks'] ?? '');
 
             $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+
+            if (!$ticket) {
+                Session::setFlash('danger', 'Ticket not found.');
+                redirect('tickets');
+            }
+
+            // Authorization Check: Only Admin, Super Admin, or Designated Checker allowed
+            $currentUserId = Session::get('user_id');
+            $isCheckerUser = is_admin() || is_super_admin() || (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
+            if (!$isCheckerUser) {
+                Session::setFlash('danger', 'Unauthorized: Only designated Checkers or Admins can perform Checker Audit actions.');
+                redirect('tickets/view/' . $ticketId);
+            }
 
             if ($decision === 'approve') {
                 if ($ticketModel->approveByChecker($ticketId, $remarks, Session::get('user_id'))) {

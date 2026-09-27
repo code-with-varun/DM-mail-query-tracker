@@ -29,7 +29,7 @@
                 <div class="col-md-2">
                     <select name="status" class="form-select form-select-sm">
                         <option value="">All Statuses</option>
-                        <?php foreach (['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'On Hold', 'Released', 'Completed', 'Closed', 'Cancelled'] as $st): ?>
+                        <?php foreach (['New', 'In Progress', 'Pending', 'Closed', 'Cancelled'] as $st): ?>
                             <option value="<?= $st ?>" <?= ($filters['status'] ?? '') === $st ? 'selected' : '' ?>><?= $st ?></option>
                         <?php endforeach; ?>
                     </select>

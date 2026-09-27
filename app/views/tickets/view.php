@@ -21,16 +21,6 @@
                 <i class="fas fa-user-edit me-1"></i>Reassign
             </button>
 
-            <?php if ($ticket['status'] === 'On Hold'): ?>
-                <button type="button" class="btn btn-info btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#releaseModal">
-                    <i class="fas fa-play-circle me-1"></i>Release Hold
-                </button>
-            <?php else: ?>
-                <button type="button" class="btn btn-dark btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#holdModal">
-                    <i class="fas fa-pause-circle me-1"></i>Put On Hold
-                </button>
-            <?php endif; ?>
-
             <button type="button" class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#statusModal">
                 <i class="fas fa-sync-alt me-1"></i>Update Status
             </button>
@@ -43,6 +33,8 @@
             <div class="row text-center g-2 align-items-center">
                 <?php
                     $curStage = $ticket['stage'] ?? 'Maker Phase';
+                    $currentUserId = Session::get('user_id');
+                    $isCheckerUser = is_admin() || is_super_admin() || (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
                 ?>
                 <div class="col-md-3">
                     <div class="p-2 rounded <?= $curStage === 'Maker Phase' ? 'bg-primary text-white shadow-sm' : 'bg-white border text-muted' ?>">
@@ -77,12 +69,16 @@
                         <i class="fas fa-paper-plane me-1"></i>Submit to Checker Queue
                     </button>
                 <?php elseif ($curStage === 'Checker Phase' && $ticket['status'] !== 'Closed'): ?>
-                    <button type="button" class="btn btn-success fw-bold px-3 me-2" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
-                        <i class="fas fa-check-circle me-1"></i>Approve Checker Audit
-                    </button>
-                    <button type="button" class="btn btn-danger fw-bold px-3" data-bs-toggle="modal" data-bs-target="#rejectCheckerModal">
-                        <i class="fas fa-times-circle me-1"></i>Reject & Log Error
-                    </button>
+                    <?php if ($isCheckerUser): ?>
+                        <button type="button" class="btn btn-success fw-bold px-3 me-2" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
+                            <i class="fas fa-check-circle me-1"></i>Approve Checker Audit
+                        </button>
+                        <button type="button" class="btn btn-danger fw-bold px-3" data-bs-toggle="modal" data-bs-target="#rejectCheckerModal">
+                            <i class="fas fa-times-circle me-1"></i>Reject & Log Error
+                        </button>
+                    <?php else: ?>
+                        <span class="badge bg-warning text-dark fs-7 px-3 py-2"><i class="fas fa-user-clock me-1"></i>Awaiting Checker Audit Review</span>
+                    <?php endif; ?>
                 <?php elseif ($curStage === 'Delivery Phase' && $ticket['status'] !== 'Closed'): ?>
                     <button type="button" class="btn btn-success fw-bold px-4" data-bs-toggle="modal" data-bs-target="#deliverModal">
                         <i class="fas fa-file-upload me-1"></i>Deliver File & Close Ticket
@@ -483,7 +479,7 @@
                     <div class="mb-3">
                         <label class="form-label fs-7 fw-bold">Status</label>
                         <select name="status" class="form-select" required>
-                            <?php foreach (['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'Completed', 'Closed', 'Cancelled'] as $st): ?>
+                            <?php foreach (['New', 'In Progress', 'Pending', 'Closed', 'Cancelled'] as $st): ?>
                                 <option value="<?= $st ?>" <?= $ticket['status'] === $st ? 'selected' : '' ?>><?= $st ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -496,59 +492,6 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary fw-bold">Save Status</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Put On Hold -->
-<div class="modal fade" id="holdModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="<?= base_url('tickets/update-status') ?>" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
-                <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
-                <input type="hidden" name="status" value="On Hold">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-dark">Put Ticket On Hold</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fs-7 fw-bold">Hold Reason <span class="text-danger">*</span></label>
-                        <input type="text" name="remarks" class="form-control" placeholder="e.g. Waiting for client documentation" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-dark fw-bold">Confirm Hold</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Release Hold -->
-<div class="modal fade" id="releaseModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="<?= base_url('hold/release') ?>" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
-                <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold text-info">Release Ticket From Hold</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fs-7 fw-bold">Release Remarks <span class="text-danger">*</span></label>
-                        <textarea name="remarks" class="form-control" rows="3" placeholder="Enter release details..." required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info fw-bold">Release Ticket</button>
                 </div>
             </form>
         </div>

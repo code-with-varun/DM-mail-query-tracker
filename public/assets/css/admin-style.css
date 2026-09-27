@@ -339,6 +339,24 @@ body {
   color: #6f42c1 !important;
 }
 
+.badge-task-ticket {
+  background-color: rgba(111, 66, 193, 0.15) !important;
+  color: #4a2185 !important;
+  border: 1px solid rgba(111, 66, 193, 0.4) !important;
+  font-weight: 700 !important;
+  padding: 0.35em 0.65em !important;
+  display: inline-block;
+}
+
+.badge-query-ticket {
+  background-color: rgba(13, 202, 240, 0.15) !important;
+  color: #055160 !important;
+  border: 1px solid rgba(13, 202, 240, 0.4) !important;
+  font-weight: 700 !important;
+  padding: 0.35em 0.65em !important;
+  display: inline-block;
+}
+
 /* DataTables & Responsive Table Wrappers */
 .card-header-actions {
   display: flex;

@@ -27,6 +27,9 @@
                     <tbody>
                         <?php foreach ($logs as $l): ?>
                         <tr>
+                            <td class="fw-bold text-dark text-nowrap">
+                                <?= htmlspecialchars($l['delivery_number'] ?? ('DEL-' . date('Y') . '-' . str_pad($l['id'], 6, '0', STR_PAD_LEFT))) ?>
+                            </td>
                             <td class="text-nowrap">
                                 <?php if (!empty($l['ticket_number']) && !empty($l['ticket_id'])): ?>
                                     <a href="<?= base_url('tickets/view/' . $l['ticket_id']) ?>" class="ticket-no-link" title="Click to view ticket details">
@@ -40,7 +43,7 @@
                             </td>
                             <td class="fw-bold text-dark"><?= htmlspecialchars($l['delivered_to']) ?></td>
                             <td><span class="badge bg-secondary"><?= htmlspecialchars($l['delivery_mode']) ?></span></td>
-                            <td class="fs-8"><?= format_datetime($l['delivery_date']) ?></td>
+                            <td class="fs-8 text-nowrap"><?= format_datetime($l['delivery_date']) ?></td>
                             <td>
                                 <span class="badge bg-<?= $l['ack_received'] === 'Yes' ? 'success' : ($l['ack_received'] === 'Pending' ? 'warning text-dark' : 'danger') ?>">
                                     Ack: <?= htmlspecialchars($l['ack_received']) ?>
@@ -48,7 +51,7 @@
                             </td>
                             <td>
                                 <?php if ($l['attachment_path']): ?>
-                                    <a href="<?= base_url($l['attachment_path']) ?>" target="_blank" class="btn btn-sm btn-light border"><i class="fas fa-download"></i> Receipt</a>
+                                    <a href="<?= base_url($l['attachment_path']) ?>" target="_blank" class="btn btn-sm btn-light border"><i class="fas fa-download me-1"></i>Receipt</a>
                                 <?php else: ?>
                                     <span class="text-muted fs-8">None</span>
                                 <?php endif; ?>

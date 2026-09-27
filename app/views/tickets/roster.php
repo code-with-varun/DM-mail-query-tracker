@@ -80,8 +80,8 @@
                                 </a>
                             </td>
                             <td>
-                                <span class="badge bg-<?= $t['ticket_type'] === 'Task Ticket' ? 'purple' : 'info' ?> bg-opacity-10 text-<?= $t['ticket_type'] === 'Task Ticket' ? 'purple' : 'info' ?> border border-<?= $t['ticket_type'] === 'Task Ticket' ? 'purple' : 'info' ?>">
-                                    <?= htmlspecialchars($t['ticket_type']) ?>
+                                <span class="badge <?= ($t['ticket_type'] === 'Task Ticket' || !empty($t['is_task'])) ? 'badge-task-ticket' : 'badge-query-ticket' ?>">
+                                    <?= htmlspecialchars($t['ticket_type'] ?? ($t['is_task'] ? 'Task Ticket' : 'Query Ticket')) ?>
                                 </span>
                             </td>
                             <td class="text-truncate" style="max-width: 230px;" title="<?= htmlspecialchars($t['subject']) ?>">

@@ -440,6 +440,7 @@ class Tickets extends Controller {
         $this->requireAuth();
 
         $ticketModel = $this->model('Ticket_model');
+        $userModel = $this->model('User_model');
         $filters = [
             'search' => sanitize($_GET['search'] ?? ''),
             'stage' => sanitize($_GET['stage'] ?? '')
@@ -450,7 +451,8 @@ class Tickets extends Controller {
         $this->render('tickets/my_bucket', [
             'title' => 'My Bucket',
             'tickets' => $tickets,
-            'filters' => $filters
+            'filters' => $filters,
+            'users' => $userModel->getEmployees()
         ]);
     }
 
@@ -573,16 +575,18 @@ class Tickets extends Controller {
             $scheduledDate = sanitize($_POST['scheduled_date'] ?? '');
             $remarks = sanitize($_POST['remarks'] ?? 'Rescheduled');
 
+            $returnUrl = $_SERVER['HTTP_REFERER'] ?? base_url('tickets/view/' . $ticketId);
+
             if (empty($scheduledDate) || $scheduledDate < date('Y-m-d')) {
                 Session::setFlash('danger', 'Reschedule date must be today or a future date.');
-                redirect('tickets/view/' . $ticketId);
+                redirect($returnUrl);
             }
 
             $ticketModel = $this->model('Ticket_model');
             if ($ticketModel->rescheduleTicket($ticketId, $scheduledDate, $remarks, Session::get('user_id'))) {
                 Session::setFlash('success', "Ticket rescheduled for work on {$scheduledDate}.");
             }
-            redirect('tickets/view/' . $ticketId);
+            redirect($returnUrl);
         }
     }
 
@@ -601,16 +605,18 @@ class Tickets extends Controller {
             $newUserId = (int)($_POST['allocated_to'] ?? 0);
             $remarks = sanitize($_POST['remarks'] ?? 'Reassigned');
 
+            $returnUrl = $_SERVER['HTTP_REFERER'] ?? base_url('tickets/view/' . $ticketId);
+
             if (!$ticketId || !$newUserId) {
                 Session::setFlash('danger', 'Please select a valid employee.');
-                redirect('tickets/view/' . $ticketId);
+                redirect($returnUrl);
             }
 
             $ticketModel = $this->model('Ticket_model');
             if ($ticketModel->reassignTicket($ticketId, $newUserId, $remarks, Session::get('user_id'))) {
                 Session::setFlash('success', 'Ticket successfully reassigned!');
             }
-            redirect('tickets/view/' . $ticketId);
+            redirect($returnUrl);
         }
     }
 }

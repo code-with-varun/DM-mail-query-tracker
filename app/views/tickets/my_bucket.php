@@ -136,9 +136,9 @@
                                     <?= htmlspecialchars($t['ticket_number']) ?>
                                 </a>
                             </td>
-                            <td>
-                                <span class="badge bg-<?= $t['ticket_type'] === 'Task Ticket' ? 'purple' : 'info' ?> bg-opacity-10 text-<?= $t['ticket_type'] === 'Task Ticket' ? 'purple' : 'info' ?> border border-<?= $t['ticket_type'] === 'Task Ticket' ? 'purple' : 'info' ?>">
-                                    <?= htmlspecialchars($t['ticket_type']) ?>
+                             <td>
+                                <span class="badge <?= ($t['ticket_type'] === 'Task Ticket' || !empty($t['is_task'])) ? 'badge-task-ticket' : 'badge-query-ticket' ?>">
+                                    <?= htmlspecialchars($t['ticket_type'] ?? ($t['is_task'] ? 'Task Ticket' : 'Query Ticket')) ?>
                                 </span>
                             </td>
                             <td>
@@ -166,9 +166,25 @@
                                 <?= format_datetime($t['tat_datetime']) ?>
                             </td>
                             <td class="text-end text-nowrap">
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-primary py-0 px-2 fw-bold" title="Open Ticket">
-                                    <i class="fas fa-folder-open me-1"></i>Open
-                                </a>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-outline-primary" title="View Ticket">
+                                        <i class="fas fa-folder-open"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-warning text-dark btn-reschedule" 
+                                            data-id="<?= $t['id'] ?>"
+                                            data-ticket="<?= htmlspecialchars($t['ticket_number']) ?>"
+                                            data-date="<?= $t['scheduled_date'] ?? date('Y-m-d') ?>"
+                                            title="Postpone / Reschedule">
+                                        <i class="fas fa-clock"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-reassign"
+                                            data-id="<?= $t['id'] ?>"
+                                            data-ticket="<?= htmlspecialchars($t['ticket_number']) ?>"
+                                            data-user_id="<?= $t['allocated_to'] ?? '' ?>"
+                                            title="Reassign Employee">
+                                        <i class="fas fa-user-edit"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -178,3 +194,95 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Reschedule Ticket -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="<?= base_url('tickets/reschedule') ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                <input type="hidden" name="ticket_id" id="reschedule_ticket_id" value="0">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-clock me-2"></i>Reschedule / Postpone Ticket <span id="reschedule_ticket_num"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Target Scheduled Date <span class="text-danger">*</span></label>
+                        <input type="date" name="scheduled_date" id="reschedule_date_val" class="form-control fw-bold" min="<?= date('Y-m-d') ?>" required>
+                        <small class="text-muted fs-8 d-block mt-1">Select today or a future date to postpone work on this ticket.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Reason / Reschedule Remarks</label>
+                        <textarea name="remarks" class="form-control" rows="2" placeholder="e.g. Postponed awaiting client confirmation"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-bold px-4"><i class="fas fa-calendar-check me-1"></i>Save Reschedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Reassign Ticket -->
+<div class="modal fade" id="reassignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="<?= base_url('tickets/reassign') ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                <input type="hidden" name="ticket_id" id="reassign_ticket_id" value="0">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-user-edit me-2"></i>Reassign Ticket <span id="reassign_ticket_num"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Assign to Employee <span class="text-danger">*</span></label>
+                        <select name="allocated_to" id="reassign_user_id" class="form-select" required>
+                            <option value="">Select Employee</option>
+                            <?php foreach (($users ?? []) as $u): ?>
+                                <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Reassignment Reason / Remarks</label>
+                        <textarea name="remarks" class="form-control" rows="2" placeholder="e.g. Workload balancing"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4"><i class="fas fa-user-check me-1"></i>Confirm Reassign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-reschedule').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('reschedule_ticket_id').value = this.dataset.id;
+            document.getElementById('reschedule_ticket_num').textContent = '(' + this.dataset.ticket + ')';
+            document.getElementById('reschedule_date_val').value = this.dataset.date || "<?= date('Y-m-d') ?>";
+
+            var modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+            modal.show();
+        });
+    });
+
+    document.querySelectorAll('.btn-reassign').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('reassign_ticket_id').value = this.dataset.id;
+            document.getElementById('reassign_ticket_num').textContent = '(' + this.dataset.ticket + ')';
+            document.getElementById('reassign_user_id').value = this.dataset.user_id || '';
+
+            var modal = new bootstrap.Modal(document.getElementById('reassignModal'));
+            modal.show();
+        });
+    });
+});
+</script>

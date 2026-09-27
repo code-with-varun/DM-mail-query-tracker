@@ -76,7 +76,7 @@ class Audit extends Controller {
         $orderedTables = [
             'users', 'contacts', 'divisions', 'activities', 'sub_activities', 
             'user_sub_activities', 'categories', 'error_tracker', 'tickets', 
-            'tasks', 'input_tracker', 'delivery_tracker', 'recurring_templates'
+            'tasks', 'input_tracker', 'delivery_tracker', 'process_updates', 'recurring_templates'
         ];
 
         foreach ($orderedTables as $tbl) {
@@ -257,7 +257,7 @@ class Audit extends Controller {
             $tablesToClear = [
                 'tickets', 'ticket_comments', 'ticket_history', 'ticket_categories',
                 'task_tickets', 'tasks', 'task_comments',
-                'contacts', 'error_tracker', 'input_tracker', 'delivery_tracker',
+                'contacts', 'error_tracker', 'input_tracker', 'delivery_tracker', 'process_updates',
                 'recurring_templates', 'recurring_tasks', 'audit_logs', 'notifications', 'hold_history',
                 'sub_activities', 'activities', 'divisions'
             ];

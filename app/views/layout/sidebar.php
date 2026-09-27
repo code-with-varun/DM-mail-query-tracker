@@ -53,6 +53,9 @@
             <a href="<?= base_url('tracker/delivery') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tracker/delivery')) ? 'active' : '' ?>" title="Delivery Tracker">
                 <i class="fas fa-paper-plane"></i> <span>Delivery Tracker</span>
             </a>
+            <a href="<?= base_url('tracker/process-updates') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'tracker/process-updates')) ? 'active' : '' ?>" title="Process Updates Tracker">
+                <i class="fas fa-mail-bulk"></i> <span>Process Updates Tracker</span>
+            </a>
             <a href="<?= base_url('error-tracker') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'error-tracker')) ? 'active' : '' ?>" title="Error Tracker">
                 <i class="fas fa-exclamation-triangle"></i> <span>Error Tracker</span>
             </a>

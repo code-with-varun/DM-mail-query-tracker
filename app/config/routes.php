@@ -39,6 +39,11 @@ $routes = [
 
     'tracker/input' => 'Tracker/input',
     'tracker/delivery' => 'Tracker/delivery',
+    'tracker/process-updates' => 'Processupdates/index',
+    'tracker/process-updates/store' => 'Processupdates/store',
+    'tracker/process-updates/preview/(:num)' => 'Processupdates/preview/$1',
+    'tracker/process-updates/download/(:num)' => 'Processupdates/download/$1',
+    'tracker/process-updates/delete/(:num)' => 'Processupdates/delete/$1',
 
     'master/activities' => 'Master/activities',
     'master/subactivities' => 'Master/subactivities',

@@ -60,6 +60,25 @@
                 <i class="fas fa-exclamation-triangle"></i> <span>Error Tracker</span>
             </a>
 
+            <div class="sidebar-heading">TRAINING & PKT LMS</div>
+            <a href="<?= base_url('training/plan') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'training/plan')) ? 'active' : '' ?>" title="Training Plan & KT">
+                <i class="fas fa-graduation-cap"></i> <span>Training Plan & KT</span>
+            </a>
+            <a href="<?= base_url('training/pkt') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'training/pkt')) ? 'active' : '' ?>" title="PKT Test Center">
+                <i class="fas fa-tasks"></i> <span>PKT Test Center</span>
+            </a>
+            <a href="<?= base_url('training/practice') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'training/practice')) ? 'active' : '' ?>" title="Practice Files">
+                <i class="fas fa-file-signature"></i> <span>Practice Files</span>
+            </a>
+            <a href="<?= base_url('training/certifications') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'training/certifications')) ? 'active' : '' ?>" title="Certifications">
+                <i class="fas fa-award"></i> <span>Certifications</span>
+            </a>
+            <?php if (is_super_admin() || is_admin()): ?>
+            <a href="<?= base_url('training/manage-pkt') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'training/manage-pkt')) ? 'active' : '' ?>" title="Manage PKT Question Bank">
+                <i class="fas fa-cogs"></i> <span>Manage PKT Bank</span>
+            </a>
+            <?php endif; ?>
+
             <?php if (is_super_admin() || is_admin()): ?>
             <div class="sidebar-heading">MANAGEMENT</div>
             <a href="<?= base_url('recurring') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'recurring')) ? 'active' : '' ?>" title="Recurring Engine">

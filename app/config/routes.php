@@ -77,6 +77,28 @@ $routes = [
     'audit/export-excel' => 'Audit/export_excel',
     'audit/import-excel' => 'Audit/import_excel',
 
+    'training/plan' => 'Training/plan',
+    'training/add-kt-module' => 'Training/add_kt_module',
+    'training/toggle-kt' => 'Training/toggle_kt',
+    'training/download-kt/(:num)' => 'Training/download_kt/$1',
+
+    'training/pkt' => 'Training/pkt',
+    'training/take-test/(:num)' => 'Training/take_test/$1',
+    'training/submit-test' => 'Training/submit_test',
+
+    'training/manage-pkt' => 'Training/manage_pkt',
+    'training/add-question' => 'Training/add_question',
+    'training/import-questions' => 'Training/import_questions',
+    'training/pkt-template' => 'Training/download_pkt_template',
+    'training/create-test' => 'Training/create_test',
+
+    'training/practice' => 'Training/practice',
+    'training/submit-practice' => 'Training/submit_practice',
+    'training/validate-practice' => 'Training/validate_practice',
+
+    'training/certifications' => 'Training/certifications',
+    'training/certificate/(:num)' => 'Training/certificate/$1',
+
     'settings' => 'Settings/index',
 
     'api/activities' => 'Api/get_activities',
@@ -84,3 +106,4 @@ $routes = [
     'api/notifications' => 'Api/get_notifications',
     'api/mark-notification-read' => 'Api/mark_read',
 ];
+

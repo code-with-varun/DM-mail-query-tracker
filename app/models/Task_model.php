@@ -43,4 +43,12 @@ class Task_model extends Model {
         $sql .= " ORDER BY tt.id DESC";
         return $this->fetchAll($sql, $params);
     }
+
+    public function getPendingTasksForUser(int $userId, ?int $roleId = null): array {
+        $tasks = $this->getTasks($userId, $roleId);
+        return array_filter($tasks, function($t) {
+            $st = strtolower($t['ticket_status'] ?? $t['status'] ?? '');
+            return !in_array($st, ['completed', 'resolved', 'closed']);
+        });
+    }
 }

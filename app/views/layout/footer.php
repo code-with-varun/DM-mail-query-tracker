@@ -1,6 +1,6 @@
     <footer class="main-footer">
         <div class="container-fluid px-4 d-flex flex-wrap justify-content-between align-items-center">
-            <span>&copy; <?= date('Y') ?> <strong>Mail Query Tracker (MQT)</strong>. All rights reserved.</span>
+            <span>&copy; <?= date('Y') ?> <strong>DM-Ispark (Business Operations &amp; Performance Management System)</strong>. All rights reserved.</span>
             <span>Version <?= APP_VERSION ?> | PHP <?= PHP_VERSION ?></span>
         </div>
     </footer>

@@ -17,12 +17,13 @@ class Training extends Controller {
         $trainingModel = $this->model('Training_model');
         $activityModel = $this->model('Activity_model');
 
-        $plans = $trainingModel->getTrainingPlansForUser($user['id']);
+        $isAdmin = (is_super_admin() || is_admin());
+        $activityCards = $trainingModel->getGroupedTrainingPlan($user['id'], $isAdmin);
         $subActivities = $activityModel->getAllSubActivitiesWithHierarchy();
 
         $this->render('training/plan', [
             'title' => 'Training Plan & KT Materials',
-            'plans' => $plans,
+            'activityCards' => $activityCards,
             'subActivities' => $subActivities
         ]);
     }
@@ -70,7 +71,7 @@ class Training extends Controller {
             }
 
             $trainingModel = $this->model('Training_model');
-            $trainingModel->createTrainingPlan([
+            $trainingModel->insert('training_plans', [
                 'sub_activity_id' => $subActivityId,
                 'title' => $title,
                 'description' => $description,
@@ -86,16 +87,16 @@ class Training extends Controller {
     }
 
     /**
-     * Toggle Knowledge Learned Checklist
+     * Toggle Knowledge Learned Checklist per Sub-Activity
      */
     public function toggle_kt() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $planId = (int)($_POST['plan_id'] ?? 0);
+            $subActivityId = (int)($_POST['sub_activity_id'] ?? 0);
             $isLearned = !empty($_POST['is_learned']);
             $user = current_user();
 
             $trainingModel = $this->model('Training_model');
-            $trainingModel->toggleLearnedProgress($user['id'], $planId, $isLearned);
+            $trainingModel->toggleSubActivityProgress($user['id'], $subActivityId, $isLearned);
 
             $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
             if ($isAjax) {

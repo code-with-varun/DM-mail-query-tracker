@@ -130,44 +130,62 @@ class Training_model extends Model {
     // ----------------------------------------------------
     // TRAINING PLAN & KT METHODS
     // ----------------------------------------------------
-    public function getTrainingPlansForUser(int $userId): array {
-        // Fetch KT modules for sub activities assigned to user
-        $sql = "SELECT tp.*, sa.sub_activity_name, a.activity_name, d.division_name,
-                       u.full_name as created_by_name,
-                       COALESCE(utp.is_learned, 0) as is_learned,
-                       utp.learned_at
-                FROM user_sub_activities usa
-                JOIN sub_activities sa ON usa.sub_activity_id = sa.id
+    public function getGroupedTrainingPlan(int $userId, bool $isAdmin = false): array {
+        $assignedIds = [];
+        if (!$isAdmin) {
+            $assignedSubActs = $this->fetchAll("SELECT sub_activity_id FROM user_sub_activities WHERE user_id = ?", [$userId]);
+            if (!empty($assignedSubActs)) {
+                $assignedIds = array_column($assignedSubActs, 'sub_activity_id');
+            }
+        }
+
+        $sql = "SELECT 
+                    sa.id as sub_activity_id,
+                    sa.sub_activity_name,
+                    sa.activity_id,
+                    a.activity_name,
+                    sa.division_id,
+                    d.division_name,
+                    tp.id as plan_id,
+                    tp.title as plan_title,
+                    tp.description as plan_description,
+                    tp.kt_document_path,
+                    tp.kt_document_name,
+                    COALESCE(utp.is_learned, 0) as is_learned,
+                    utp.learned_at
+                FROM sub_activities sa
                 JOIN activities a ON sa.activity_id = a.id
                 LEFT JOIN divisions d ON sa.division_id = d.id
-                JOIN training_plans tp ON tp.sub_activity_id = sa.id
-                LEFT JOIN users u ON tp.created_by = u.id
-                LEFT JOIN user_training_progress utp ON (utp.training_plan_id = tp.id AND utp.user_id = ?)
-                WHERE usa.user_id = ?
-                ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC, tp.created_at DESC";
-        return $this->fetchAll($sql, [$userId, $userId]);
+                LEFT JOIN training_plans tp ON tp.sub_activity_id = sa.id
+                LEFT JOIN user_training_progress utp ON (utp.sub_activity_id = sa.id AND utp.user_id = ?)
+                WHERE sa.status = 'Active'
+                ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC";
+        
+        $rows = $this->fetchAll($sql, [$userId]);
+
+        $grouped = [];
+        foreach ($rows as $r) {
+            if (!empty($assignedIds) && !in_array($r['sub_activity_id'], $assignedIds)) {
+                continue;
+            }
+
+            $actId = $r['activity_id'];
+            if (!isset($grouped[$actId])) {
+                $grouped[$actId] = [
+                    'activity_id' => $actId,
+                    'activity_name' => $r['activity_name'],
+                    'division_name' => !empty($r['division_name']) ? $r['division_name'] : 'General Operations',
+                    'sub_activities' => []
+                ];
+            }
+            $grouped[$actId]['sub_activities'][] = $r;
+        }
+
+        return array_values($grouped);
     }
 
-    public function getAllTrainingPlans(): array {
-        $sql = "SELECT tp.*, sa.sub_activity_name, a.activity_name, d.division_name, u.full_name as created_by_name
-                FROM training_plans tp
-                JOIN sub_activities sa ON tp.sub_activity_id = sa.id
-                JOIN activities a ON sa.activity_id = a.id
-                LEFT JOIN divisions d ON sa.division_id = d.id
-                LEFT JOIN users u ON tp.created_by = u.id
-                ORDER BY tp.id DESC";
-        return $this->fetchAll($sql);
-    }
-
-    public function createTrainingPlan(array $data): int {
-        return $this->insert('training_plans', $data);
-    }
-
-    public function toggleLearnedProgress(int $userId, int $planId, bool $isLearned): bool {
-        $plan = $this->fetchOne("SELECT sub_activity_id FROM training_plans WHERE id = ?", [$planId]);
-        if (!$plan) return false;
-
-        $existing = $this->fetchOne("SELECT id FROM user_training_progress WHERE user_id = ? AND training_plan_id = ?", [$userId, $planId]);
+    public function toggleSubActivityProgress(int $userId, int $subActivityId, bool $isLearned): bool {
+        $existing = $this->fetchOne("SELECT id FROM user_training_progress WHERE user_id = ? AND sub_activity_id = ?", [$userId, $subActivityId]);
         if ($existing) {
             $this->update('user_training_progress', [
                 'is_learned' => $isLearned ? 1 : 0,
@@ -176,14 +194,14 @@ class Training_model extends Model {
         } else {
             $this->insert('user_training_progress', [
                 'user_id' => $userId,
-                'training_plan_id' => $planId,
-                'sub_activity_id' => $plan['sub_activity_id'],
+                'training_plan_id' => 0,
+                'sub_activity_id' => $subActivityId,
                 'is_learned' => $isLearned ? 1 : 0,
                 'learned_at' => $isLearned ? date('Y-m-d H:i:s') : null
             ]);
         }
 
-        $this->updateCertificationProgress($userId, $plan['sub_activity_id']);
+        $this->updateCertificationProgress($userId, $subActivityId);
         return true;
     }
 

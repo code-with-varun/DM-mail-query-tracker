@@ -3,7 +3,7 @@
     <div class="sidebar-brand">
         <div class="brand-title-box d-flex align-items-center gap-2">
             <img src="<?= base_url('public/assets/logo/Datamatics-Responsive-Logo.png') ?>" alt="Datamatics" class="brand-logo-img" style="height: 32px; width: 32px; object-fit: contain;">
-            <span class="brand-text fs-7 fw-bold text-white">Datamatics B-OPMS</span>
+            <span class="brand-text fs-7 fw-bold text-white" title="Business Operations & Performance Management System">DM-Ispark (B-OPMS)</span>
         </div>
         <!-- Hamburger Collapse Toggle Button on Sidebar Top -->
         <button class="btn btn-sm text-secondary border-0 p-1 ms-auto flex-shrink-0" id="sidebarToggle" type="button" title="Toggle Sidebar Collapse">

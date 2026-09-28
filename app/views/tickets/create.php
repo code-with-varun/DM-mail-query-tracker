@@ -1,98 +1,126 @@
 <div class="container-fluid px-4 py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold mb-1">Create New Query Ticket</h4>
-            <p class="text-muted fs-7 mb-0">Log incoming email query, allocate employee, and calculate SLA TAT</p>
+            <h4 class="fw-bold mb-1"><i class="fas fa-plus-circle text-primary me-2"></i>Create New Ticket</h4>
+            <p class="text-muted fs-7 mb-0">DM-Ispark (Business Operations & Performance Management System) &mdash; Log query email, preserve original mail files, & compute SLA TAT</p>
         </div>
-        <a href="<?= base_url('tickets') ?>" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back to Tickets</a>
+        <a href="<?= base_url('tickets') ?>" class="btn btn-outline-secondary btn-sm fw-bold">
+            <i class="fas fa-arrow-left me-1"></i>Back to Tickets List
+        </a>
     </div>
 
-    <!-- Outlook Mail Copy-Paste Auto-Fill Box -->
+    <!-- Outlook Mail Auto-Fill & File Preserver Card -->
     <div class="card border-0 shadow-sm mb-4 bg-light border-start border-4 border-primary">
         <div class="card-body p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="fw-bold mb-0 text-primary">
-                    <i class="fab fa-microsoft me-2"></i>Outlook Quick Mail Auto-Fill
-                </h6>
-                <span class="badge bg-primary bg-opacity-10 text-primary fs-8">Paste copied Outlook mail row(s) below</span>
-            </div>
-            <p class="text-muted fs-8 mb-2">
-                Copy mail row(s) directly from Outlook list view (`From`, `Subject`, `Received`) and paste into the box below. It will automatically parse and populate the subject, sender, and received time fields in the form.
-            </p>
-            <div class="position-relative">
-                <textarea id="outlook_paste_box" class="form-control fs-7 border-primary border-opacity-25" rows="3" placeholder="Paste Outlook copied mail row(s) here (e.g. From	Subject	Received	Size)..."></textarea>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mt-2">
-                <div id="outlook_parse_status" class="fs-8 fw-bold"></div>
-                <div class="d-flex gap-2">
-                    <button type="button" id="btn_clear_outlook" class="btn btn-outline-secondary btn-sm fs-8" style="display:none;">
-                        <i class="fas fa-times me-1"></i>Clear
+            <ul class="nav nav-pills nav-fill mb-3" id="outlookTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold fs-7 py-2" id="drag-drop-tab" data-bs-toggle="pill" data-bs-target="#dragDropTabContent" type="button" role="tab">
+                        <i class="fas fa-file-envelope me-2 text-primary"></i>1. Drag & Drop Outlook Email File (.msg, .eml, .html, .txt)
                     </button>
-                    <button type="button" id="btn_parse_outlook" class="btn btn-primary btn-sm fs-8 fw-bold">
-                        <i class="fas fa-magic me-1"></i>Auto-Fill Form
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold fs-7 py-2" id="copy-paste-tab" data-bs-toggle="pill" data-bs-target="#copyPasteTabContent" type="button" role="tab">
+                        <i class="fab fa-microsoft me-2 text-primary"></i>2. Copy-Paste Outlook List Row(s)
                     </button>
-                </div>
-            </div>
+                </li>
+            </ul>
 
-            <!-- Parsed Mails Preview List (When multiple mails copied) -->
-            <div id="outlook_mails_preview" class="mt-3" style="display:none;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <small class="fw-bold text-dark fs-8"><i class="fas fa-list me-1 text-primary"></i>Parsed Mails (<span id="parsed_count">0</span> detected):</small>
-                    <small class="text-muted fs-8">Click "Populate Form" to fill any mail details into the form below</small>
+            <div class="tab-content" id="outlookTabContent">
+                <!-- Tab 1: Drag & Drop Outlook File -->
+                <div class="tab-pane fade show active" id="dragDropTabContent" role="tabpanel">
+                    <div id="outlookDropzone" class="border border-2 border-dashed border-primary rounded p-4 text-center bg-white cursor-pointer" onclick="document.getElementById('ticket_attachment_input').click();">
+                        <i class="fas fa-paperclip fs-1 text-primary d-block mb-2"></i>
+                        <strong class="d-block text-dark fs-6">Drag & Drop Original Outlook Email File Here</strong>
+                        <span class="text-muted fs-8">Supports <code>.msg</code>, <code>.eml</code>, <code>.html</code>, <code>.txt</code> &mdash; Auto-fills details & attaches original mail file to ticket</span>
+                        <div id="selectedFileDisplay" class="mt-2 fw-bold text-success fs-7"></div>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover bg-white border rounded mb-0 align-middle">
-                        <thead class="table-light fs-8">
-                            <tr>
-                                <th>From</th>
-                                <th>Subject</th>
-                                <th>Received Time</th>
-                                <th class="text-end" style="width: 140px;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="parsed_mails_body" class="fs-8">
-                        </tbody>
-                    </table>
+
+                <!-- Tab 2: Copy-Paste Text Auto-Fill -->
+                <div class="tab-pane fade" id="copyPasteTabContent" role="tabpanel">
+                    <p class="text-muted fs-8 mb-2">
+                        Copy mail row(s) directly from Outlook list view (`From`, `Subject`, `Received`) and paste into the box below.
+                    </p>
+                    <textarea id="outlook_paste_box" class="form-control fs-7 border-primary border-opacity-25" rows="3" placeholder="Paste Outlook copied mail row(s) here (e.g. From	Subject	Received	Size)..."></textarea>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div id="outlook_parse_status" class="fs-8 fw-bold"></div>
+                        <div class="d-flex gap-2">
+                            <button type="button" id="btn_clear_outlook" class="btn btn-outline-secondary btn-sm fs-8" style="display:none;">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                            <button type="button" id="btn_parse_outlook" class="btn btn-primary btn-sm fs-8 fw-bold">
+                                <i class="fas fa-magic me-1"></i>Auto-Fill Form
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Parsed Mails Preview List -->
+                    <div id="outlook_mails_preview" class="mt-3" style="display:none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="fw-bold text-dark fs-8"><i class="fas fa-list me-1 text-primary"></i>Parsed Mails (<span id="parsed_count">0</span> detected):</small>
+                            <small class="text-muted fs-8">Click "Populate Form" to fill any mail details into the form below</small>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover bg-white border rounded mb-0 align-middle">
+                                <thead class="table-light fs-8">
+                                    <tr>
+                                        <th>From</th>
+                                        <th>Subject</th>
+                                        <th>Received Time</th>
+                                        <th class="text-end" style="width: 140px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="parsed_mails_body" class="fs-8"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Ticket Form -->
+    <!-- Main Ticket Creation Form Card -->
     <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-ticket-alt text-primary me-2"></i>Ticket Log & SLA Configuration</h6>
+        </div>
         <div class="card-body p-4">
-            <form action="<?= base_url('tickets/create') ?>" method="POST" enctype="multipart/form-data">
+            <form action="<?= base_url('tickets/create') ?>" method="POST" enctype="multipart/form-data" id="ticketCreateForm">
                 <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                 
-                <div class="row g-3 mb-3">
+                <!-- Section 1: Core Details -->
+                <div class="row g-3 mb-4">
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold">Ticket Type <span class="text-danger">*</span></label>
-                        <select name="ticket_type" class="form-select" required>
+                        <label class="form-label fs-7 fw-bold text-dark">Ticket Type <span class="text-danger">*</span></label>
+                        <select name="ticket_type" class="form-select fw-bold" required>
                             <option value="Query Ticket" selected>Query Ticket</option>
                             <option value="Task Ticket">Task Ticket</option>
                         </select>
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold">Received Date & Time <span class="text-danger">*</span></label>
+                        <label class="form-label fs-7 fw-bold text-dark">Received Date & Time <span class="text-danger">*</span></label>
                         <input type="datetime-local" name="received_datetime" id="received_datetime" class="form-control" value="<?= date('Y-m-d\TH:i') ?>" required>
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fs-7 fw-bold">From Address / Sender <span class="text-danger">*</span></label>
+                        <label class="form-label fs-7 fw-bold text-dark">From Address / Sender <span class="text-danger">*</span></label>
                         <input type="text" name="from_address" id="from_address" class="form-control" placeholder="client@agency.com or Sender Name" required>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fs-7 fw-bold">Email Subject <span class="text-danger">*</span></label>
-                    <input type="text" name="subject" id="subject" class="form-control" placeholder="Enter query email subject line" required>
+                <div class="mb-4">
+                    <label class="form-label fs-7 fw-bold text-dark">Email Subject / Title <span class="text-danger">*</span></label>
+                    <input type="text" name="subject" id="subject" class="form-control fw-bold" placeholder="Enter query email subject line" required>
                 </div>
 
-                <div class="row g-3 mb-3">
+                <!-- Section 2: Operational Hierarchy (Division -> Activity -> Sub-Activity) -->
+                <div class="row g-3 mb-4 p-3 bg-light rounded border">
                     <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold">Division</label>
-                        <select name="division_id" id="division_id" class="form-select">
+                        <label class="form-label fs-7 fw-bold text-dark">Division</label>
+                        <select name="division_id" id="division_id" class="form-select" onchange="onFormDivisionChange(this.value)">
                             <option value="">Select Division</option>
                             <?php foreach ($divisions as $d): ?>
                                 <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>
@@ -100,10 +128,9 @@
                         </select>
                     </div>
 
-                    <!-- Dynamic Dependent Dropdown: Activity -->
                     <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold">Activity <span class="text-danger">*</span></label>
-                        <select name="activity_id" id="activity_id" class="form-select" required>
+                        <label class="form-label fs-7 fw-bold text-dark">Activity <span class="text-danger">*</span></label>
+                        <select name="activity_id" id="activity_id" class="form-select" onchange="onFormActivityChange(this.value)" required>
                             <option value="">Select Parent Activity</option>
                             <?php foreach ($activities as $act): ?>
                                 <option value="<?= $act['id'] ?>"><?= htmlspecialchars($act['activity_name']) ?></option>
@@ -111,18 +138,18 @@
                         </select>
                     </div>
 
-                    <!-- Dynamic Dependent Dropdown: Sub-Activity (Populated via AJAX) -->
                     <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold">Sub Activity <span class="text-danger">*</span></label>
-                        <select name="sub_activity_id" id="sub_activity_id" class="form-select" required>
+                        <label class="form-label fs-7 fw-bold text-dark">Sub Activity <span class="text-danger">*</span></label>
+                        <select name="sub_activity_id" id="sub_activity_id" class="form-select" onchange="onFormSubActivityChange(this.value)" required>
                             <option value="">Select Activity First</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="row g-3 mb-3">
+                <!-- Section 3: Allocation, Priority & SLA -->
+                <div class="row g-3 mb-4">
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold">Category</label>
+                        <label class="form-label fs-7 fw-bold text-dark">Category</label>
                         <select name="category_id" id="category_id" class="form-select">
                             <option value="">General Query / Unclassified</option>
                             <?php foreach ($categories as $cat): ?>
@@ -132,7 +159,7 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold">Allocated To (Employee)</label>
+                        <label class="form-label fs-7 fw-bold text-dark">Allocated To (Maker Employee)</label>
                         <select name="allocated_to" id="allocated_to" class="form-select">
                             <option value="">Unassigned (Open Pool)</option>
                             <?php foreach ($users as $u): ?>
@@ -142,7 +169,7 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold">Priority</label>
+                        <label class="form-label fs-7 fw-bold text-dark">Priority</label>
                         <select name="priority" class="form-select">
                             <option value="Low">Low</option>
                             <option value="Medium" selected>Medium</option>
@@ -152,36 +179,39 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold">TAT Target Date & Time</label>
-                        <input type="datetime-local" name="tat_datetime" id="tat_datetime" class="form-control" placeholder="Auto calculated from SLA">
-                        <small class="text-muted fs-8">Leaves empty to auto-calculate based on Sub-Activity SLA</small>
+                        <label class="form-label fs-7 fw-bold text-dark">TAT Target Date & Time</label>
+                        <input type="datetime-local" name="tat_datetime" id="tat_datetime" class="form-control fw-bold" placeholder="Auto calculated from SLA">
+                        <small class="text-muted fs-8">Auto-calculated based on Sub-Activity SLA</small>
                     </div>
                 </div>
 
-                <div class="row g-3 mb-3">
+                <!-- Section 4: Client & Agency Metadata -->
+                <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label class="form-label fs-7 fw-bold">Agency Code</label>
+                        <label class="form-label fs-7 fw-bold text-dark">Agency Code</label>
                         <input type="text" name="agency_code" class="form-control" placeholder="e.g. AGC-9940">
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fs-7 fw-bold">Manager Name</label>
+                        <label class="form-label fs-7 fw-bold text-dark">Manager Name</label>
                         <input type="text" name="manager_name" class="form-control" placeholder="Reporting Manager Name">
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fs-7 fw-bold">Remarks / Description</label>
+                <!-- Section 5: Remarks & File Attachment -->
+                <div class="mb-4">
+                    <label class="form-label fs-7 fw-bold text-dark">Remarks / Description</label>
                     <textarea name="remarks" class="form-control" rows="3" placeholder="Enter query details, initial notes, or instructions..."></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fs-7 fw-bold">Attachment Upload (Optional)</label>
-                    <input type="file" name="attachment" class="form-control">
+                    <label class="form-label fs-7 fw-bold text-dark">Original Mail Attachment / Preserved File</label>
+                    <input type="file" name="attachment" id="ticket_attachment_input" class="form-control" onchange="onFileInputChange(this)">
+                    <small class="text-muted fs-8">Preserves original Outlook <code>.msg</code>, <code>.eml</code>, <code>.html</code>, or supporting document on ticket record</small>
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">
-                    <a href="<?= base_url('tickets') ?>" class="btn btn-light border px-4">Cancel</a>
+                    <a href="<?= base_url('tickets') ?>" class="btn btn-light border px-4 fw-bold">Cancel</a>
                     <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fas fa-check-circle me-2"></i>Create Ticket</button>
                 </div>
             </form>
@@ -189,8 +219,157 @@
     </div>
 </div>
 
-<!-- Outlook Copy-Paste Parser JavaScript -->
+<!-- JavaScript Engine -->
 <script>
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Dynamic Cascading Dropdowns
+function onFormDivisionChange(divId) {
+    var actSelect = document.getElementById('activity_id');
+    var subSelect = document.getElementById('sub_activity_id');
+    
+    actSelect.innerHTML = '<option value="">Loading Activities...</option>';
+    subSelect.innerHTML = '<option value="">Select Activity First</option>';
+
+    var url = '<?= base_url("api/activities") ?>' + (divId ? '?division_id=' + divId : '');
+    fetch(url)
+        .then(res => res.json())
+        .then(res => {
+            var html = '<option value="">Select Parent Activity</option>';
+            if (res.success && res.data && res.data.length > 0) {
+                res.data.forEach(act => {
+                    html += '<option value="' + act.id + '">' + escapeHtml(act.activity_name) + '</option>';
+                });
+            } else {
+                html = '<option value="">No Activities Found</option>';
+            }
+            actSelect.innerHTML = html;
+        })
+        .catch(() => {
+            actSelect.innerHTML = '<option value="">Select Parent Activity</option>';
+        });
+}
+
+function onFormActivityChange(actId) {
+    var subSelect = document.getElementById('sub_activity_id');
+    if (!actId) {
+        subSelect.innerHTML = '<option value="">Select Activity First</option>';
+        return;
+    }
+
+    subSelect.innerHTML = '<option value="">Loading Sub-Activities...</option>';
+
+    fetch('<?= base_url("api/sub-activities?activity_id=") ?>' + actId)
+        .then(res => res.json())
+        .then(res => {
+            var html = '<option value="">Select Sub-Activity</option>';
+            if (res.success && res.data && res.data.length > 0) {
+                res.data.forEach(sa => {
+                    html += '<option value="' + sa.id + '" data-tat="' + (sa.default_tat_hours || 24) + '" data-user="' + (sa.default_user_id || '') + '">' + escapeHtml(sa.sub_activity_name) + '</option>';
+                });
+            } else {
+                html = '<option value="">No Sub-Activities Found</option>';
+            }
+            subSelect.innerHTML = html;
+        })
+        .catch(() => {
+            subSelect.innerHTML = '<option value="">Select Sub-Activity</option>';
+        });
+}
+
+function onFormSubActivityChange(subId) {
+    var subSelect = document.getElementById('sub_activity_id');
+    var selectedOpt = subSelect.options[subSelect.selectedIndex];
+    if (!selectedOpt || !selectedOpt.value) return;
+
+    var tatHours = parseInt(selectedOpt.getAttribute('data-tat') || 24, 10);
+    var defaultUserId = selectedOpt.getAttribute('data-user');
+
+    // Auto-calculate TAT Datetime
+    var now = new Date();
+    now.setHours(now.getHours() + tatHours);
+    
+    var yyyy = now.getFullYear();
+    var mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    var dd = now.getDate().toString().padStart(2, '0');
+    var hh = now.getHours().toString().padStart(2, '0');
+    var min = now.getMinutes().toString().padStart(2, '0');
+    
+    var tatInput = document.getElementById('tat_datetime');
+    if (tatInput) {
+        tatInput.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+        tatInput.classList.add('border-success');
+        setTimeout(() => tatInput.classList.remove('border-success'), 1500);
+    }
+
+    // Auto-select Default Employee if available
+    var allocSelect = document.getElementById('allocated_to');
+    if (allocSelect && defaultUserId) {
+        allocSelect.value = defaultUserId;
+        allocSelect.classList.add('border-success');
+        setTimeout(() => allocSelect.classList.remove('border-success'), 1500);
+    }
+}
+
+// Drag & Drop Outlook File Handling
+document.addEventListener('DOMContentLoaded', function() {
+    var dropzone = document.getElementById('outlookDropzone');
+    var fileInput = document.getElementById('ticket_attachment_input');
+
+    if (dropzone && fileInput) {
+        ['dragenter', 'dragover'].forEach(function(eventName) {
+            dropzone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('bg-primary', 'bg-opacity-10');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(function(eventName) {
+            dropzone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('bg-primary', 'bg-opacity-10');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', function(e) {
+            var dt = e.dataTransfer;
+            var files = dt.files;
+
+            if (files && files.length > 0) {
+                fileInput.files = files;
+                onFileInputChange(fileInput);
+            }
+        });
+    }
+});
+
+function onFileInputChange(input) {
+    var display = document.getElementById('selectedFileDisplay');
+    var subjectInput = document.getElementById('subject');
+    
+    if (input.files && input.files[0]) {
+        var file = input.files[0];
+        if (display) {
+            display.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected: <strong>' + escapeHtml(file.name) + '</strong> (' + (file.size / 1024).toFixed(1) + ' KB) &mdash; Original mail file linked!';
+        }
+        
+        if (subjectInput && subjectInput.value.trim() === '') {
+            var nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+            subjectInput.value = nameWithoutExt.replace(/_/g, ' ');
+            subjectInput.classList.add('border-success');
+            setTimeout(() => subjectInput.classList.remove('border-success'), 1500);
+        }
+    } else {
+        if (display) display.innerHTML = '';
+    }
+}
+
+// Outlook Copy-Paste Parser JavaScript
 document.addEventListener('DOMContentLoaded', function() {
     const pasteBox = document.getElementById('outlook_paste_box');
     const parseStatus = document.getElementById('outlook_parse_status');
@@ -199,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewBody = document.getElementById('parsed_mails_body');
     const parsedCountSpan = document.getElementById('parsed_count');
 
-    // Form input references
     const fromInput = document.getElementById('from_address');
     const subjectInput = document.getElementById('subject');
     const receivedInput = document.getElementById('received_datetime');
@@ -207,8 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function parseDateToLocalFormat(dateStr) {
         if (!dateStr) return '';
         dateStr = dateStr.trim();
-
-        // Check native JS Date parsing first
         try {
             let parsedDate = new Date(dateStr);
             if (!isNaN(parsedDate.getTime())) {
@@ -221,8 +397,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (e) {}
 
-        // Regex fallback matching M/D/YYYY H:MM AM/PM or D/M/YYYY H:MM AM/PM
-        // e.g. "9/10/2026 3:53 PM" or "9/10/2026 15:53"
         const match = dateStr.match(/(\d{1,4})[\/\.-](\d{1,4})[\/\.-](\d{1,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
         if (!match) return '';
 
@@ -262,11 +436,8 @@ document.addEventListener('DOMContentLoaded', function() {
         lines.forEach(line => {
             let trimmed = line.trim();
             if (!trimmed) return;
-
-            // Filter out header lines (e.g. From	Subject	Received...)
             if (/^From\b/i.test(trimmed) && /Subject\b/i.test(trimmed)) return;
 
-            // Split line by Tabs or 2+ spaces
             let parts = trimmed.split(/\t+/);
             if (parts.length < 2) {
                 parts = trimmed.split(/\s{2,}/);
@@ -277,7 +448,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 let subjectVal = parts[1].trim();
                 let receivedVal = parts[2] ? parts[2].trim() : '';
 
-                // Skip header duplicates
                 if (fromVal.toLowerCase() === 'from' || subjectVal.toLowerCase() === 'subject') return;
 
                 parsed.push({
@@ -297,7 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (item.subject && subjectInput) subjectInput.value = item.subject;
         if (item.receivedFormatted && receivedInput) receivedInput.value = item.receivedFormatted;
 
-        // Visual feedback effect on populated inputs
         [fromInput, subjectInput, receivedInput].forEach(input => {
             if (input) {
                 input.classList.add('border-success');
@@ -317,7 +486,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Auto-fill the 1st mail into form
         populateForm(mails[0]);
         clearBtn.style.display = 'inline-block';
 
@@ -329,7 +497,6 @@ document.addEventListener('DOMContentLoaded', function() {
             parsedCountSpan.textContent = mails.length;
             previewContainer.style.display = 'block';
 
-            // Build preview table rows
             let rowsHtml = '';
             mails.forEach((m, idx) => {
                 rowsHtml += `
@@ -347,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             previewBody.innerHTML = rowsHtml;
 
-            // Attach event listener for row buttons
             document.querySelectorAll('.btn-populate-mail').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const idx = parseInt(this.dataset.index, 10);
@@ -372,33 +538,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    if (pasteBox) {
+        pasteBox.addEventListener('paste', function() {
+            setTimeout(handleParse, 100);
+        });
+
+        pasteBox.addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                parseStatus.innerHTML = '';
+                previewContainer.style.display = 'none';
+                clearBtn.style.display = 'none';
+            } else {
+                clearBtn.style.display = 'inline-block';
+            }
+        });
     }
 
-    // Auto trigger parsing on paste event
-    pasteBox.addEventListener('paste', function() {
-        setTimeout(handleParse, 100);
-    });
-
-    pasteBox.addEventListener('input', function() {
-        if (this.value.trim() === '') {
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            pasteBox.value = '';
             parseStatus.innerHTML = '';
             previewContainer.style.display = 'none';
-            clearBtn.style.display = 'none';
-        } else {
-            clearBtn.style.display = 'inline-block';
-        }
-    });
+            this.style.display = 'none';
+        });
+    }
 
-    clearBtn.addEventListener('click', function() {
-        pasteBox.value = '';
-        parseStatus.innerHTML = '';
-        previewContainer.style.display = 'none';
-        this.style.display = 'none';
-    });
-
-    document.getElementById('btn_parse_outlook').addEventListener('click', handleParse);
+    if (document.getElementById('btn_parse_outlook')) {
+        document.getElementById('btn_parse_outlook').addEventListener('click', handleParse);
+    }
 });
 </script>

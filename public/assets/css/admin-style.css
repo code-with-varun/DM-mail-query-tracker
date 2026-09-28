@@ -439,7 +439,7 @@ body {
 
 .login-card {
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
   border-radius: 16px;
   border: none !important;
   border-top: 5px solid #E31B23 !important;
@@ -447,10 +447,16 @@ body {
   background-color: #FFFFFF !important;
 }
 
+.login-card .subtitle-single-line {
+  white-space: nowrap !important;
+  font-size: 0.82rem !important;
+  letter-spacing: -0.1px;
+}
+
 .login-card .card-header {
   background: transparent;
   border: none;
-  padding: 2.5rem 2.5rem 1rem;
+  padding: 2.2rem 1.5rem 1rem;
   text-align: center;
 }
 

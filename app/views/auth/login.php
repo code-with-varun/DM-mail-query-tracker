@@ -17,7 +17,7 @@
                 <img src="<?= base_url('public/assets/logo/datamatics.png') ?>" alt="Datamatics" style="max-height: 50px; max-width: 220px; object-fit: contain;">
             </div>
             <h4 class="fw-bold mb-1 text-dark">DM-Ispark</h4>
-            <p class="text-muted fs-7 mb-0">Business Operations &amp; Performance Management System</p>
+            <p class="text-muted mb-0 subtitle-single-line">Business Operations &amp; Performance Management System</p>
         </div>
         <div class="card-body p-4 pt-2">
             <?php $flash = Session::getFlash(); ?>

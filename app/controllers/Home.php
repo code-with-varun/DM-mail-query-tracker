@@ -16,7 +16,7 @@ class Home extends Controller {
         $trainingModel = $this->model('Training_model');
 
         // Quick KPI stats for the cPanel header
-        $bucketCount = count($ticketModel->getMyBucket($user['id']));
+        $bucketCount = count($ticketModel->getMyBucketTickets($user['id']));
         $pendingTasksCount = count($taskModel->getPendingTasksForUser($user['id']));
         $certs = $trainingModel->getUserCertifications($user['id']);
         

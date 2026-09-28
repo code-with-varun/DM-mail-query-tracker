@@ -141,6 +141,7 @@ class Training_model extends Model {
                 JOIN activities a ON sa.activity_id = a.id
                 LEFT JOIN divisions d ON sa.division_id = d.id
                 JOIN training_plans tp ON tp.sub_activity_id = sa.id
+                LEFT JOIN users u ON tp.created_by = u.id
                 LEFT JOIN user_training_progress utp ON (utp.training_plan_id = tp.id AND utp.user_id = ?)
                 WHERE usa.user_id = ?
                 ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC, tp.created_at DESC";

@@ -398,6 +398,9 @@
                         <textarea name="resolution_solution" class="form-control" rows="3" placeholder="Enter resolution, corrective action taken, or solution..."></textarea>
                     </div>
 
+                    <input type="hidden" name="maker_id" value="<?= $ticket['allocated_to'] ?>">
+                    <input type="hidden" name="checker_id" value="<?= Session::get('user_id') ?>">
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">Error Type <span class="text-danger">*</span></label>
@@ -409,22 +412,24 @@
 
                         <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">Maker (Processor)</label>
-                            <select name="maker_id" class="form-select">
-                                <option value="">Select Maker Employee</option>
-                                <?php foreach (($users ?? []) as $u): ?>
-                                    <option value="<?= $u['id'] ?>" <?= ($ticket['allocated_to'] == $u['id']) ? 'selected' : '' ?>><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div class="form-control bg-light text-dark fw-bold border text-truncate">
+                                <i class="fas fa-user-edit me-1 text-secondary"></i>
+                                <?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?>
+                                <?php if (!empty($ticket['allocated_user_code'])): ?>
+                                    <small class="text-muted">(<?= htmlspecialchars($ticket['allocated_user_code']) ?>)</small>
+                                <?php endif; ?>
+                            </div>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">Checker (Auditor)</label>
-                            <select name="checker_id" class="form-select">
-                                <option value="">Select Checker Employee</option>
-                                <?php foreach (($users ?? []) as $u): ?>
-                                    <option value="<?= $u['id'] ?>" <?= (Session::get('user_id') == $u['id'] || ($ticket['checker_id'] ?? 0) == $u['id']) ? 'selected' : '' ?>><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div class="form-control bg-light text-dark fw-bold border text-truncate">
+                                <i class="fas fa-user-check me-1 text-secondary"></i>
+                                <?= htmlspecialchars(Session::get('full_name') ?: ($ticket['checker_user_name'] ?? 'Checker')) ?>
+                                <?php if (!empty(Session::get('user_code')) || !empty($ticket['checker_user_code'])): ?>
+                                    <small class="text-muted">(<?= htmlspecialchars(Session::get('user_code') ?: $ticket['checker_user_code']) ?>)</small>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 

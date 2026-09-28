@@ -2,11 +2,11 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Practice Files & Checker Validation</h4>
-            <p class="text-muted fs-7 mb-0">Submit practice task files, execute Maker-Checker evaluation with Error Logging, and achieve certification</p>
+            <h4 class="fw-bold mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Practice Tasks & Checker Validation</h4>
+            <p class="text-muted fs-7 mb-0">Create practice tasks, execute standard Maker-Checker evaluation with Error Logging, and achieve activity certification</p>
         </div>
         <button class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#submitPracticeModal">
-            <i class="fas fa-plus-circle me-1"></i>Submit New Practice File
+            <i class="fas fa-plus-circle me-1"></i>Create Practice Task
         </button>
     </div>
 
@@ -14,7 +14,7 @@
     <ul class="nav nav-tabs border-bottom mb-4" id="practiceTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active fw-bold py-2 px-4" id="my-practice-tab" data-bs-toggle="tab" data-bs-target="#myPracticeTabContent" type="button">
-                <i class="fas fa-user-edit me-2 text-primary"></i>My Submitted Practice Tasks (<?= count($myPracticeFiles) ?>)
+                <i class="fas fa-user-edit me-2 text-primary"></i>My Practice Tasks (<?= count($myPracticeFiles) ?>)
             </button>
         </li>
         <?php if (is_admin() || is_super_admin()): ?>
@@ -27,7 +27,7 @@
     </ul>
 
     <div class="tab-content" id="practiceTabContent">
-        <!-- Tab 1: My Submitted Practice Files -->
+        <!-- Tab 1: My Submitted Practice Tasks -->
         <div class="tab-pane fade show active" id="myPracticeTabContent">
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
@@ -37,7 +37,7 @@
                                 <tr>
                                     <th>Task Title</th>
                                     <th>Sub Activity</th>
-                                    <th>Practice File</th>
+                                    <th>Reference File</th>
                                     <th>Assigned Checker</th>
                                     <th>Status</th>
                                     <th>Validation / Error Log</th>
@@ -48,14 +48,19 @@
                                 <?php if (empty($myPracticeFiles)): ?>
                                     <tr>
                                         <td colspan="7" class="text-center py-5 text-muted">
-                                            <i class="fas fa-file-upload fs-2 mb-2 d-block"></i>
-                                            No practice tasks submitted yet. Click "Submit New Practice File" above to submit your practice work.
+                                            <i class="fas fa-tasks fs-2 mb-2 d-block"></i>
+                                            No practice tasks created yet. Click "Create Practice Task" above to submit your practice work to the checker queue.
                                         </td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($myPracticeFiles as $pf): ?>
                                         <tr>
-                                            <td class="fw-bold text-dark"><?= htmlspecialchars($pf['task_title']) ?></td>
+                                            <td class="fw-bold text-dark">
+                                                <?= htmlspecialchars($pf['task_title']) ?>
+                                                <?php if (!empty($pf['remarks'])): ?>
+                                                    <small class="d-block text-muted fw-normal fs-8"><?= htmlspecialchars($pf['remarks']) ?></small>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <span class="badge bg-light text-dark border">
                                                     <?= htmlspecialchars($pf['activity_name']) ?> &rarr; <?= htmlspecialchars($pf['sub_activity_name']) ?>
@@ -64,13 +69,13 @@
                                             <td>
                                                 <?php if (!empty($pf['file_path'])): ?>
                                                     <a href="<?= base_url($pf['file_path']) ?>" download class="btn btn-sm btn-outline-secondary fs-8">
-                                                        <i class="fas fa-paperclip me-1 text-primary"></i><?= htmlspecialchars($pf['file_name'] ?? 'Practice_File') ?>
+                                                        <i class="fas fa-paperclip me-1 text-primary"></i><?= htmlspecialchars($pf['file_name'] ?? 'Ref_File') ?>
                                                     </a>
                                                 <?php else: ?>
-                                                    <span class="text-muted fs-8">No File</span>
+                                                    <span class="badge bg-light text-muted border fs-8">No File Attached</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><?= htmlspecialchars($pf['checker_name'] ?? 'Unassigned (Open Queue)') ?></td>
+                                            <td><?= htmlspecialchars($pf['checker_name'] ?? 'Open Queue (Any Admin)') ?></td>
                                             <td>
                                                 <?php if ($pf['status'] === 'Approved'): ?>
                                                     <span class="badge bg-success-subtle text-success border border-success fw-bold"><i class="fas fa-check-circle me-1"></i>Approved (Passed)</span>
@@ -111,9 +116,9 @@
                             <thead class="table-light fs-7">
                                 <tr>
                                     <th>Maker (Trainee)</th>
-                                    <th>Task Title</th>
+                                    <th>Task Details</th>
                                     <th>Sub Activity</th>
-                                    <th>Practice File</th>
+                                    <th>Reference File</th>
                                     <th>Status</th>
                                     <th>Action / Validate</th>
                                 </tr>
@@ -121,13 +126,18 @@
                             <tbody class="fs-7">
                                 <?php if (empty($checkerQueue)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center py-5 text-muted">No pending practice files in evaluation queue.</td>
+                                        <td colspan="6" class="text-center py-5 text-muted">No pending practice tasks in evaluation queue.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($checkerQueue as $cq): ?>
                                         <tr>
                                             <td class="fw-bold text-dark"><i class="fas fa-user-circle me-1 text-primary"></i><?= htmlspecialchars($cq['maker_name']) ?></td>
-                                            <td class="fw-bold"><?= htmlspecialchars($cq['task_title']) ?></td>
+                                            <td>
+                                                <strong class="text-dark d-block"><?= htmlspecialchars($cq['task_title']) ?></strong>
+                                                <?php if (!empty($cq['remarks'])): ?>
+                                                    <span class="text-muted fs-8"><?= htmlspecialchars($cq['remarks']) ?></span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <span class="badge bg-light text-dark border">
                                                     <?= htmlspecialchars($cq['activity_name']) ?> &rarr; <?= htmlspecialchars($cq['sub_activity_name']) ?>
@@ -136,7 +146,7 @@
                                             <td>
                                                 <?php if (!empty($cq['file_path'])): ?>
                                                     <a href="<?= base_url($cq['file_path']) ?>" download class="btn btn-sm btn-outline-primary fs-8">
-                                                        <i class="fas fa-download me-1"></i>Download Practice Work
+                                                        <i class="fas fa-download me-1"></i>Download Ref File
                                                     </a>
                                                 <?php else: ?>
                                                     <span class="text-muted fs-8">No File</span>
@@ -153,10 +163,10 @@
                                             </td>
                                             <td>
                                                 <button class="btn btn-sm btn-success fw-bold me-1" onclick="openValidateModal(<?= $cq['id'] ?>, 'Approve', '<?= htmlspecialchars($cq['task_title']) ?>')">
-                                                    <i class="fas fa-check me-1"></i>Approve
+                                                    <i class="fas fa-check me-1"></i>Approve Task
                                                 </button>
                                                 <button class="btn btn-sm btn-danger fw-bold" onclick="openValidateModal(<?= $cq['id'] ?>, 'Reject', '<?= htmlspecialchars($cq['task_title']) ?>')">
-                                                    <i class="fas fa-times me-1"></i>Log Error & Reject
+                                                    <i class="fas fa-times me-1"></i>Log Error & Redo
                                                 </button>
                                             </td>
                                         </tr>
@@ -172,12 +182,12 @@
     </div>
 </div>
 
-<!-- Modal: Submit Practice File -->
+<!-- Modal: Create Practice Task -->
 <div class="modal fade" id="submitPracticeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold"><i class="fas fa-upload me-2"></i>Submit Practice Task File</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-tasks me-2"></i>Create Practice Task</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form action="<?= base_url('training/submit-practice') ?>" method="POST" enctype="multipart/form-data">
@@ -194,13 +204,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fs-7 fw-bold">Practice Task Title <span class="text-danger">*</span></label>
-                        <input type="text" name="task_title" class="form-control" placeholder="e.g. Practice Batch #01 - Invoice Entry Verification" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fs-7 fw-bold">Upload Completed Practice File <span class="text-danger">*</span></label>
-                        <input type="file" name="practice_file" class="form-control" required>
+                        <label class="form-label fs-7 fw-bold">Practice Task Title / Batch No. <span class="text-danger">*</span></label>
+                        <input type="text" name="task_title" class="form-control" placeholder="e.g. Practice Batch #01 - Invoice Verification Task" required>
                     </div>
 
                     <div class="mb-3">
@@ -214,13 +219,19 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fs-7 fw-bold">Trainee Remarks / Notes</label>
-                        <textarea name="remarks" class="form-control" rows="2" placeholder="Notes for the checker..."></textarea>
+                        <label class="form-label fs-7 fw-bold">Trainee Remarks / Task Details</label>
+                        <textarea name="remarks" class="form-control" rows="2" placeholder="Task execution notes for the checker..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold">Attach Reference Document / Output File (Optional)</label>
+                        <input type="file" name="practice_file" class="form-control">
+                        <small class="text-muted fs-8">File upload is optional. Follows standard Maker-Checker practice task workflow.</small>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm fw-bold"><i class="fas fa-paper-plane me-1"></i>Submit to Checker Queue</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold"><i class="fas fa-paper-plane me-1"></i>Submit Practice Task to Checker Queue</button>
                 </div>
             </form>
         </div>
@@ -248,12 +259,12 @@
 
                         <div class="mb-3">
                             <label class="form-label fs-7 fw-bold">Error Observation <span class="text-danger">*</span></label>
-                            <input type="text" name="error_observation" class="form-control" placeholder="e.g. Calculation discrepancy in total billing amount">
+                            <input type="text" name="error_observation" class="form-control" placeholder="e.g. Discrepancy in invoice line total entry">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fs-7 fw-bold">Detailed Error Description & Correction Guidance</label>
-                            <textarea name="error_description" class="form-control" rows="3" placeholder="Provide specific feedback so the maker can correct their work..."></textarea>
+                            <textarea name="error_description" class="form-control" rows="3" placeholder="Provide feedback for the maker to redo their work..."></textarea>
                         </div>
 
                         <div class="mb-3">
@@ -266,7 +277,7 @@
                     </div>
 
                     <div id="approveConfirmMsg" style="display: none;" class="alert alert-success fs-7">
-                        <i class="fas fa-check-circle me-2"></i>Confirming approval of this practice task file. This will update the trainee's certification progress.
+                        <i class="fas fa-check-circle me-2"></i>Confirming approval of this practice task. This will update the trainee's activity certification progress.
                     </div>
                 </div>
 
@@ -286,7 +297,7 @@ function openValidateModal(id, action, title) {
     document.getElementById('val_task_title').innerText = title;
 
     if (action === 'Reject') {
-        document.getElementById('valModalTitle').innerHTML = '<i class="fas fa-bug text-danger me-2"></i>Log Validation Error & Reject';
+        document.getElementById('valModalTitle').innerHTML = '<i class="fas fa-bug text-danger me-2"></i>Log Validation Error & Redo';
         document.getElementById('errorLogFields').style.display = 'block';
         document.getElementById('approveConfirmMsg').style.display = 'none';
         document.getElementById('valSubmitBtn').className = 'btn btn-danger btn-sm fw-bold';
@@ -296,7 +307,7 @@ function openValidateModal(id, action, title) {
         document.getElementById('errorLogFields').style.display = 'none';
         document.getElementById('approveConfirmMsg').style.display = 'block';
         document.getElementById('valSubmitBtn').className = 'btn btn-success btn-sm fw-bold';
-        document.getElementById('valSubmitBtn').innerText = 'Approve Practice File';
+        document.getElementById('valSubmitBtn').innerText = 'Approve Practice Task';
     }
 
     var modal = new bootstrap.Modal(document.getElementById('validateModal'));

@@ -15,6 +15,10 @@
         <div class="list-group list-group-flush py-2">
             <div class="sidebar-heading">MAIN MENU</div>
             
+            <a href="<?= base_url('home') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'home')) ? 'active' : '' ?>" title="Home Hub & Launchpad">
+                <i class="fas fa-home"></i> <span>Home</span>
+            </a>
+
             <a href="<?= base_url('dashboard') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'dashboard')) ? 'active' : '' ?>" title="Dashboard">
                 <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
             </a>

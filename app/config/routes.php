@@ -11,6 +11,7 @@ $routes = [
     'profile' => 'Auth/profile',
     'change-password' => 'Auth/change_password',
 
+    'home' => 'Home/index',
     'dashboard' => 'Dashboard/index',
 
     'tickets' => 'Tickets/index',

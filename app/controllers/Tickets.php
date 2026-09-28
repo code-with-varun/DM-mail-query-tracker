@@ -77,10 +77,11 @@ class Tickets extends Controller {
             $categoryInfo = $categoryId ? $categoryModel->getById($categoryId) : null;
             $categorySlug = $categoryInfo['category_slug'] ?? '';
 
+            $catName = strtolower($categoryInfo['category_name'] ?? '');
             $initialStatus = $allocatedTo ? 'Assigned' : 'New';
-            if ($categorySlug === 'hold') {
+            if (stripos($categorySlug, 'hold') !== false || stripos($catName, 'hold') !== false) {
                 $initialStatus = 'On Hold';
-            } elseif ($categorySlug === 'release') {
+            } elseif (stripos($categorySlug, 'release') !== false || stripos($catName, 'release') !== false) {
                 $initialStatus = 'Released';
             }
 

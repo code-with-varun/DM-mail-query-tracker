@@ -8,11 +8,14 @@ class Hold extends Controller {
         $this->requireAuth();
         $ticketModel = $this->model('Ticket_model');
         
-        $sql = "SELECT t.*, u_alloc.full_name as allocated_user_name, c.category_name
+        $sql = "SELECT t.*, u_alloc.full_name as allocated_user_name, c.category_name, c.category_slug
                 FROM tickets t
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
                 LEFT JOIN ticket_categories c ON t.category_id = c.id
-                WHERE t.status IN ('On Hold', 'Released') OR c.category_slug IN ('hold', 'release')
+                WHERE t.status IN ('On Hold', 'Released') 
+                   OR c.category_slug IN ('hold', 'release', 'hold-release', 'hold_release')
+                   OR LOWER(c.category_name) LIKE '%hold%' 
+                   OR LOWER(c.category_name) LIKE '%release%'
                 ORDER BY t.id DESC";
         $tickets = $ticketModel->fetchAll($sql);
 

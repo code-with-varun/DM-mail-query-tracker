@@ -119,7 +119,7 @@
                         <tr>
                             <th>Ticket #</th>
                             <th>Type</th>
-                            <th>Stage</th>
+                            <th>Stage & Bucket Owner</th>
                             <th>Subject</th>
                             <th>Sub-Activity</th>
                             <th>Priority</th>
@@ -142,13 +142,12 @@
                                 </span>
                             </td>
                             <td>
-                                <?php
-                                    $stageBadge = 'bg-secondary';
-                                    if (($t['stage'] ?? '') === 'Maker Phase') $stageBadge = 'bg-primary';
-                                    elseif (($t['stage'] ?? '') === 'Checker Phase') $stageBadge = 'bg-warning text-dark';
-                                    elseif (($t['stage'] ?? '') === 'Delivery Phase') $stageBadge = 'bg-success';
-                                ?>
-                                <span class="badge <?= $stageBadge ?> fw-bold"><?= htmlspecialchars($t['stage'] ?? 'Maker Phase') ?></span>
+                                <?php $bInfo = get_current_bucket_info($t); ?>
+                                <span class="badge <?= $bInfo['badge_class'] ?> fw-bold me-1"><?= htmlspecialchars($bInfo['role_label']) ?></span>
+                                <span class="fw-bold fs-8 text-dark d-block mt-1"><?= htmlspecialchars($bInfo['user_name']) ?></span>
+                                <?php if (!empty($bInfo['user_code'])): ?>
+                                    <small class="text-muted fs-8">(ID: <?= htmlspecialchars($bInfo['user_code']) ?>)</small>
+                                <?php endif; ?>
                             </td>
                             <td class="text-truncate" style="max-width: 250px;" title="<?= htmlspecialchars($t['subject']) ?>">
                                 <?= htmlspecialchars($t['subject']) ?>

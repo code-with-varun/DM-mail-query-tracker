@@ -72,7 +72,7 @@
                             <th>From / Agency</th>
                             <th>Subject</th>
                             <th>Activity</th>
-                            <th>Assigned To</th>
+                            <th>Current Bucket Owner</th>
                             <th>Status</th>
                             <th>TAT SLA</th>
                             <th class="text-end text-nowrap" style="width: 100px;">Action</th>
@@ -112,7 +112,14 @@
                                 <div><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($t['sub_activity_name'] ?? '') ?></small>
                             </td>
-                            <td class="fs-8 text-nowrap"><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></td>
+                            <?php $bucket = get_current_bucket_info($t); ?>
+                            <td class="fs-8 text-nowrap">
+                                <div class="fw-bold text-dark"><?= htmlspecialchars($bucket['user_name']) ?></div>
+                                <?php if (!empty($bucket['user_code'])): ?>
+                                    <small class="text-muted"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($bucket['user_code']) ?></small>
+                                <?php endif; ?>
+                                <div><span class="badge <?= $bucket['badge_class'] ?> fs-8 py-0 px-1 mt-1"><?= htmlspecialchars($bucket['role_label']) ?></span></div>
+                            </td>
                             <td class="text-nowrap"><?= get_status_badge($t['status']) ?></td>
                             <td class="text-nowrap"><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
                             <td class="text-end text-nowrap">

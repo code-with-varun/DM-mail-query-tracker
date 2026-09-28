@@ -61,3 +61,70 @@ function get_status_badge(string $status): string {
 function format_datetime(string $datetime): string {
     return date('d M Y, h:i A', strtotime($datetime));
 }
+
+function get_current_bucket_info(array $ticket): array {
+    $stage = $ticket['stage'] ?? 'Maker Phase';
+    $status = $ticket['status'] ?? 'New';
+
+    if (in_array($status, ['Closed', 'Completed', 'Cancelled'])) {
+        $userName = !empty($ticket['replied_user_name']) ? $ticket['replied_user_name'] : ($ticket['allocated_user_name'] ?? 'System');
+        $userCode = !empty($ticket['replied_user_code']) ? $ticket['replied_user_code'] : ($ticket['allocated_user_code'] ?? '');
+        return [
+            'stage_name' => 'Closed',
+            'role_label' => 'Closed',
+            'user_name' => $userName,
+            'user_code' => $userCode,
+            'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
+            'badge_class' => 'bg-secondary'
+        ];
+    }
+
+    if ($stage === 'Checker Phase') {
+        if (!empty($ticket['checker_user_name'])) {
+            $userName = $ticket['checker_user_name'];
+            $userCode = $ticket['checker_user_code'] ?? '';
+            return [
+                'stage_name' => 'Checker Phase',
+                'role_label' => 'Checker',
+                'user_name' => $userName,
+                'user_code' => $userCode,
+                'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
+                'badge_class' => 'bg-warning text-dark'
+            ];
+        } else {
+            return [
+                'stage_name' => 'Checker Phase',
+                'role_label' => 'Checker',
+                'user_name' => 'Unassigned Checker Queue',
+                'user_code' => '',
+                'display_string' => 'Unassigned Checker Queue',
+                'badge_class' => 'bg-warning text-dark'
+            ];
+        }
+    }
+
+    if ($stage === 'Delivery Phase') {
+        $userName = !empty($ticket['allocated_user_name']) ? $ticket['allocated_user_name'] : 'Delivery Desk';
+        $userCode = $ticket['allocated_user_code'] ?? '';
+        return [
+            'stage_name' => 'Delivery Phase',
+            'role_label' => 'Delivery',
+            'user_name' => $userName,
+            'user_code' => $userCode,
+            'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
+            'badge_class' => 'bg-success'
+        ];
+    }
+
+    // Default: Maker Phase
+    $userName = !empty($ticket['allocated_user_name']) ? $ticket['allocated_user_name'] : 'Unassigned Pool';
+    $userCode = $ticket['allocated_user_code'] ?? '';
+    return [
+        'stage_name' => 'Maker Phase',
+        'role_label' => 'Maker',
+        'user_name' => $userName,
+        'user_code' => $userCode,
+        'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
+        'badge_class' => 'bg-primary'
+    ];
+}

@@ -198,10 +198,42 @@
                     <h6 class="fw-bold mb-0"><i class="fas fa-info-circle text-primary me-2"></i>MetaData Summary</h6>
                 </div>
                 <div class="card-body fs-7">
+                    <?php $bucketInfo = get_current_bucket_info($ticket); ?>
+                    <div class="p-3 mb-3 rounded bg-light border-start border-4 border-primary shadow-sm">
+                        <small class="text-uppercase text-muted fw-bold d-block fs-8 mb-1"><i class="fas fa-user-clock me-1 text-primary"></i>Current Bucket Owner</small>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0"><?= htmlspecialchars($bucketInfo['user_name']) ?></h6>
+                                <?php if (!empty($bucketInfo['user_code'])): ?>
+                                    <span class="badge bg-secondary fs-8 mt-1"><i class="fas fa-id-badge me-1"></i>Emp ID: <?= htmlspecialchars($bucketInfo['user_code']) ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <span class="badge <?= $bucketInfo['badge_class'] ?> px-2 py-1 fw-bold"><?= htmlspecialchars($bucketInfo['role_label']) ?> Phase</span>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Maker (Allocated)</span>
-                        <span class="fw-bold text-dark"><?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Unassigned') ?></span>
+                        <div class="text-end">
+                            <span class="fw-bold text-dark d-block"><?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Unassigned') ?></span>
+                            <?php if (!empty($ticket['allocated_user_code'])): ?>
+                                <small class="text-muted">(ID: <?= htmlspecialchars($ticket['allocated_user_code']) ?>)</small>
+                            <?php endif; ?>
+                        </div>
                     </div>
+
+                    <?php if (!empty($ticket['checker_user_name'])): ?>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Checker (Designated)</span>
+                        <div class="text-end">
+                            <span class="fw-bold text-dark d-block"><?= htmlspecialchars($ticket['checker_user_name']) ?></span>
+                            <?php if (!empty($ticket['checker_user_code'])): ?>
+                                <small class="text-muted">(ID: <?= htmlspecialchars($ticket['checker_user_code']) ?>)</small>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Scheduled Work Date</span>
                         <span class="fw-bold text-dark"><?= !empty($ticket['scheduled_date']) ? date('d M Y', strtotime($ticket['scheduled_date'])) : 'Today' ?></span>

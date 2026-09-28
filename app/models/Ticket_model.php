@@ -42,14 +42,16 @@ class Ticket_model extends Model {
         $sql = "SELECT t.*, 
                        d.division_name, d.code as division_code,
                        a.activity_name, sa.sub_activity_name, sa.default_tat_hours,
-                       u_alloc.full_name as allocated_user_name, u_alloc.email as allocated_user_email,
-                       u_creator.full_name as creator_name,
-                       u_replied.full_name as replied_user_name
+                       u_alloc.full_name as allocated_user_name, u_alloc.email as allocated_user_email, u_alloc.user_code as allocated_user_code,
+                       u_checker.full_name as checker_user_name, u_checker.email as checker_user_email, u_checker.user_code as checker_user_code,
+                       u_creator.full_name as creator_name, u_creator.user_code as creator_user_code,
+                       u_replied.full_name as replied_user_name, u_replied.user_code as replied_user_code
                 FROM tickets t
                 LEFT JOIN divisions d ON t.division_id = d.id
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                LEFT JOIN users u_checker ON t.checker_id = u_checker.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
                 LEFT JOIN users u_replied ON t.replied_by = u_replied.id
                 WHERE t.id = ? LIMIT 1";
@@ -59,12 +61,14 @@ class Ticket_model extends Model {
     public function getTickets(array $filters = [], ?int $userId = null, ?int $roleId = null): array {
         $sql = "SELECT t.*, 
                        a.activity_name, sa.sub_activity_name,
-                       u_alloc.full_name as allocated_user_name,
+                       u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
+                       u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code,
                        u_creator.full_name as creator_name
                 FROM tickets t
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                LEFT JOIN users u_chk ON t.checker_id = u_chk.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
                 WHERE 1=1";
         $params = [];
@@ -512,8 +516,8 @@ class Ticket_model extends Model {
     public function getMyBucketTickets(int $userId, array $filters = []): array {
         $sql = "SELECT t.*, 
                        a.activity_name, sa.sub_activity_name,
-                       u_alloc.full_name as allocated_user_name,
-                       u_chk.full_name as checker_user_name
+                       u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
+                       u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code
                 FROM tickets t
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
@@ -541,11 +545,13 @@ class Ticket_model extends Model {
     public function getRosterTickets(string $targetDate, ?int $userId = null, ?int $roleId = null): array {
         $sql = "SELECT t.*, 
                        a.activity_name, sa.sub_activity_name,
-                       u_alloc.full_name as allocated_user_name
+                       u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
+                       u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code
                 FROM tickets t
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                LEFT JOIN users u_chk ON t.checker_id = u_chk.id
                 WHERE 1=1";
         $params = [];
 

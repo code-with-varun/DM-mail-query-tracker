@@ -97,7 +97,8 @@ class Training extends Controller {
             $trainingModel = $this->model('Training_model');
             $trainingModel->toggleLearnedProgress($user['id'], $planId, $isLearned);
 
-            if ($this->isAjax()) {
+            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+            if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true]);
                 exit();

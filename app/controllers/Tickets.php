@@ -522,12 +522,16 @@ class Tickets extends Controller {
                     Session::setFlash('success', 'Checker audit approved! Ticket moved to Delivery Phase.');
                 }
             } elseif ($decision === 'reject') {
+                $billingMonth = sanitize($_POST['billing_month'] ?? date('Y-m'));
+                $checkingMonth = sanitize($_POST['checking_month'] ?? date('Y-m'));
                 $errorCategory = sanitize($_POST['error_observation'] ?? 'Quality Defect');
                 $errorDesc = sanitize($_POST['error_description'] ?? '');
                 $errorType = sanitize($_POST['error_type'] ?? 'Internal');
                 $solution = sanitize($_POST['resolution_solution'] ?? '');
+                $makerId = !empty($_POST['maker_id']) ? (int)$_POST['maker_id'] : null;
+                $checkerId = !empty($_POST['checker_id']) ? (int)$_POST['checker_id'] : Session::get('user_id');
 
-                if ($ticketModel->rejectByChecker($ticketId, $errorCategory, $errorDesc, $errorType, $solution, Session::get('user_id'))) {
+                if ($ticketModel->rejectByChecker($ticketId, $errorCategory, $errorDesc, $errorType, $solution, Session::get('user_id'), $billingMonth, $checkingMonth, $makerId, $checkerId)) {
                     Session::setFlash('warning', 'Checker rejected ticket & logged error observation into Error Tracker. Ticket returned to Maker.');
                 }
             }

@@ -387,7 +387,18 @@ class Ticket_model extends Model {
         return true;
     }
 
-    public function rejectByChecker(int $ticketId, string $errorCategory, string $errorDesc, string $errorType, string $solution, int $userId): bool {
+    public function rejectByChecker(
+        int $ticketId, 
+        string $errorCategory, 
+        string $errorDesc, 
+        string $errorType, 
+        string $solution, 
+        int $userId,
+        string $billingMonth = '',
+        string $checkingMonth = '',
+        ?int $makerId = null,
+        ?int $checkerId = null
+    ): bool {
         $ticket = $this->getTicketById($ticketId);
         if (!$ticket) return false;
 
@@ -397,16 +408,21 @@ class Ticket_model extends Model {
             'updated_at' => date('Y-m-d H:i:s')
         ], "id = ?", [$ticketId]);
 
+        $bMonth = !empty($billingMonth) ? date('Y-m-01', strtotime($billingMonth)) : date('Y-m-01');
+        $cMonth = !empty($checkingMonth) ? date('Y-m-01', strtotime($checkingMonth)) : date('Y-m-01');
+        $finalMaker = $makerId ?: $ticket['allocated_to'];
+        $finalChecker = $checkerId ?: $userId;
+
         // Log to Error Tracker
         $this->insert('error_tracker', [
-            'billing_month' => date('Y-m-01'),
-            'checking_month' => date('Y-m-01'),
+            'billing_month' => $bMonth,
+            'checking_month' => $cMonth,
             'error_observation' => $errorCategory,
             'error_description' => $errorDesc,
             'resolution_solution' => $solution,
             'error_type' => in_array($errorType, ['Internal', 'External']) ? $errorType : 'Internal',
-            'maker_id' => $ticket['allocated_to'],
-            'checker_id' => $userId,
+            'maker_id' => $finalMaker,
+            'checker_id' => $finalChecker,
             'created_by' => $userId,
             'created_at' => date('Y-m-d H:i:s')
         ]);

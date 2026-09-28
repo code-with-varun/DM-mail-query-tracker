@@ -355,9 +355,9 @@
     </div>
 </div>
 
-<!-- Modal: Reject & Log Error -->
+<!-- Modal: Reject & Log Quality Error -->
 <div class="modal fade" id="rejectCheckerModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <form action="<?= base_url('tickets/checker-action') ?>" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
@@ -369,31 +369,71 @@
                 </div>
                 <div class="modal-body p-4">
                     <p class="text-muted fs-7 mb-3">Rejecting will automatically log this observation into the <strong>Error Tracker</strong> and send the ticket back to the Maker.</p>
+                    
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold text-dark">Error Observation / Category <span class="text-danger">*</span></label>
-                            <input type="text" name="error_observation" class="form-control" placeholder="e.g. Calculation Formula Error" required>
+                            <label class="form-label fw-bold text-dark">Billing Month (Month-Year) <span class="text-danger">*</span></label>
+                            <input type="month" name="billing_month" class="form-control" value="<?= date('Y-m') ?>" required>
+                            <small class="text-muted fs-8">Date defaults to 01 of selected month</small>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label fw-bold text-dark">Checking Month (Month-Year) <span class="text-danger">*</span></label>
+                            <input type="month" name="checking_month" class="form-control" value="<?= date('Y-m') ?>" required>
+                            <small class="text-muted fs-8">Date defaults to 01 of selected month</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Error Observation <span class="text-danger">*</span></label>
+                        <input type="text" name="error_observation" class="form-control" placeholder="Enter key error observation title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Error Description</label>
+                        <textarea name="error_description" class="form-control" rows="3" placeholder="Provide detailed description of the error observed..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Resolution / Solution</label>
+                        <textarea name="resolution_solution" class="form-control" rows="3" placeholder="Enter resolution, corrective action taken, or solution..."></textarea>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
                             <label class="form-label fw-bold text-dark">Error Type <span class="text-danger">*</span></label>
                             <select name="error_type" class="form-select" required>
-                                <option value="Internal">Internal Error</option>
-                                <option value="External">External Error</option>
+                                <option value="Internal" selected>Internal</option>
+                                <option value="External">External</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-dark">Maker (Processor)</label>
+                            <select name="maker_id" class="form-select">
+                                <option value="">Select Maker Employee</option>
+                                <?php foreach (($users ?? []) as $u): ?>
+                                    <option value="<?= $u['id'] ?>" <?= ($ticket['allocated_to'] == $u['id']) ? 'selected' : '' ?>><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-dark">Checker (Auditor)</label>
+                            <select name="checker_id" class="form-select">
+                                <option value="">Select Checker Employee</option>
+                                <?php foreach (($users ?? []) as $u): ?>
+                                    <option value="<?= $u['id'] ?>" <?= (Session::get('user_id') == $u['id'] || ($ticket['checker_id'] ?? 0) == $u['id']) ? 'selected' : '' ?>><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Error Description <span class="text-danger">*</span></label>
-                        <textarea name="error_description" class="form-control" rows="2" placeholder="Describe the specific error observed..." required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Recommended Resolution / Solution</label>
-                        <textarea name="resolution_solution" class="form-control" rows="2" placeholder="Corrective steps for maker..."></textarea>
-                    </div>
+
                 </div>
-                <div class="modal-footer bg-light">
+                <div class="modal-footer bg-light px-4 py-3">
                     <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger fw-bold px-4"><i class="fas fa-undo me-1"></i>Log Error & Return to Maker</button>
+                    <button type="submit" class="btn btn-danger fw-bold px-4">
+                        <i class="fas fa-undo me-1"></i>Log Error & Return to Maker
+                    </button>
                 </div>
             </form>
         </div>

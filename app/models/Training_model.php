@@ -32,13 +32,20 @@ class Training_model extends Model {
                 CREATE TABLE IF NOT EXISTS `user_training_progress` (
                   `id` INT AUTO_INCREMENT PRIMARY KEY,
                   `user_id` INT NOT NULL,
-                  `training_plan_id` INT NOT NULL,
+                  `training_plan_id` INT NOT NULL DEFAULT 0,
                   `sub_activity_id` INT NOT NULL,
                   `is_learned` TINYINT(1) DEFAULT 0,
                   `learned_at` DATETIME NULL,
-                  UNIQUE KEY `idx_user_plan` (`user_id`, `training_plan_id`)
+                  UNIQUE KEY `idx_user_subact_progress` (`user_id`, `sub_activity_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             ");
+
+            try {
+                $this->db->exec("ALTER TABLE user_training_progress DROP INDEX idx_user_plan");
+            } catch (Exception $e) {}
+            try {
+                $this->db->exec("ALTER TABLE user_training_progress ADD UNIQUE KEY idx_user_subact_progress (user_id, sub_activity_id)");
+            } catch (Exception $e) {}
 
             $this->db->exec("
                 CREATE TABLE IF NOT EXISTS `pkt_question_bank` (
@@ -192,9 +199,12 @@ class Training_model extends Model {
                 'learned_at' => $isLearned ? date('Y-m-d H:i:s') : null
             ], "id = ?", [$existing['id']]);
         } else {
+            $plan = $this->fetchOne("SELECT id FROM training_plans WHERE sub_activity_id = ? ORDER BY id DESC LIMIT 1", [$subActivityId]);
+            $planId = $plan['id'] ?? $subActivityId;
+
             $this->insert('user_training_progress', [
                 'user_id' => $userId,
-                'training_plan_id' => 0,
+                'training_plan_id' => $planId,
                 'sub_activity_id' => $subActivityId,
                 'is_learned' => $isLearned ? 1 : 0,
                 'learned_at' => $isLearned ? date('Y-m-d H:i:s') : null

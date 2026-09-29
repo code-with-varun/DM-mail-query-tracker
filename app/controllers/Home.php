@@ -11,28 +11,10 @@ class Home extends Controller {
 
     public function index() {
         $user = current_user();
-        $ticketModel = $this->model('Ticket_model');
-        $taskModel = $this->model('Task_model');
-        $trainingModel = $this->model('Training_model');
-
-        // Quick KPI stats for the cPanel header
-        $bucketCount = count($ticketModel->getMyBucketTickets($user['id']));
-        $pendingTasksCount = count($taskModel->getPendingTasksForUser($user['id'], $user['role_id'] ?? null));
-        $certs = $trainingModel->getUserCertifications($user['id']);
-        
-        $certifiedCount = 0;
-        foreach ($certs as $c) {
-            if (($c['status'] ?? '') === 'Certified') {
-                $certifiedCount++;
-            }
-        }
 
         $this->render('home/index', [
             'title' => 'Home Hub & Control Panel',
-            'user' => $user,
-            'bucketCount' => $bucketCount,
-            'pendingTasksCount' => $pendingTasksCount,
-            'certifiedCount' => $certifiedCount
+            'user' => $user
         ]);
     }
 }

@@ -138,11 +138,11 @@ class Training_model extends Model {
     // TRAINING PLAN & KT METHODS
     // ----------------------------------------------------
     public function getGroupedTrainingPlan(int $userId, bool $isAdmin = false): array {
-        $assignedIds = [];
-        if (!$isAdmin) {
-            $assignedSubActs = $this->fetchAll("SELECT sub_activity_id FROM user_sub_activities WHERE user_id = ?", [$userId]);
-            if (!empty($assignedSubActs)) {
-                $assignedIds = array_column($assignedSubActs, 'sub_activity_id');
+        $assignedSkills = [];
+        $userSkills = $this->fetchAll("SELECT sub_activity_id, role_type FROM user_sub_activities WHERE user_id = ?", [$userId]);
+        if (!empty($userSkills)) {
+            foreach ($userSkills as $us) {
+                $assignedSkills[$us['sub_activity_id']] = $us['role_type'];
             }
         }
 
@@ -159,23 +159,31 @@ class Training_model extends Model {
                     tp.kt_document_path,
                     tp.kt_document_name,
                     COALESCE(utp.is_learned, 0) as is_learned,
-                    utp.learned_at
+                    utp.learned_at,
+                    usa.role_type
                 FROM sub_activities sa
                 JOIN activities a ON sa.activity_id = a.id
                 LEFT JOIN divisions d ON sa.division_id = d.id
                 LEFT JOIN training_plans tp ON tp.sub_activity_id = sa.id
                 LEFT JOIN user_training_progress utp ON (utp.sub_activity_id = sa.id AND utp.user_id = ?)
-                WHERE sa.status = 'Active'
-                ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC";
+                LEFT JOIN user_sub_activities usa ON (usa.sub_activity_id = sa.id AND usa.user_id = ?)
+                WHERE sa.status = 'Active'";
         
-        $rows = $this->fetchAll($sql, [$userId]);
+        $params = [$userId, $userId];
+
+        if (!empty($assignedSkills)) {
+            $inClause = implode(',', array_map('intval', array_keys($assignedSkills)));
+            $sql .= " AND sa.id IN ($inClause)";
+        } elseif (!$isAdmin) {
+            return [];
+        }
+
+        $sql .= " ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC";
+        
+        $rows = $this->fetchAll($sql, $params);
 
         $grouped = [];
         foreach ($rows as $r) {
-            if (!empty($assignedIds) && !in_array($r['sub_activity_id'], $assignedIds)) {
-                continue;
-            }
-
             $actId = $r['activity_id'];
             if (!isset($grouped[$actId])) {
                 $grouped[$actId] = [
@@ -185,6 +193,7 @@ class Training_model extends Model {
                     'sub_activities' => []
                 ];
             }
+            $r['assigned_role'] = $r['role_type'] ?? ($assignedSkills[$r['sub_activity_id']] ?? 'Maker');
             $grouped[$actId]['sub_activities'][] = $r;
         }
 

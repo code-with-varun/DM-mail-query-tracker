@@ -628,7 +628,7 @@ class Ticket_model extends Model {
         $this->autoRolloverPendingTickets();
 
         $sql = "SELECT t.*, 
-                       tc.category_name,
+                       COALESCE(tc.category_name, 'Query') as category_name,
                        a.activity_name, sa.sub_activity_name,
                        u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
                        u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code,
@@ -642,7 +642,10 @@ class Ticket_model extends Model {
                 LEFT JOIN users u_chk ON t.checker_id = u_chk.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
                 LEFT JOIN users u_replied ON t.replied_by = u_replied.id
-                WHERE (t.ticket_type = 'Query Ticket' OR t.ticket_type = 'Query' OR t.ticket_type IS NULL OR t.ticket_type NOT IN ('Task Ticket', 'Internal Task', 'File Preparation'))";
+                WHERE (t.category_id = 2 OR t.category_id = 9 OR t.category_id IS NULL OR t.category_id = 0 OR tc.category_name LIKE '%Query%')
+                  AND (tc.category_name IS NULL OR tc.category_name NOT IN ('Penalty', 'Hold Release', 'Input', 'Checklist', 'Rerun', 'Allocation Exclude', 'Grid'))
+                  AND (t.ticket_type = 'Query Ticket' OR t.ticket_type = 'Query' OR t.ticket_type IS NULL OR t.ticket_type NOT IN ('Task Ticket', 'Internal Task', 'File Preparation'))";
+
         $params = [];
 
         if ($roleId == 3 && $userId) {

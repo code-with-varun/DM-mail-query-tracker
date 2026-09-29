@@ -101,7 +101,13 @@ class User_model extends Model {
     }
 
     public function setUserSkills(int $userId, array $skills): void {
+        // Track previous default roles for sync check
+        $asDefaultMaker = $this->fetchAll("SELECT id FROM sub_activities WHERE default_user_id = ?", [$userId]);
+        $asDefaultChecker = $this->fetchAll("SELECT id FROM sub_activities WHERE default_checker_id = ?", [$userId]);
+
         $this->delete('user_sub_activities', 'user_id = ?', [$userId]);
+        $selectedSkills = [];
+
         foreach ($skills as $key => $skill) {
             $subActId = 0;
             if (isset($skill['sub_activity_id'])) {
@@ -122,6 +128,42 @@ class User_model extends Model {
                     'role_type' => $roleType,
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
+                $selectedSkills[$subActId] = $roleType;
+            }
+        }
+
+        // Bi-directional Sync: Update sub_activities table defaults when skills change
+        foreach ($asDefaultMaker as $sa) {
+            $saId = $sa['id'];
+            $role = $selectedSkills[$saId] ?? null;
+            if (!$role || !in_array($role, ['Maker', 'Both'])) {
+                $otherMaker = $this->fetchOne("SELECT user_id FROM user_sub_activities WHERE sub_activity_id = ? AND role_type IN ('Maker', 'Both') AND user_id != ? LIMIT 1", [$saId, $userId]);
+                $this->update('sub_activities', ['default_user_id' => $otherMaker['user_id'] ?? null], "id = ?", [$saId]);
+            }
+        }
+
+        foreach ($asDefaultChecker as $sa) {
+            $saId = $sa['id'];
+            $role = $selectedSkills[$saId] ?? null;
+            if (!$role || !in_array($role, ['Checker', 'Both'])) {
+                $otherChecker = $this->fetchOne("SELECT user_id FROM user_sub_activities WHERE sub_activity_id = ? AND role_type IN ('Checker', 'Both') AND user_id != ? LIMIT 1", [$saId, $userId]);
+                $this->update('sub_activities', ['default_checker_id' => $otherChecker['user_id'] ?? null], "id = ?", [$saId]);
+            }
+        }
+
+        foreach ($selectedSkills as $saId => $role) {
+            $subAct = $this->fetchOne("SELECT id, default_user_id, default_checker_id FROM sub_activities WHERE id = ?", [$saId]);
+            if ($subAct) {
+                $upd = [];
+                if (empty($subAct['default_user_id']) && in_array($role, ['Maker', 'Both'])) {
+                    $upd['default_user_id'] = $userId;
+                }
+                if (empty($subAct['default_checker_id']) && in_array($role, ['Checker', 'Both'])) {
+                    $upd['default_checker_id'] = $userId;
+                }
+                if (!empty($upd)) {
+                    $this->update('sub_activities', $upd, "id = ?", [$saId]);
+                }
             }
         }
     }

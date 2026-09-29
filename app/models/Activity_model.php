@@ -56,7 +56,7 @@ class Activity_model extends Model {
     }
 
     public function getAllSubActivitiesWithHierarchy(): array {
-        return $this->fetchAll("
+        $subActs = $this->fetchAll("
             SELECT sa.*, a.activity_name, d.division_name, d.code as division_code, 
                    u.full_name as default_user_name, u.user_code as default_user_code,
                    uc.full_name as default_checker_name, uc.user_code as default_checker_code
@@ -68,6 +68,33 @@ class Activity_model extends Model {
             WHERE sa.status = 'Active'
             ORDER BY a.activity_name ASC, sa.sub_activity_name ASC
         ");
+
+        $allSkills = $this->fetchAll("
+            SELECT usa.sub_activity_id, usa.user_id, usa.role_type, u.full_name, u.user_code
+            FROM user_sub_activities usa
+            JOIN users u ON usa.user_id = u.id
+            WHERE u.status = 'Active'
+            ORDER BY u.full_name ASC
+        ");
+
+        $makersMap = [];
+        $checkersMap = [];
+        foreach ($allSkills as $sk) {
+            $saId = $sk['sub_activity_id'];
+            if (in_array($sk['role_type'], ['Maker', 'Both'])) {
+                $makersMap[$saId][] = $sk;
+            }
+            if (in_array($sk['role_type'], ['Checker', 'Both'])) {
+                $checkersMap[$saId][] = $sk;
+            }
+        }
+
+        foreach ($subActs as &$sa) {
+            $sa['mapped_makers'] = $makersMap[$sa['id']] ?? [];
+            $sa['mapped_checkers'] = $checkersMap[$sa['id']] ?? [];
+        }
+
+        return $subActs;
     }
 
     public function getSubActivityDetailByName(string $subActivityName): ?array {
@@ -123,7 +150,7 @@ class Activity_model extends Model {
     }
 
     public function createSubActivity(int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null, ?int $defaultCheckerId = null): int {
-        return $this->insert('sub_activities', [
+        $id = $this->insert('sub_activities', [
             'activity_id' => $activityId,
             'sub_activity_name' => $name,
             'division_id' => $divisionId,
@@ -134,10 +161,12 @@ class Activity_model extends Model {
             'status' => 'Active',
             'created_at' => date('Y-m-d H:i:s')
         ]);
+        $this->syncSubActivityToSkillMatrix($id, $defaultUserId, $defaultCheckerId);
+        return $id;
     }
 
     public function updateSubActivity(int $id, int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null, ?int $defaultCheckerId = null): bool {
-        return $this->update('sub_activities', [
+        $res = $this->update('sub_activities', [
             'activity_id' => $activityId,
             'sub_activity_name' => $name,
             'division_id' => $divisionId,
@@ -146,6 +175,43 @@ class Activity_model extends Model {
             'default_checker_id' => $defaultCheckerId,
             'default_occurrence_day' => $occurrenceDay
         ], "id = ?", [$id]);
+        $this->syncSubActivityToSkillMatrix($id, $defaultUserId, $defaultCheckerId);
+        return $res;
+    }
+
+    public function syncSubActivityToSkillMatrix(int $subActId, ?int $makerId = null, ?int $checkerId = null): void {
+        if ($makerId && $makerId > 0) {
+            $existing = $this->fetchOne("SELECT id, role_type FROM user_sub_activities WHERE user_id = ? AND sub_activity_id = ?", [$makerId, $subActId]);
+            if ($existing) {
+                if ($existing['role_type'] === 'Checker' && $makerId == $checkerId) {
+                    $this->update('user_sub_activities', ['role_type' => 'Both'], "id = ?", [$existing['id']]);
+                }
+            } else {
+                $role = ($makerId == $checkerId) ? 'Both' : 'Maker';
+                $this->insert('user_sub_activities', [
+                    'user_id' => $makerId,
+                    'sub_activity_id' => $subActId,
+                    'role_type' => $role,
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+
+        if ($checkerId && $checkerId > 0 && $checkerId != $makerId) {
+            $existing = $this->fetchOne("SELECT id, role_type FROM user_sub_activities WHERE user_id = ? AND sub_activity_id = ?", [$checkerId, $subActId]);
+            if ($existing) {
+                if ($existing['role_type'] === 'Maker') {
+                    $this->update('user_sub_activities', ['role_type' => 'Both'], "id = ?", [$existing['id']]);
+                }
+            } else {
+                $this->insert('user_sub_activities', [
+                    'user_id' => $checkerId,
+                    'sub_activity_id' => $subActId,
+                    'role_type' => 'Checker',
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
     }
 
     public function createDivision(string $name, string $code): int {

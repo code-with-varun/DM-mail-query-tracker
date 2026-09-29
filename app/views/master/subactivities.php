@@ -54,15 +54,41 @@
                                 <?php endif; ?>
                             </td>
                             <td class="text-nowrap">
-                                <?php if (!empty($sa['default_user_name'])): ?>
-                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-edit me-1 text-primary"></i><?= htmlspecialchars($sa['default_user_name']) ?> (<?= $sa['default_user_code'] ?>)</span>
+                                <?php
+                                $makerName = $sa['default_user_name'] ?? '';
+                                $makerCode = $sa['default_user_code'] ?? '';
+                                $mappedMakers = $sa['mapped_makers'] ?? [];
+
+                                if (empty($makerName) && !empty($mappedMakers)) {
+                                    $makerName = $mappedMakers[0]['full_name'];
+                                    $makerCode = $mappedMakers[0]['user_code'];
+                                }
+                                ?>
+                                <?php if (!empty($makerName)): ?>
+                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-edit me-1 text-primary"></i><?= htmlspecialchars($makerName) ?> (<?= $makerCode ?>)</span>
+                                    <?php if (count($mappedMakers) > 1): ?>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary fs-9 ms-1" title="<?= htmlspecialchars(implode(', ', array_column($mappedMakers, 'full_name'))) ?>">+<?= count($mappedMakers) - 1 ?> mapped</span>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="text-muted fs-8">Unassigned</span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-nowrap">
-                                <?php if (!empty($sa['default_checker_name'])): ?>
-                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-check me-1 text-success"></i><?= htmlspecialchars($sa['default_checker_name']) ?> (<?= $sa['default_checker_code'] ?>)</span>
+                                <?php
+                                $checkerName = $sa['default_checker_name'] ?? '';
+                                $checkerCode = $sa['default_checker_code'] ?? '';
+                                $mappedCheckers = $sa['mapped_checkers'] ?? [];
+
+                                if (empty($checkerName) && !empty($mappedCheckers)) {
+                                    $checkerName = $mappedCheckers[0]['full_name'];
+                                    $checkerCode = $mappedCheckers[0]['user_code'];
+                                }
+                                ?>
+                                <?php if (!empty($checkerName)): ?>
+                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-check me-1 text-success"></i><?= htmlspecialchars($checkerName) ?> (<?= $checkerCode ?>)</span>
+                                    <?php if (count($mappedCheckers) > 1): ?>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success fs-9 ms-1" title="<?= htmlspecialchars(implode(', ', array_column($mappedCheckers, 'full_name'))) ?>">+<?= count($mappedCheckers) - 1 ?> mapped</span>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="text-muted fs-8">Unassigned</span>
                                 <?php endif; ?>

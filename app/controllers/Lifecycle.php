@@ -210,4 +210,26 @@ class Lifecycle extends Controller {
         fclose($output);
         exit;
     }
+
+    public function assign_users() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('lifecycle');
+            }
+
+            $id = (int)($_POST['lifecycle_id'] ?? 0);
+            $makerId = !empty($_POST['maker_id']) ? (int)$_POST['maker_id'] : null;
+            $checkerId = !empty($_POST['checker_id']) ? (int)$_POST['checker_id'] : null;
+
+            if ($id > 0) {
+                $lifecycleModel = $this->model('Lifecycle_model');
+                $lifecycleModel->updateUsers($id, $makerId, $checkerId);
+                Session::setFlash('success', 'Maker/Checker assignments updated successfully!');
+            }
+
+            $month = !empty($_POST['current_month']) ? $_POST['current_month'] : date('Y-m');
+            redirect('lifecycle?month=' . urlencode($month));
+        }
+    }
 }

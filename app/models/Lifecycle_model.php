@@ -333,4 +333,13 @@ class Lifecycle_model extends Model {
 
         return true;
     }
+
+    public function updateUsers(int $id, ?int $makerId, ?int $checkerId): bool {
+        $update = [];
+        if ($makerId !== null) $update['maker_id'] = $makerId;
+        if ($checkerId !== null) $update['checker_id'] = $checkerId;
+        if (empty($update)) return false;
+
+        return $this->update('ticket_lifecycle_tracker', $update, "id = ?", [$id]);
+    }
 }

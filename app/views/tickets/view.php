@@ -28,8 +28,13 @@
     </div>
 
     <!-- Workflow Stage Progress Banner -->
-    <div class="card border-0 shadow-sm mb-4 bg-light">
+    <div class="card border-0 shadow-sm mb-4 bg-white border-top border-4 border-primary">
         <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-dark fs-7"><i class="fas fa-route text-primary me-2"></i>Visual Process Queue Pipeline</h6>
+                <span class="badge bg-light text-dark border fs-8">Current Stage: <strong><?= htmlspecialchars($curStage ?? 'Maker Phase') ?></strong></span>
+            </div>
+
             <div class="row text-center g-2 align-items-center">
                 <?php
                     $curStage = $ticket['stage'] ?? 'Maker Phase';
@@ -37,25 +42,25 @@
                     $isCheckerUser = is_admin() || is_super_admin() || (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
                 ?>
                 <div class="col-md-3">
-                    <div class="p-2 rounded <?= $curStage === 'Maker Phase' ? 'bg-primary text-white shadow-sm' : 'bg-white border text-muted' ?>">
+                    <div class="p-2 rounded border <?= $curStage === 'Maker Phase' ? 'bg-primary text-white shadow-sm' : (($curStage === 'Checker Phase' || $curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-light text-muted') ?>">
                         <i class="fas fa-pencil-alt me-1"></i><strong>1. Maker Phase</strong>
                         <div class="fs-8 mt-1"><?= $curStage === 'Maker Phase' ? 'File in Preparation' : 'Completed' ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="p-2 rounded <?= $curStage === 'Checker Phase' ? 'bg-warning text-dark shadow-sm' : 'bg-white border text-muted' ?>">
+                    <div class="p-2 rounded border <?= $curStage === 'Checker Phase' ? 'bg-warning text-dark shadow-sm' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-light text-muted') ?>">
                         <i class="fas fa-user-check me-1"></i><strong>2. Checker Audit</strong>
                         <div class="fs-8 mt-1"><?= $curStage === 'Checker Phase' ? 'Under Review' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'Approved' : 'Pending') ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="p-2 rounded <?= $curStage === 'Delivery Phase' ? 'bg-success text-white shadow-sm' : 'bg-white border text-muted' ?>">
+                    <div class="p-2 rounded border <?= $curStage === 'Delivery Phase' ? 'bg-success text-white shadow-sm' : ($curStage === 'Completed' ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-light text-muted') ?>">
                         <i class="fas fa-paper-plane me-1"></i><strong>3. Delivery Phase</strong>
                         <div class="fs-8 mt-1"><?= $curStage === 'Delivery Phase' ? 'Awaiting Dispatch' : ($curStage === 'Completed' ? 'Delivered' : 'Pending') ?></div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="p-2 rounded <?= $curStage === 'Completed' ? 'bg-dark text-white shadow-sm' : 'bg-white border text-muted' ?>">
+                    <div class="p-2 rounded border <?= $curStage === 'Completed' ? 'bg-dark text-white shadow-sm' : 'bg-light text-muted' ?>">
                         <i class="fas fa-check-circle me-1"></i><strong>4. Ticket Closed</strong>
                         <div class="fs-8 mt-1"><?= $curStage === 'Completed' ? 'Closed' : 'Pending' ?></div>
                     </div>
@@ -63,24 +68,24 @@
             </div>
 
             <!-- Stage Action Buttons -->
-            <div class="mt-3 text-end">
+            <div class="mt-3 text-end pt-2 border-top">
                 <?php if ($curStage === 'Maker Phase' && $ticket['status'] !== 'Closed'): ?>
-                    <button type="button" class="btn btn-warning text-dark fw-bold px-4" data-bs-toggle="modal" data-bs-target="#submitCheckerModal">
+                    <button type="button" class="btn btn-warning text-dark fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#submitCheckerModal">
                         <i class="fas fa-paper-plane me-1"></i>Submit to Checker Queue
                     </button>
                 <?php elseif ($curStage === 'Checker Phase' && $ticket['status'] !== 'Closed'): ?>
                     <?php if ($isCheckerUser): ?>
-                        <button type="button" class="btn btn-success fw-bold px-3 me-2" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
+                        <button type="button" class="btn btn-success fw-bold px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
                             <i class="fas fa-check-circle me-1"></i>Approve Checker Audit
                         </button>
-                        <button type="button" class="btn btn-danger fw-bold px-3" data-bs-toggle="modal" data-bs-target="#rejectCheckerModal">
+                        <button type="button" class="btn btn-danger fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectCheckerModal">
                             <i class="fas fa-times-circle me-1"></i>Reject & Log Error
                         </button>
                     <?php else: ?>
-                        <span class="badge bg-warning text-dark fs-7 px-3 py-2"><i class="fas fa-user-clock me-1"></i>Awaiting Checker Audit Review</span>
+                        <span class="badge bg-warning text-dark fs-7 px-3 py-2 border"><i class="fas fa-user-clock me-1"></i>Awaiting Checker Audit Review</span>
                     <?php endif; ?>
                 <?php elseif ($curStage === 'Delivery Phase' && $ticket['status'] !== 'Closed'): ?>
-                    <button type="button" class="btn btn-success fw-bold px-4" data-bs-toggle="modal" data-bs-target="#deliverModal">
+                    <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#deliverModal">
                         <i class="fas fa-file-upload me-1"></i>Deliver File & Close Ticket
                     </button>
                 <?php endif; ?>

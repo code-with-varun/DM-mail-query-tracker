@@ -86,18 +86,20 @@
                 <table class="table table-hover align-middle mb-0 border-0 fs-8">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 100px;">TASK ID</th>
-                            <th style="min-width: 220px;">SUB-ACTIVITY & DIVISION</th>
-                            <th style="width: 130px;">MAKER</th>
-                            <th style="width: 130px;">CHECKER</th>
-                            <th>12-STAGE INTERACTIVE LIFECYCLE PIPELINE</th>
-                            <th class="text-end" style="width: 150px;">QUICK ACTION</th>
+                            <th style="width: 120px;">TASK ID</th>
+                            <th style="min-width: 200px;">SUB-ACTIVITY</th>
+                            <th style="min-width: 200px;">ACTIVITY & DIVISION</th>
+                            <th style="width: 120px;">BILLING MONTH</th>
+                            <th style="width: 150px;">MAKER</th>
+                            <th style="width: 150px;">CHECKER</th>
+                            <th style="width: 180px;">CURRENT STAGE</th>
+                            <th class="text-end" style="width: 140px;">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($items)): ?>
                             <tr>
-                                <td colspan="6" class="text-center py-5 bg-white">
+                                <td colspan="8" class="text-center py-5 bg-white">
                                     <i class="fas fa-project-diagram fs-1 text-muted mb-3 d-block"></i>
                                     <h6 class="fw-bold text-secondary">No Tasks Logged for Month <?= htmlspecialchars($billingMonth) ?></h6>
                                     <p class="text-muted fs-8 mb-3">Click <strong>"Populate Active Subtasks for <?= htmlspecialchars($billingMonth) ?>"</strong> above to automatically load active sub-activities and assigned Maker-Checker mappings.</p>
@@ -108,41 +110,40 @@
                                 <?php
                                     $currStage = $item['current_stage'];
                                     
-                                    // Calculate Next Logical Stage & Button Text
                                     $nextStageMap = [
-                                        'Input Received' => ['next' => 'Maker Queue', 'label' => 'Start Maker Queue', 'icon' => 'fa-play', 'btn' => 'btn-primary'],
-                                        'Maker Queue' => ['next' => 'Checker Queue', 'label' => 'Submit to Checker', 'icon' => 'fa-arrow-right', 'btn' => 'btn-warning text-dark'],
+                                        'Input Received' => ['next' => 'Maker Queue', 'label' => 'Start Maker', 'icon' => 'fa-play', 'btn' => 'btn-primary'],
+                                        'Maker Queue' => ['next' => 'Checker Queue', 'label' => 'To Checker', 'icon' => 'fa-arrow-right', 'btn' => 'btn-warning text-dark'],
                                         'Checker Queue' => ['next' => 'Delivery', 'label' => 'Approve & Deliver', 'icon' => 'fa-paper-plane', 'btn' => 'btn-success'],
-                                        'Error Log' => ['next' => 'Maker Checker Rework', 'label' => 'Send for Rework', 'icon' => 'fa-sync-alt', 'btn' => 'btn-danger'],
-                                        'Maker Checker Rework' => ['next' => 'Checker Queue', 'label' => 'Resubmit to Checker', 'icon' => 'fa-redo', 'btn' => 'btn-warning text-dark'],
-                                        'Delivery' => ['next' => 'Acknowledgement', 'label' => 'Mark Acknowledged', 'icon' => 'fa-check-circle', 'btn' => 'btn-info text-dark'],
-                                        'Acknowledgement' => ['next' => 'Approval Queue', 'label' => 'Send to Approval', 'icon' => 'fa-file-signature', 'btn' => 'btn-primary'],
-                                        'Approval Queue' => ['next' => 'Uploader Queue', 'label' => 'Approve & Upload', 'icon' => 'fa-upload', 'btn' => 'btn-success'],
-                                        'Uploader Queue' => ['next' => 'Dump Sharing', 'label' => 'Share Dump File', 'icon' => 'fa-share-alt', 'btn' => 'btn-secondary'],
-                                        'Dump Sharing' => ['next' => 'Consol Vendor Tracker', 'label' => 'Update Consol Vendor', 'icon' => 'fa-database', 'btn' => 'btn-dark'],
-                                        'Consol Vendor Tracker' => ['next' => 'Closed', 'label' => 'Close Lifecycle', 'icon' => 'fa-check-double', 'btn' => 'btn-success'],
-                                        'Closed' => ['next' => 'Closed', 'label' => 'Lifecycle Closed', 'icon' => 'fa-lock', 'btn' => 'btn-light border disabled']
+                                        'Error Log' => ['next' => 'Maker Checker Rework', 'label' => 'Rework', 'icon' => 'fa-sync-alt', 'btn' => 'btn-danger'],
+                                        'Maker Checker Rework' => ['next' => 'Checker Queue', 'label' => 'Resubmit', 'icon' => 'fa-redo', 'btn' => 'btn-warning text-dark'],
+                                        'Delivery' => ['next' => 'Acknowledgement', 'label' => 'Acknowledged', 'icon' => 'fa-check-circle', 'btn' => 'btn-info text-dark'],
+                                        'Acknowledgement' => ['next' => 'Approval Queue', 'label' => 'Send Approval', 'icon' => 'fa-file-signature', 'btn' => 'btn-primary'],
+                                        'Approval Queue' => ['next' => 'Uploader Queue', 'label' => 'Upload File', 'icon' => 'fa-upload', 'btn' => 'btn-success'],
+                                        'Uploader Queue' => ['next' => 'Dump Sharing', 'label' => 'Share Dump', 'icon' => 'fa-share-alt', 'btn' => 'btn-secondary'],
+                                        'Dump Sharing' => ['next' => 'Consol Vendor Tracker', 'label' => 'Vendor Update', 'icon' => 'fa-database', 'btn' => 'btn-dark'],
+                                        'Consol Vendor Tracker' => ['next' => 'Closed', 'label' => 'Close Task', 'icon' => 'fa-check-double', 'btn' => 'btn-success'],
+                                        'Closed' => ['next' => 'Closed', 'label' => 'Closed', 'icon' => 'fa-lock', 'btn' => 'btn-light border disabled']
                                     ];
                                     
                                     $actionInfo = $nextStageMap[$currStage] ?? ['next' => 'Closed', 'label' => 'Update Stage', 'icon' => 'fa-step-forward', 'btn' => 'btn-primary'];
 
-                                    // Stage completion status map
-                                    $stageCheck = [
-                                        'Input Received' => !empty($item['input_received_at']),
-                                        'Maker Queue' => !empty($item['maker_completed_at']),
-                                        'Checker Queue' => !empty($item['checker_completed_at']),
-                                        'Error Log' => !empty($item['error_log_at']),
-                                        'Maker Checker Rework' => ((int)$item['rework_loop_count'] > 0),
-                                        'Delivery' => !empty($item['delivery_at']),
-                                        'Acknowledgement' => !empty($item['acknowledgement_at']),
-                                        'Approval Queue' => !empty($item['approved_at']),
-                                        'Uploader Queue' => !empty($item['uploaded_at']),
-                                        'Dump Sharing' => !empty($item['dump_sharing_at']),
-                                        'Consol Vendor Tracker' => !empty($item['consol_vendor_at']),
-                                        'Closed' => ($currStage === 'Closed')
+                                    // Stage Badge Color Map
+                                    $stageBadgeColors = [
+                                        'Input Received' => 'bg-info bg-opacity-10 text-info border border-info',
+                                        'Maker Queue' => 'bg-primary bg-opacity-10 text-primary border border-primary',
+                                        'Checker Queue' => 'bg-warning bg-opacity-20 text-dark border border-warning',
+                                        'Error Log' => 'bg-danger bg-opacity-10 text-danger border border-danger',
+                                        'Maker Checker Rework' => 'bg-danger bg-opacity-10 text-danger border border-danger',
+                                        'Delivery' => 'bg-success bg-opacity-10 text-success border border-success',
+                                        'Acknowledgement' => 'bg-info bg-opacity-10 text-info border border-info',
+                                        'Approval Queue' => 'bg-primary bg-opacity-10 text-primary border border-primary',
+                                        'Uploader Queue' => 'bg-success bg-opacity-10 text-success border border-success',
+                                        'Dump Sharing' => 'bg-secondary bg-opacity-10 text-secondary border border-secondary',
+                                        'Consol Vendor Tracker' => 'bg-dark bg-opacity-10 text-dark border border-dark',
+                                        'Closed' => 'bg-success bg-opacity-15 text-success border border-success'
                                     ];
+                                    $badgeStyle = $stageBadgeColors[$currStage] ?? 'bg-light text-dark border';
 
-                                    // Linked attachments map
                                     $attachments = array_filter([
                                         'Input' => $item['input_received_attachment'],
                                         'Maker' => $item['maker_attachment'],
@@ -152,26 +153,20 @@
                                         'Dump' => $item['dump_attachment']
                                     ]);
                                 ?>
-                                <tr class="py-2">
+                                <tr>
                                     <!-- Task ID & Type -->
-                                    <td>
-                                        <strong class="text-dark d-block fs-8"><?= htmlspecialchars($item['ticket_number']) ?></strong>
-                                        <span class="badge bg-light text-dark border fs-9"><?= htmlspecialchars($item['ticket_type']) ?></span>
+                                    <td class="text-nowrap">
+                                        <strong class="ticket-no-link d-block fs-7"><?= htmlspecialchars($item['ticket_number']) ?></strong>
+                                        <span class="badge bg-light text-dark border fs-8 mt-1"><?= htmlspecialchars($item['ticket_type']) ?></span>
                                     </td>
 
-                                    <!-- Sub-Activity & Hierarchy -->
+                                    <!-- Sub-Activity -->
                                     <td>
-                                        <div class="fw-bold text-dark fs-7 mb-0"><?= htmlspecialchars($item['sub_activity_name']) ?></div>
-                                        <small class="text-muted fs-8 d-block">
-                                            <i class="fas fa-sitemap me-1 text-primary"></i><?= htmlspecialchars($item['activity_name']) ?>
-                                            &bull; <span class="text-secondary"><?= htmlspecialchars($item['division_name']) ?></span>
-                                        </small>
-
-                                        <!-- Attached Files Links -->
+                                        <div class="fw-bold text-dark fs-7 mb-1"><?= htmlspecialchars($item['sub_activity_name']) ?></div>
                                         <?php if (!empty($attachments)): ?>
-                                            <div class="mt-1 d-flex gap-1 flex-wrap">
+                                            <div class="d-flex gap-1 flex-wrap">
                                                 <?php foreach ($attachments as $attLabel => $attPath): ?>
-                                                    <a href="<?= base_url($attPath) ?>" target="_blank" class="badge bg-primary-subtle text-primary border border-primary px-2 py-0 fs-9 text-decoration-none" title="View <?= $attLabel ?> Attachment">
+                                                    <a href="<?= base_url($attPath) ?>" target="_blank" class="badge bg-primary bg-opacity-10 text-primary border border-primary px-2 py-0 fs-8 text-decoration-none" title="View <?= $attLabel ?> Attachment">
                                                         <i class="fas fa-paperclip me-1"></i><?= $attLabel ?> File
                                                     </a>
                                                 <?php endforeach; ?>
@@ -179,94 +174,67 @@
                                         <?php endif; ?>
                                     </td>
 
-                                    <!-- Maker -->
+                                    <!-- Activity & Division -->
                                     <td>
+                                        <div class="fw-bold text-dark fs-7 mb-0"><?= htmlspecialchars($item['activity_name']) ?></div>
+                                        <small class="text-muted fs-8"><i class="fas fa-building me-1"></i><?= htmlspecialchars($item['division_name']) ?></small>
+                                    </td>
+
+                                    <!-- Billing Month -->
+                                    <td class="text-nowrap">
+                                        <span class="badge bg-light text-dark border fw-bold fs-8">
+                                            <i class="fas fa-calendar-alt me-1 text-primary"></i><?= htmlspecialchars($item['billing_month']) ?>
+                                        </span>
+                                    </td>
+
+                                    <!-- Maker -->
+                                    <td class="text-nowrap">
                                         <?php if (!empty($item['maker_name'])): ?>
-                                            <span class="fw-bold text-dark fs-8 d-block"><i class="fas fa-user-edit me-1 text-primary"></i><?= htmlspecialchars($item['maker_name']) ?></span>
+                                            <div class="fw-bold text-dark fs-7"><i class="fas fa-user-edit me-1 text-primary"></i><?= htmlspecialchars($item['maker_name']) ?></div>
+                                            <button type="button" class="btn btn-link text-muted p-0 fs-8 text-decoration-none btn-assign-modal" data-id="<?= $item['id'] ?>" data-maker="<?= $item['maker_id'] ?>" data-checker="<?= $item['checker_id'] ?>" data-bs-toggle="modal" data-bs-target="#assignUserModal">
+                                                <i class="fas fa-edit me-1"></i>Change
+                                            </button>
                                         <?php else: ?>
-                                            <button type="button" class="btn btn-link text-primary p-0 fs-8 fw-bold text-decoration-none btn-assign-modal" data-id="<?= $item['id'] ?>" data-maker="<?= $item['maker_id'] ?>" data-checker="<?= $item['checker_id'] ?>" data-bs-toggle="modal" data-bs-target="#assignUserModal">
-                                                + Assign Maker
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 fs-8 fw-bold btn-assign-modal" data-id="<?= $item['id'] ?>" data-maker="<?= $item['maker_id'] ?>" data-checker="<?= $item['checker_id'] ?>" data-bs-toggle="modal" data-bs-target="#assignUserModal">
+                                                <i class="fas fa-user-plus me-1"></i>Assign Maker
                                             </button>
                                         <?php endif; ?>
                                     </td>
 
                                     <!-- Checker -->
-                                    <td>
+                                    <td class="text-nowrap">
                                         <?php if (!empty($item['checker_name'])): ?>
-                                            <span class="fw-bold text-dark fs-8 d-block"><i class="fas fa-user-check me-1 text-warning"></i><?= htmlspecialchars($item['checker_name']) ?></span>
+                                            <div class="fw-bold text-dark fs-7"><i class="fas fa-user-check me-1 text-warning"></i><?= htmlspecialchars($item['checker_name']) ?></div>
+                                            <button type="button" class="btn btn-link text-muted p-0 fs-8 text-decoration-none btn-assign-modal" data-id="<?= $item['id'] ?>" data-maker="<?= $item['maker_id'] ?>" data-checker="<?= $item['checker_id'] ?>" data-bs-toggle="modal" data-bs-target="#assignUserModal">
+                                                <i class="fas fa-edit me-1"></i>Change
+                                            </button>
                                         <?php else: ?>
-                                            <button type="button" class="btn btn-link text-warning-emphasis p-0 fs-8 fw-bold text-decoration-none btn-assign-modal" data-id="<?= $item['id'] ?>" data-maker="<?= $item['maker_id'] ?>" data-checker="<?= $item['checker_id'] ?>" data-bs-toggle="modal" data-bs-target="#assignUserModal">
-                                                + Assign Checker
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark py-0 px-2 fs-8 fw-bold btn-assign-modal" data-id="<?= $item['id'] ?>" data-maker="<?= $item['maker_id'] ?>" data-checker="<?= $item['checker_id'] ?>" data-bs-toggle="modal" data-bs-target="#assignUserModal">
+                                                <i class="fas fa-user-plus me-1"></i>Assign Checker
                                             </button>
                                         <?php endif; ?>
                                     </td>
 
-                                    <!-- Interactive 12-Stage Pipeline Stepper -->
-                                    <td>
-                                        <div class="d-flex align-items-center gap-1 flex-wrap py-1">
-                                            <?php 
-                                                $pipelineStages = [
-                                                    'Input Received' => '1.Input',
-                                                    'Maker Queue' => '2.Maker',
-                                                    'Checker Queue' => '3.Checker',
-                                                    'Error Log' => '4.Error',
-                                                    'Maker Checker Rework' => '5.Rework',
-                                                    'Delivery' => '6.Delivery',
-                                                    'Acknowledgement' => '7.Ack',
-                                                    'Approval Queue' => '8.Approval',
-                                                    'Uploader Queue' => '9.Uploader',
-                                                    'Dump Sharing' => '10.Dump',
-                                                    'Consol Vendor Tracker' => '11.Vendor',
-                                                    'Closed' => '12.Closed'
-                                                ];
-
-                                                foreach ($pipelineStages as $stgKey => $stgLabel):
-                                                    $isCurrent = ($currStage === $stgKey);
-                                                    $isDone = !empty($stageCheck[$stgKey]);
-                                                    
-                                                    if ($isCurrent) {
-                                                        if ($stgKey === 'Error Log' || $stgKey === 'Maker Checker Rework') {
-                                                            $pillClass = 'bg-danger text-white fw-bold shadow-sm';
-                                                        } else {
-                                                            $pillClass = 'bg-primary text-white fw-bold shadow-sm';
-                                                        }
-                                                    } elseif ($isDone) {
-                                                        $pillClass = 'bg-success text-white';
-                                                    } else {
-                                                        $pillClass = 'bg-light text-muted border';
-                                                    }
-                                            ?>
-                                                <button type="button" 
-                                                        class="btn btn-sm p-0 px-2 py-0 fs-9 border-0 rounded-pill cursor-pointer btn-stage-step <?= $pillClass ?>"
-                                                        title="Click to jump/update to <?= $stgKey ?>"
-                                                        data-id="<?= $item['id'] ?>" 
-                                                        data-number="<?= htmlspecialchars($item['ticket_number']) ?>" 
-                                                        data-subname="<?= htmlspecialchars($item['sub_activity_name']) ?>"
-                                                        data-targetstage="<?= $stgKey ?>"
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#updateStageModal">
-                                                    <?php if ($isDone): ?><i class="fas fa-check me-1 fs-10"></i><?php endif; ?>
-                                                    <?= $stgLabel ?>
-                                                </button>
-                                                <?php if ($stgKey !== 'Closed'): ?><span class="text-muted fs-9 opacity-50">&rsaquo;</span><?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </div>
+                                    <!-- Current Stage -->
+                                    <td class="text-nowrap">
+                                        <span class="badge <?= $badgeStyle ?> px-2 py-1 fw-bold fs-8 d-inline-block">
+                                            <i class="fas fa-flag me-1"></i><?= htmlspecialchars($currStage) ?>
+                                        </span>
                                     </td>
 
-                                    <!-- Quick Action Button -->
-                                    <td class="text-end">
-                                        <div class="d-flex justify-content-end gap-1">
-                                            <button type="button" 
-                                                    class="btn btn-sm <?= $actionInfo['btn'] ?> fs-8 fw-bold py-1 px-2 btn-next-stage"
-                                                    data-id="<?= $item['id'] ?>" 
-                                                    data-number="<?= htmlspecialchars($item['ticket_number']) ?>" 
-                                                    data-subname="<?= htmlspecialchars($item['sub_activity_name']) ?>"
-                                                    data-targetstage="<?= $actionInfo['next'] ?>"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#updateStageModal">
-                                                <i class="fas <?= $actionInfo['icon'] ?> me-1"></i><?= $actionInfo['label'] ?>
-                                            </button>
-                                        </div>
+                                    <!-- Actions -->
+                                    <td class="text-end text-nowrap">
+                                        <button type="button" 
+                                                class="btn btn-sm <?= $actionInfo['btn'] ?> fs-8 fw-bold py-1 px-2 btn-next-stage"
+                                                data-id="<?= $item['id'] ?>" 
+                                                data-number="<?= htmlspecialchars($item['ticket_number']) ?>" 
+                                                data-subname="<?= htmlspecialchars($item['sub_activity_name']) ?>"
+                                                data-targetstage="<?= $actionInfo['next'] ?>"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#updateStageModal"
+                                                title="Advance or update stage">
+                                            <i class="fas <?= $actionInfo['icon'] ?> me-1"></i><?= $actionInfo['label'] ?>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

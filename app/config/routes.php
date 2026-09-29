@@ -33,10 +33,17 @@ $routes = [
 
     'recurring' => 'Recurring/index',
     'recurring/create' => 'Recurring/create',
-    'recurring/trigger' => 'Recurring/trigger_scheduler',
-
     'hold' => 'Hold/index',
     'hold/release' => 'Hold/release',
+
+    'lifecycle' => 'Lifecycle/index',
+    'lifecycle/populate-subtasks' => 'Lifecycle/populate_subtasks',
+    'lifecycle/create' => 'Lifecycle/create',
+    'lifecycle/update-stage' => 'Lifecycle/update_stage',
+    'lifecycle/update_stage' => 'Lifecycle/update_stage',
+    'lifecycle/export-excel' => 'Lifecycle/export_excel',
+    'lifecycle/assign-users' => 'Lifecycle/assign_users',
+    'lifecycle/assign_users' => 'Lifecycle/assign_users',
 
     'tracker/input' => 'Tracker/input',
     'tracker/delivery' => 'Tracker/delivery',

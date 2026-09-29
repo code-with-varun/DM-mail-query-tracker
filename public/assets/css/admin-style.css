@@ -340,21 +340,67 @@ body {
 }
 
 .badge-task-ticket {
-  background-color: rgba(111, 66, 193, 0.15) !important;
-  color: #4a2185 !important;
-  border: 1px solid rgba(111, 66, 193, 0.4) !important;
+  background-color: #f3e8ff !important;
+  color: #6b21a8 !important;
+  border: 1px solid #d8b4fe !important;
   font-weight: 700 !important;
   padding: 0.35em 0.65em !important;
+  border-radius: 6px !important;
   display: inline-block;
 }
 
 .badge-query-ticket {
-  background-color: rgba(13, 202, 240, 0.15) !important;
-  color: #055160 !important;
-  border: 1px solid rgba(13, 202, 240, 0.4) !important;
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
   font-weight: 700 !important;
   padding: 0.35em 0.65em !important;
+  border-radius: 6px !important;
   display: inline-block;
+}
+
+/* High Contrast Table Badges */
+.badge.bg-primary.bg-opacity-10,
+.badge.bg-primary.bg-opacity-15 {
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+}
+
+.badge.bg-info.bg-opacity-10,
+.badge.bg-info.bg-opacity-15 {
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #7dd3fc !important;
+}
+
+.badge.bg-warning.bg-opacity-10,
+.badge.bg-warning.bg-opacity-15,
+.badge.bg-warning.bg-opacity-20 {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+}
+
+.badge.bg-danger.bg-opacity-10,
+.badge.bg-danger.bg-opacity-15 {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+}
+
+.badge.bg-success.bg-opacity-10,
+.badge.bg-success.bg-opacity-15 {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+  border-color: #86efac !important;
+}
+
+.badge.bg-secondary.bg-opacity-10,
+.badge.bg-secondary.bg-opacity-15 {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* DataTables & Responsive Table Wrappers */
@@ -400,15 +446,15 @@ body {
 }
 
 .ticket-no-link {
-  font-weight: 700;
-  color: var(--mqt-primary);
+  font-weight: 700 !important;
+  color: #0d6efd !important;
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.15s ease;
 }
 
 .ticket-no-link:hover {
-  color: var(--mqt-primary-hover);
+  color: #0a58ca !important;
   text-decoration: underline;
 }
 

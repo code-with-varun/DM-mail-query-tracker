@@ -70,8 +70,8 @@ function get_status_badge(string $status): string {
 }
 
 function get_category_badge(?string $categoryName): string {
-    if (empty($categoryName) || $categoryName === '-') {
-        return '<span class="text-muted fs-8">-</span>';
+    if (empty($categoryName) || trim($categoryName) === '' || $categoryName === '-') {
+        return '<span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-20 fw-bold fs-8">-</span>';
     }
     $catLower = strtolower($categoryName);
     if (str_contains($catLower, 'hold')) {
@@ -81,13 +81,13 @@ function get_category_badge(?string $categoryName): string {
     } elseif (str_contains($catLower, 'query')) {
         return '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary fw-bold fs-8"><i class="fas fa-question-circle me-1"></i>' . htmlspecialchars($categoryName) . '</span>';
     } elseif (str_contains($catLower, 'rerun')) {
-        return '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-redo me-1 text-warning"></i>' . htmlspecialchars($categoryName) . '</span>';
+        return '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-redo me-1 text-dark"></i>' . htmlspecialchars($categoryName) . '</span>';
     } elseif (str_contains($catLower, 'grid')) {
         return '<span class="badge bg-purple bg-opacity-10 text-purple border border-purple fw-bold fs-8"><i class="fas fa-th me-1"></i>' . htmlspecialchars($categoryName) . '</span>';
     } elseif (str_contains($catLower, 'checklist')) {
         return '<span class="badge bg-teal bg-opacity-10 text-teal border border-teal fw-bold fs-8"><i class="fas fa-tasks me-1"></i>' . htmlspecialchars($categoryName) . '</span>';
     } else {
-        return '<span class="badge bg-light text-dark border fw-bold fs-8">' . htmlspecialchars($categoryName) . '</span>';
+        return '<span class="badge bg-light text-dark border fw-bold fs-8"><i class="fas fa-tag me-1 text-secondary"></i>' . htmlspecialchars($categoryName) . '</span>';
     }
 }
 

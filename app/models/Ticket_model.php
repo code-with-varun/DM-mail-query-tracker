@@ -70,11 +70,13 @@ class Ticket_model extends Model {
 
     public function getTickets(array $filters = [], ?int $userId = null, ?int $roleId = null): array {
         $sql = "SELECT t.*, 
+                       tc.category_name,
                        a.activity_name, sa.sub_activity_name,
                        u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
                        u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code,
                        u_creator.full_name as creator_name
                 FROM tickets t
+                LEFT JOIN ticket_categories tc ON t.category_id = tc.id
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
@@ -541,10 +543,12 @@ class Ticket_model extends Model {
 
     public function getMyBucketTickets(int $userId, array $filters = []): array {
         $sql = "SELECT t.*, 
+                       tc.category_name,
                        a.activity_name, sa.sub_activity_name,
                        u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
                        u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code
                 FROM tickets t
+                LEFT JOIN ticket_categories tc ON t.category_id = tc.id
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
@@ -570,10 +574,12 @@ class Ticket_model extends Model {
 
     public function getRosterTickets(string $targetDate, ?int $userId = null, ?int $roleId = null): array {
         $sql = "SELECT t.*, 
+                       tc.category_name,
                        a.activity_name, sa.sub_activity_name,
                        u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
                        u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code
                 FROM tickets t
+                LEFT JOIN ticket_categories tc ON t.category_id = tc.id
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id

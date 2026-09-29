@@ -85,8 +85,11 @@ class Tickets extends Controller {
                 $initialStatus = 'Released';
             }
 
+            $billingMonth = !empty($_POST['billing_month']) ? sanitize($_POST['billing_month']) : date('Y-m');
+
             $ticketData = [
                 'ticket_type' => sanitize($_POST['ticket_type'] ?? 'Query Ticket'),
+                'billing_month' => $billingMonth,
                 'received_datetime' => date('Y-m-d H:i:s', strtotime($receivedDatetime)),
                 'from_address' => $fromAddress,
                 'subject' => $subject,

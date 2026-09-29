@@ -1,66 +1,66 @@
-<div class="container-fluid px-4 py-4">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="container-fluid px-4 py-3">
+    <!-- Compact Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fas fa-plus-circle text-primary me-2"></i>Create New Ticket</h4>
-            <p class="text-muted fs-7 mb-0">DM-Ispark (Business Operations & Performance Management System) &mdash; Log query email, preserve original mail files, & compute SLA TAT</p>
+            <h4 class="fw-bold mb-0 text-dark fs-5"><i class="fas fa-plus-circle text-primary me-2"></i>Create New Ticket</h4>
+            <small class="text-muted fs-8">Log query email, preserve original mail files, & compute SLA TAT</small>
         </div>
-        <a href="<?= base_url('tickets') ?>" class="btn btn-outline-secondary btn-sm fw-bold">
+        <a href="<?= base_url('tickets') ?>" class="btn btn-outline-secondary btn-sm fw-bold fs-8">
             <i class="fas fa-arrow-left me-1"></i>Back to Tickets List
         </a>
     </div>
 
-    <!-- Outlook Mail Auto-Fill & File Preserver Card -->
-    <div class="card border-0 shadow-sm mb-4 bg-light border-start border-4 border-primary">
-        <div class="card-body p-3">
-            <ul class="nav nav-pills nav-fill mb-3" id="outlookTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold fs-7 py-2" id="drag-drop-tab" data-bs-toggle="pill" data-bs-target="#dragDropTabContent" type="button" role="tab">
-                        <i class="fas fa-file-envelope me-2 text-primary"></i>1. Drag & Drop Outlook Email File (.msg, .eml, .html, .txt)
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold fs-7 py-2" id="copy-paste-tab" data-bs-toggle="pill" data-bs-target="#copyPasteTabContent" type="button" role="tab">
-                        <i class="fab fa-microsoft me-2 text-primary"></i>2. Copy-Paste Outlook List Row(s)
-                    </button>
-                </li>
-            </ul>
+    <!-- Outlook Mail Quick Auto-Fill & Drag-Drop Card -->
+    <div class="card border-0 shadow-sm mb-3 bg-light border-start border-3 border-primary">
+        <div class="card-body p-2 px-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <ul class="nav nav-pills nav-sm gap-2" id="outlookTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold fs-8 py-1 px-3 rounded-pill" id="drag-drop-tab" data-bs-toggle="pill" data-bs-target="#dragDropTabContent" type="button" role="tab">
+                            <i class="fas fa-file-envelope me-1 text-primary"></i>1. Drag & Drop Outlook File (.msg, .eml, .html, .txt)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold fs-8 py-1 px-3 rounded-pill" id="copy-paste-tab" data-bs-toggle="pill" data-bs-target="#copyPasteTabContent" type="button" role="tab">
+                            <i class="fab fa-microsoft me-1 text-primary"></i>2. Copy-Paste Outlook Row(s)
+                        </button>
+                    </li>
+                </ul>
+                <small class="text-muted fs-8"><i class="fas fa-magic text-primary me-1"></i>Auto-fills form details</small>
+            </div>
 
             <div class="tab-content" id="outlookTabContent">
                 <!-- Tab 1: Drag & Drop Outlook File -->
                 <div class="tab-pane fade show active" id="dragDropTabContent" role="tabpanel">
-                    <div id="outlookDropzone" class="border border-2 border-dashed border-primary rounded p-4 text-center bg-white cursor-pointer" onclick="document.getElementById('ticket_attachment_input').click();">
-                        <i class="fas fa-paperclip fs-1 text-primary d-block mb-2"></i>
-                        <strong class="d-block text-dark fs-6">Drag & Drop Original Outlook Email File Here</strong>
-                        <span class="text-muted fs-8">Supports <code>.msg</code>, <code>.eml</code>, <code>.html</code>, <code>.txt</code> &mdash; Auto-fills details & attaches original mail file to ticket</span>
-                        <div id="selectedFileDisplay" class="mt-2 fw-bold text-success fs-7"></div>
+                    <div id="outlookDropzone" class="border border-2 border-dashed border-primary rounded-3 p-2 text-center bg-white cursor-pointer" onclick="document.getElementById('ticket_attachment_input').click();">
+                        <span class="d-block text-dark fw-bold fs-7 mb-0">
+                            <i class="fas fa-paperclip text-primary me-2"></i>Drag & Drop Original Outlook Email File Here (or Click to Browse)
+                        </span>
+                        <small class="text-muted fs-8">Supports <code>.msg</code>, <code>.eml</code>, <code>.html</code>, <code>.txt</code></small>
+                        <div id="selectedFileDisplay" class="fw-bold text-success fs-8 mt-1"></div>
                     </div>
                 </div>
 
                 <!-- Tab 2: Copy-Paste Text Auto-Fill -->
                 <div class="tab-pane fade" id="copyPasteTabContent" role="tabpanel">
-                    <p class="text-muted fs-8 mb-2">
-                        Copy mail row(s) directly from Outlook list view (`From`, `Subject`, `Received`) and paste into the box below.
-                    </p>
-                    <textarea id="outlook_paste_box" class="form-control fs-7 border-primary border-opacity-25" rows="3" placeholder="Paste Outlook copied mail row(s) here (e.g. From	Subject	Received	Size)..."></textarea>
+                    <textarea id="outlook_paste_box" class="form-control form-control-sm fs-8 border-primary border-opacity-25 mb-1" rows="2" placeholder="Paste Outlook copied mail row(s) here (e.g. From	Subject	Received)..."></textarea>
                     
-                    <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div id="outlook_parse_status" class="fs-8 fw-bold"></div>
                         <div class="d-flex gap-2">
-                            <button type="button" id="btn_clear_outlook" class="btn btn-outline-secondary btn-sm fs-8" style="display:none;">
+                            <button type="button" id="btn_clear_outlook" class="btn btn-outline-secondary btn-sm fs-8 py-0" style="display:none;">
                                 <i class="fas fa-times me-1"></i>Clear
                             </button>
-                            <button type="button" id="btn_parse_outlook" class="btn btn-primary btn-sm fs-8 fw-bold">
+                            <button type="button" id="btn_parse_outlook" class="btn btn-primary btn-sm fs-8 fw-bold py-0">
                                 <i class="fas fa-magic me-1"></i>Auto-Fill Form
                             </button>
                         </div>
                     </div>
 
                     <!-- Parsed Mails Preview List -->
-                    <div id="outlook_mails_preview" class="mt-3" style="display:none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div id="outlook_mails_preview" class="mt-2" style="display:none;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
                             <small class="fw-bold text-dark fs-8"><i class="fas fa-list me-1 text-primary"></i>Parsed Mails (<span id="parsed_count">0</span> detected):</small>
-                            <small class="text-muted fs-8">Click "Populate Form" to fill any mail details into the form below</small>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover bg-white border rounded mb-0 align-middle">
@@ -69,7 +69,7 @@
                                         <th>From</th>
                                         <th>Subject</th>
                                         <th>Received Time</th>
-                                        <th class="text-end" style="width: 140px;">Action</th>
+                                        <th class="text-end" style="width: 120px;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="parsed_mails_body" class="fs-8"></tbody>
@@ -83,74 +83,51 @@
 
     <!-- Main Ticket Creation Form Card -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3">
-            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-ticket-alt text-primary me-2"></i>Ticket Log & SLA Configuration</h6>
+        <div class="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark fs-7"><i class="fas fa-ticket-alt text-primary me-2"></i>Ticket Information & SLA Details</h6>
+            <span class="badge bg-light text-muted border fs-8">* Required Fields</span>
         </div>
-        <div class="card-body p-4">
+
+        <div class="card-body p-3">
             <form action="<?= base_url('tickets/create') ?>" method="POST" enctype="multipart/form-data" id="ticketCreateForm">
                 <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                 
-                <!-- Section 1: Core Details -->
-                <div class="row g-3 mb-4">
+                <!-- Compact Row 1: Core Identifiers -->
+                <div class="row g-2 mb-3">
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold text-dark">Ticket Type <span class="text-danger">*</span></label>
-                        <select name="ticket_type" class="form-select fw-bold" required>
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Ticket Type <span class="text-danger">*</span></label>
+                        <select name="ticket_type" class="form-select form-select-sm fw-bold" required>
                             <option value="Query Ticket" selected>Query Ticket</option>
                             <option value="Task Ticket">Task Ticket</option>
                         </select>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold text-dark">Received Date & Time <span class="text-danger">*</span></label>
-                        <input type="datetime-local" name="received_datetime" id="received_datetime" class="form-control" value="<?= date('Y-m-d\TH:i') ?>" required>
+                    <div class="col-md-2 col-lg-2">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1"><i class="fas fa-calendar-alt text-primary me-1"></i>Billing Month <span class="text-danger">*</span></label>
+                        <input type="month" name="billing_month" id="billing_month" class="form-control form-control-sm fw-bold" value="<?= date('Y-m') ?>" required>
                     </div>
 
+                    <div class="col-md-3">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Received Date & Time <span class="text-danger">*</span></label>
+                        <input type="datetime-local" name="received_datetime" id="received_datetime" class="form-control form-control-sm" value="<?= date('Y-m-d\TH:i') ?>" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">From Address / Sender <span class="text-danger">*</span></label>
+                        <input type="text" name="from_address" id="from_address" class="form-control form-control-sm" placeholder="client@agency.com or Sender Name" required>
+                    </div>
+                </div>
+
+                <!-- Compact Row 2: Subject, Category & Priority -->
+                <div class="row g-2 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fs-7 fw-bold text-dark">From Address / Sender <span class="text-danger">*</span></label>
-                        <input type="text" name="from_address" id="from_address" class="form-control" placeholder="client@agency.com or Sender Name" required>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label fs-7 fw-bold text-dark">Email Subject / Title <span class="text-danger">*</span></label>
-                    <input type="text" name="subject" id="subject" class="form-control fw-bold" placeholder="Enter query email subject line" required>
-                </div>
-
-                <!-- Section 2: Operational Hierarchy (Division -> Activity -> Sub-Activity) -->
-                <div class="row g-3 mb-4 p-3 bg-light rounded border">
-                    <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold text-dark">Division</label>
-                        <select name="division_id" id="division_id" class="form-select" onchange="onFormDivisionChange(this.value)">
-                            <option value="">Select Division</option>
-                            <?php foreach ($divisions as $d): ?>
-                                <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Email Subject / Title <span class="text-danger">*</span></label>
+                        <input type="text" name="subject" id="subject" class="form-control form-control-sm fw-bold" placeholder="Enter query email subject line" required>
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold text-dark">Activity <span class="text-danger">*</span></label>
-                        <select name="activity_id" id="activity_id" class="form-select" onchange="onFormActivityChange(this.value)" required>
-                            <option value="">Select Parent Activity</option>
-                            <?php foreach ($activities as $act): ?>
-                                <option value="<?= $act['id'] ?>"><?= htmlspecialchars($act['activity_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label fs-7 fw-bold text-dark">Sub Activity <span class="text-danger">*</span></label>
-                        <select name="sub_activity_id" id="sub_activity_id" class="form-select" onchange="onFormSubActivityChange(this.value)" required>
-                            <option value="">Select Activity First</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Section 3: Allocation, Priority & SLA -->
-                <div class="row g-3 mb-4">
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold text-dark">Category</label>
-                        <select name="category_id" id="category_id" class="form-select">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Category</label>
+                        <select name="category_id" id="category_id" class="form-select form-select-sm">
                             <option value="">General Query / Unclassified</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
@@ -159,8 +136,51 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold text-dark">Allocated To (Maker Employee)</label>
-                        <select name="allocated_to" id="allocated_to" class="form-select">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Priority</label>
+                        <select name="priority" class="form-select form-select-sm">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Compact Row 3: Operational Hierarchy (Division -> Activity -> Sub-Activity) -->
+                <div class="row g-2 mb-3 p-2 bg-light rounded border border-light-subtle">
+                    <div class="col-md-4">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Division</label>
+                        <select name="division_id" id="division_id" class="form-select form-select-sm" onchange="onFormDivisionChange(this.value)">
+                            <option value="">Select Division</option>
+                            <?php foreach ($divisions as $d): ?>
+                                <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['division_name']) ?> (<?= $d['code'] ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Activity <span class="text-danger">*</span></label>
+                        <select name="activity_id" id="activity_id" class="form-select form-select-sm" onchange="onFormActivityChange(this.value)" required>
+                            <option value="">Select Parent Activity</option>
+                            <?php foreach ($activities as $act): ?>
+                                <option value="<?= $act['id'] ?>"><?= htmlspecialchars($act['activity_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Sub Activity <span class="text-danger">*</span></label>
+                        <select name="sub_activity_id" id="sub_activity_id" class="form-select form-select-sm" onchange="onFormSubActivityChange(this.value)" required>
+                            <option value="">Select Activity First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Compact Row 4: Allocation, Metadata & TAT -->
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Allocated To (Maker Employee)</label>
+                        <select name="allocated_to" id="allocated_to" class="form-select form-select-sm">
                             <option value="">Unassigned (Open Pool)</option>
                             <?php foreach ($users as $u): ?>
                                 <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['full_name']) ?> (<?= $u['user_code'] ?>)</option>
@@ -169,50 +189,38 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold text-dark">Priority</label>
-                        <select name="priority" class="form-select">
-                            <option value="Low">Low</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="High">High</option>
-                            <option value="Critical">Critical</option>
-                        </select>
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Agency Code</label>
+                        <input type="text" name="agency_code" class="form-control form-control-sm" placeholder="e.g. AGC-9940">
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label fs-7 fw-bold text-dark">TAT Target Date & Time</label>
-                        <input type="datetime-local" name="tat_datetime" id="tat_datetime" class="form-control fw-bold" placeholder="Auto calculated from SLA">
-                        <small class="text-muted fs-8">Auto-calculated based on Sub-Activity SLA</small>
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Manager Name</label>
+                        <input type="text" name="manager_name" class="form-control form-control-sm" placeholder="Reporting Manager Name">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">TAT Target Date & Time</label>
+                        <input type="datetime-local" name="tat_datetime" id="tat_datetime" class="form-control form-control-sm fw-bold" placeholder="Auto SLA">
                     </div>
                 </div>
 
-                <!-- Section 4: Client & Agency Metadata -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label fs-7 fw-bold text-dark">Agency Code</label>
-                        <input type="text" name="agency_code" class="form-control" placeholder="e.g. AGC-9940">
+                <!-- Compact Row 5: Remarks & File Attachment -->
+                <div class="row g-2 mb-3">
+                    <div class="col-md-7">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Remarks / Description</label>
+                        <textarea name="remarks" class="form-control form-control-sm" rows="2" placeholder="Enter query details or initial instructions..."></textarea>
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label fs-7 fw-bold text-dark">Manager Name</label>
-                        <input type="text" name="manager_name" class="form-control" placeholder="Reporting Manager Name">
+                    <div class="col-md-5">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Original Mail Attachment / File</label>
+                        <input type="file" name="attachment" id="ticket_attachment_input" class="form-control form-control-sm" onchange="onFileInputChange(this)">
+                        <small class="text-muted fs-8 d-block mt-1">Preserves original Outlook <code>.msg</code>, <code>.eml</code>, <code>.html</code> file on ticket record</small>
                     </div>
                 </div>
 
-                <!-- Section 5: Remarks & File Attachment -->
-                <div class="mb-4">
-                    <label class="form-label fs-7 fw-bold text-dark">Remarks / Description</label>
-                    <textarea name="remarks" class="form-control" rows="3" placeholder="Enter query details, initial notes, or instructions..."></textarea>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label fs-7 fw-bold text-dark">Original Mail Attachment / Preserved File</label>
-                    <input type="file" name="attachment" id="ticket_attachment_input" class="form-control" onchange="onFileInputChange(this)">
-                    <small class="text-muted fs-8">Preserves original Outlook <code>.msg</code>, <code>.eml</code>, <code>.html</code>, or supporting document on ticket record</small>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="<?= base_url('tickets') ?>" class="btn btn-light border px-4 fw-bold">Cancel</a>
-                    <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fas fa-check-circle me-2"></i>Create Ticket</button>
+                <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                    <a href="<?= base_url('tickets') ?>" class="btn btn-light btn-sm border px-3 fw-bold">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold"><i class="fas fa-check-circle me-1"></i>Create Ticket</button>
                 </div>
             </form>
         </div>
@@ -355,7 +363,7 @@ function onFileInputChange(input) {
     if (input.files && input.files[0]) {
         var file = input.files[0];
         if (display) {
-            display.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected: <strong>' + escapeHtml(file.name) + '</strong> (' + (file.size / 1024).toFixed(1) + ' KB) &mdash; Original mail file linked!';
+            display.innerHTML = '<i class="fas fa-check-circle me-1"></i>Selected: <strong>' + escapeHtml(file.name) + '</strong> (' + (file.size / 1024).toFixed(1) + ' KB)';
         }
         
         if (subjectInput && subjectInput.value.trim() === '') {

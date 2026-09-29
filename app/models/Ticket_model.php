@@ -4,6 +4,16 @@
  */
 
 class Ticket_model extends Model {
+
+    public function __construct() {
+        parent::__construct();
+        try {
+            $this->db->exec("ALTER TABLE tickets ADD COLUMN billing_month VARCHAR(20) NULL");
+        } catch (Exception $e) {
+            // Column already exists
+        }
+    }
+
     public function generateTicketNumber(): string {
         $year = date('Y');
         $prefix = "MQT-{$year}-";

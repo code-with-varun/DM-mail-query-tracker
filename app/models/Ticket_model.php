@@ -642,7 +642,7 @@ class Ticket_model extends Model {
                 LEFT JOIN users u_chk ON t.checker_id = u_chk.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
                 LEFT JOIN users u_replied ON t.replied_by = u_replied.id
-                WHERE (t.ticket_type = 'Query Ticket' OR t.ticket_type = 'Query' OR (t.is_task = 0 AND (t.ticket_type IS NULL OR t.ticket_type != 'Internal Task')))";
+                WHERE (t.ticket_type = 'Query Ticket' OR t.ticket_type = 'Query' OR t.ticket_type IS NULL OR t.ticket_type NOT IN ('Task Ticket', 'Internal Task', 'File Preparation'))";
         $params = [];
 
         if ($roleId == 3 && $userId) {

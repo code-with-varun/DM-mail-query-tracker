@@ -48,6 +48,9 @@
             </a>
 
             <div class="sidebar-heading">TRACKERS</div>
+            <a href="<?= base_url('lifecycle') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'lifecycle')) ? 'active' : '' ?>" title="Process Lifecycle Tracker">
+                <i class="fas fa-project-diagram"></i> <span>Lifecycle Tracker</span>
+            </a>
             <a href="<?= base_url('contacts') ?>" class="nav-link <?= (str_contains($_SERVER['REQUEST_URI'], 'contacts')) ? 'active' : '' ?>" title="Contact Manager">
                 <i class="fas fa-address-book"></i> <span>Contact Manager</span>
             </a>

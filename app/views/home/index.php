@@ -154,6 +154,20 @@
 
         <div class="row g-3">
             <div class="col-md-6 col-lg-3 cpanel-card-wrapper">
+                <a href="<?= base_url('lifecycle') ?>" class="card border-0 shadow-sm h-100 text-decoration-none hover-lift rounded-3 border-start border-4 border-primary">
+                    <div class="card-body p-3 d-flex align-items-center gap-3">
+                        <div class="icon-box bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                            <i class="fas fa-project-diagram fs-5"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h6 class="fw-bold text-dark mb-0 fs-7">Process Lifecycle Tracker</h6>
+                            <small class="text-muted fs-8 d-block">12-stage ticket lifecycle & timestamps</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-3 cpanel-card-wrapper">
                 <a href="<?= base_url('contacts') ?>" class="card border-0 shadow-sm h-100 text-decoration-none hover-lift rounded-3">
                     <div class="card-body p-3 d-flex align-items-center gap-3">
                         <div class="icon-box bg-info-subtle text-info-emphasis rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">

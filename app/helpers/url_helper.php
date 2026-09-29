@@ -16,6 +16,11 @@ function redirect(string $path): void {
     exit;
 }
 
-function sanitize(string $data): string {
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+function sanitize(?string $data): string {
+    if ($data === null) {
+        return '';
+    }
+    $clean = str_replace(chr(0), '', $data);
+    $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return trim($clean);
 }

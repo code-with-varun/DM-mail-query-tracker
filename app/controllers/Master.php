@@ -52,19 +52,14 @@ class Master extends Controller {
                 $tat = (int)($_POST['default_tat_hours'] ?? 24);
                 $divId = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
                 $defaultUserId = !empty($_POST['default_user_id']) ? (int)$_POST['default_user_id'] : null;
+                $defaultCheckerId = !empty($_POST['default_checker_id']) ? (int)$_POST['default_checker_id'] : null;
 
                 if ($actId && !empty($subName)) {
                     if ($id > 0) {
-                        $activityModel->update('sub_activities', [
-                            'activity_id' => $actId,
-                            'division_id' => $divId,
-                            'sub_activity_name' => $subName,
-                            'default_tat_hours' => $tat,
-                            'default_user_id' => $defaultUserId
-                        ], "id = ?", [$id]);
+                        $activityModel->updateSubActivity($id, $actId, $subName, $tat, $divId, $defaultUserId, null, $defaultCheckerId);
                         Session::setFlash('success', 'Sub-activity updated successfully.');
                     } else {
-                        $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId);
+                        $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId, null, $defaultCheckerId);
                         Session::setFlash('success', 'Sub-activity created successfully.');
                     }
                 }
@@ -156,14 +151,15 @@ class Master extends Controller {
             $tat = (int)($_POST['default_tat_hours'] ?? 24);
             $divId = !empty($_POST['division_id']) ? (int)$_POST['division_id'] : null;
             $defaultUserId = !empty($_POST['default_user_id']) ? (int)$_POST['default_user_id'] : null;
+            $defaultCheckerId = !empty($_POST['default_checker_id']) ? (int)$_POST['default_checker_id'] : null;
             $defaultOccurrenceDay = !empty($_POST['default_occurrence_day']) ? (int)$_POST['default_occurrence_day'] : null;
 
             if ($actId && !empty($subName)) {
                 if ($id > 0) {
-                    $activityModel->updateSubActivity($id, $actId, $subName, $tat, $divId, $defaultUserId, $defaultOccurrenceDay);
+                    $activityModel->updateSubActivity($id, $actId, $subName, $tat, $divId, $defaultUserId, $defaultOccurrenceDay, $defaultCheckerId);
                     Session::setFlash('success', 'Sub-activity updated successfully.');
                 } else {
-                    $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId, $defaultOccurrenceDay);
+                    $activityModel->createSubActivity($actId, $subName, $tat, $divId, $defaultUserId, $defaultOccurrenceDay, $defaultCheckerId);
                     Session::setFlash('success', 'Sub-activity created successfully.');
                 }
             }
@@ -262,10 +258,17 @@ class Master extends Controller {
         $output = fopen('php://output', 'w');
         fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-        fputcsv($output, ['Sub Activity ID', 'Sub Activity Name', 'Parent Activity Name', 'Default SLA TAT (Hours)']);
-        $subActs = $this->model('Activity_model')->fetchAll("SELECT sa.*, a.activity_name FROM sub_activities sa JOIN activities a ON sa.activity_id = a.id ORDER BY a.activity_name, sa.sub_activity_name");
+        fputcsv($output, ['Sub Activity ID', 'Sub Activity Name', 'Parent Activity Name', 'Default SLA TAT (Hours)', 'Default Maker Name', 'Default Checker Name']);
+        $subActs = $this->model('Activity_model')->getAllSubActivitiesWithHierarchy();
         foreach ($subActs as $sa) {
-            fputcsv($output, [$sa['id'], $sa['sub_activity_name'], $sa['activity_name'], $sa['default_tat_hours']]);
+            fputcsv($output, [
+                $sa['id'], 
+                $sa['sub_activity_name'], 
+                $sa['activity_name'], 
+                $sa['default_tat_hours'],
+                $sa['default_user_name'] ?? 'Unassigned',
+                $sa['default_checker_name'] ?? 'Unassigned'
+            ]);
         }
         fclose($output);
         exit();
@@ -312,8 +315,10 @@ class Master extends Controller {
             'Parent Activity Name',
             'Division Code',
             'Division Name',
-            'Default Employee Code',
-            'Default Employee Name',
+            'Default Maker Code',
+            'Default Maker Name',
+            'Default Checker Code',
+            'Default Checker Name',
             'Default SLA TAT (Hours)'
         ]);
 
@@ -326,6 +331,8 @@ class Master extends Controller {
                 $sa['division_name'] ?? '',
                 $sa['default_user_code'] ?? '',
                 $sa['default_user_name'] ?? '',
+                $sa['default_checker_code'] ?? '',
+                $sa['default_checker_name'] ?? '',
                 $sa['default_tat_hours']
             ]);
         }

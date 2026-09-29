@@ -27,7 +27,8 @@
                             <th>Division</th>
                             <th>Default SLA TAT</th>
                             <th>Occurrence Day</th>
-                            <th>Default Mapped Employee</th>
+                            <th>Default Maker</th>
+                            <th>Default Checker</th>
                             <th style="width: 90px;" class="text-end text-nowrap">Actions</th>
                         </tr>
                     </thead>
@@ -54,7 +55,14 @@
                             </td>
                             <td class="text-nowrap">
                                 <?php if (!empty($sa['default_user_name'])): ?>
-                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-check me-1 text-success"></i><?= htmlspecialchars($sa['default_user_name']) ?> (<?= $sa['default_user_code'] ?>)</span>
+                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-edit me-1 text-primary"></i><?= htmlspecialchars($sa['default_user_name']) ?> (<?= $sa['default_user_code'] ?>)</span>
+                                <?php else: ?>
+                                    <span class="text-muted fs-8">Unassigned</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-nowrap">
+                                <?php if (!empty($sa['default_checker_name'])): ?>
+                                    <span class="fw-bold fs-8 text-dark"><i class="fas fa-user-check me-1 text-success"></i><?= htmlspecialchars($sa['default_checker_name']) ?> (<?= $sa['default_checker_code'] ?>)</span>
                                 <?php else: ?>
                                     <span class="text-muted fs-8">Unassigned</span>
                                 <?php endif; ?>
@@ -69,6 +77,7 @@
                                             data-tat="<?= $sa['default_tat_hours'] ?>"
                                             data-occurrence_day="<?= $sa['default_occurrence_day'] ?? '' ?>"
                                             data-user_id="<?= $sa['default_user_id'] ?? '' ?>"
+                                            data-checker_id="<?= $sa['default_checker_id'] ?? '' ?>"
                                             title="Edit Sub-Activity">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -91,7 +100,7 @@
 
 <!-- Modal: Add / Edit Sub-Activity -->
 <div class="modal fade" id="subActivityModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title fw-bold" id="subModalTitle"><i class="fas fa-plus-circle me-2"></i>New Sub-Activity</h5>
@@ -142,15 +151,27 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">Default Mapped Employee</label>
-                        <select name="default_user_id" id="sub_user_id" class="form-select">
-                            <option value="">Unassigned (Open Pool)</option>
-                            <?php foreach ($employees as $emp): ?>
-                                <option value="<?= $emp['id'] ?>"><?= htmlspecialchars($emp['full_name']) ?> (<?= $emp['user_code'] ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                        <small class="text-muted fs-8 d-block mt-1">When creating a ticket under this sub-activity, this employee will be automatically allocated by default.</small>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-dark">Default Maker Employee</label>
+                            <select name="default_user_id" id="sub_user_id" class="form-select">
+                                <option value="">Unassigned (Open Pool)</option>
+                                <?php foreach ($employees as $emp): ?>
+                                    <option value="<?= $emp['id'] ?>"><?= htmlspecialchars($emp['full_name']) ?> (<?= $emp['user_code'] ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted fs-8 d-block mt-1">Default Maker for task allocation.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-dark">Default Checker Employee</label>
+                            <select name="default_checker_id" id="sub_checker_id" class="form-select">
+                                <option value="">Unassigned (Open Pool)</option>
+                                <?php foreach ($employees as $emp): ?>
+                                    <option value="<?= $emp['id'] ?>"><?= htmlspecialchars($emp['full_name']) ?> (<?= $emp['user_code'] ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted fs-8 d-block mt-1">Default Checker for verification/review.</small>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -204,7 +225,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             document.getElementById('sub_tat').value = this.dataset.tat;
             document.getElementById('sub_occurrence_day').value = this.dataset.occurrence_day;
-            document.getElementById('sub_user_id').value = this.dataset.user_id;
+            document.getElementById('sub_user_id').value = this.dataset.user_id || '';
+            document.getElementById('sub_checker_id').value = this.dataset.checker_id || '';
 
             var modal = new bootstrap.Modal(document.getElementById('subActivityModal'));
             modal.show();

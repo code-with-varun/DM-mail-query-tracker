@@ -181,7 +181,7 @@ class Lifecycle_model extends Model {
      * Copy-paste list of active subtasks & Maker-Checker details into Lifecycle Tracker for a selected billing month
      */
     public function populateFromActiveSubtasks(string $billingMonth, int $createdBy): int {
-        $sql = "SELECT sa.id as sub_activity_id, sa.sub_activity_name, sa.default_user_id,
+        $sql = "SELECT sa.id as sub_activity_id, sa.sub_activity_name, sa.default_user_id, sa.default_checker_id,
                        a.id as activity_id, a.activity_name,
                        d.id as division_id, d.division_name
                 FROM sub_activities sa
@@ -203,7 +203,7 @@ class Lifecycle_model extends Model {
             $checker = $this->fetchOne("SELECT user_id FROM user_sub_activities WHERE sub_activity_id = ? AND role_type IN ('Checker', 'Both') LIMIT 1", [$subId]);
 
             $makerId = $maker['user_id'] ?? ($sa['default_user_id'] ?? null);
-            $checkerId = $checker['user_id'] ?? null;
+            $checkerId = $checker['user_id'] ?? ($sa['default_checker_id'] ?? null);
 
             $itemNumber = $this->generateItemNumber('LFC');
 

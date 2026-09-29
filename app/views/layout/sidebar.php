@@ -151,10 +151,12 @@
                 <i class="fas fa-chart-bar"></i> <span>Reports & Export</span>
             </a>
 
+        </div>
     </div>
 </div>
 <!-- /#sidebar-wrapper -->
 
 <!-- Page Content Wrapper -->
 <div id="page-content-wrapper">
+
 

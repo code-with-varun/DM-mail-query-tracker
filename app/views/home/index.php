@@ -18,7 +18,7 @@
                     <!-- Search Filter Box -->
                     <div class="position-relative" style="max-width: 500px;">
                         <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
-                        <input type="text" id="cpanelSearch" class="form-control form-control-lg ps-5 rounded-pill border-0 shadow-sm fs-7" placeholder="Type to filter menus (e.g., Bucket, Training, Roster, Error)...">
+                        <input type="text" id="cpanelSearch" class="form-control form-control-lg ps-5 rounded-pill border-0 shadow-sm fs-7" placeholder="Type to filter menus (e.g. Bucket, Training, Roster, Error)...">
                     </div>
                 </div>
 
@@ -30,7 +30,7 @@
                             </div>
                             <div>
                                 <strong class="fs-6 text-white d-block">Quick Access Hub</strong>
-                                <small class="text-white-50 fs-8">Direct shortcuts to all system modules</small>
+                                <small class="text-white-50 fs-8">Direct shortcuts to all modules</small>
                             </div>
                         </div>
                     </div>
@@ -54,7 +54,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Dashboard</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Analytics, ticket metrics & SLA radar</small>
+                            <small class="text-muted fs-8 d-block">Analytics & SLA metrics</small>
                         </div>
                     </div>
                 </a>
@@ -68,7 +68,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">My Bucket</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Your active allocated tickets & responses</small>
+                            <small class="text-muted fs-8 d-block">Active assigned tickets</small>
                         </div>
                     </div>
                 </a>
@@ -82,7 +82,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Daily Roster & Planner</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Shifts, daily activity planning & attendance</small>
+                            <small class="text-muted fs-8 d-block">Shifts & daily task planning</small>
                         </div>
                     </div>
                 </a>
@@ -96,7 +96,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Mail Tickets</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Global incoming email & query tickets</small>
+                            <small class="text-muted fs-8 d-block">All email query tickets</small>
                         </div>
                     </div>
                 </a>
@@ -110,7 +110,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Create Mail Ticket</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Log ticket & drag-and-drop Outlook mail</small>
+                            <small class="text-muted fs-8 d-block">Log ticket & Outlook files</small>
                         </div>
                     </div>
                 </a>
@@ -124,7 +124,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Internal Tasks</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Task assignments & maker-checker queue</small>
+                            <small class="text-muted fs-8 d-block">Maker-checker task queue</small>
                         </div>
                     </div>
                 </a>
@@ -138,7 +138,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Hold / Release List</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Hold tickets register & quick release actions</small>
+                            <small class="text-muted fs-8 d-block">Tickets on hold & release</small>
                         </div>
                     </div>
                 </a>
@@ -161,7 +161,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Contact Manager</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Client & internal team contact directory</small>
+                            <small class="text-muted fs-8 d-block">Client & team directory</small>
                         </div>
                     </div>
                 </a>
@@ -175,7 +175,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Input Tracker</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Incoming data sources & assignments</small>
+                            <small class="text-muted fs-8 d-block">Incoming data & files</small>
                         </div>
                     </div>
                 </a>
@@ -189,7 +189,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Delivery Tracker</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Dispatch records & delivery modes</small>
+                            <small class="text-muted fs-8 d-block">Dispatch & courier records</small>
                         </div>
                     </div>
                 </a>
@@ -203,7 +203,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Process Updates Tracker</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Original mail reference & HTML previews</small>
+                            <small class="text-muted fs-8 d-block">Mail archive & updates</small>
                         </div>
                     </div>
                 </a>
@@ -217,7 +217,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Error Tracker</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Error observations & audit resolution logs</small>
+                            <small class="text-muted fs-8 d-block">Maker-checker error logs</small>
                         </div>
                     </div>
                 </a>
@@ -240,7 +240,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Training Plan & KT</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Activity checklist & executive downloads</small>
+                            <small class="text-muted fs-8 d-block">Activity checklist & KT files</small>
                         </div>
                     </div>
                 </a>
@@ -254,7 +254,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">PKT Test Center</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Online MCQ process knowledge exams</small>
+                            <small class="text-muted fs-8 d-block">Process MCQ knowledge tests</small>
                         </div>
                     </div>
                 </a>
@@ -268,7 +268,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Practice Files</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Maker-checker evaluation & error logging</small>
+                            <small class="text-muted fs-8 d-block">Maker-checker practice queue</small>
                         </div>
                     </div>
                 </a>
@@ -282,7 +282,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Certifications</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Competency matrix & printable certificates</small>
+                            <small class="text-muted fs-8 d-block">Competency & certificates</small>
                         </div>
                     </div>
                 </a>
@@ -297,7 +297,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Manage PKT Question Bank</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Excel question import & create tests</small>
+                            <small class="text-muted fs-8 d-block">Import Excel questions & tests</small>
                         </div>
                     </div>
                 </a>
@@ -322,7 +322,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Recurring Engine</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Automated periodic task schedules</small>
+                            <small class="text-muted fs-8 d-block">Automated task schedules</small>
                         </div>
                     </div>
                 </a>
@@ -336,7 +336,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Employees & Skill Matrix</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">User accounts & maker-checker mapping</small>
+                            <small class="text-muted fs-8 d-block">User accounts & skill mapping</small>
                         </div>
                     </div>
                 </a>
@@ -352,7 +352,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Divisions Master</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Operational divisions structure</small>
+                            <small class="text-muted fs-8 d-block">Manage divisions structure</small>
                         </div>
                     </div>
                 </a>
@@ -366,7 +366,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Activities Master</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Process activities under divisions</small>
+                            <small class="text-muted fs-8 d-block">Manage process activities</small>
                         </div>
                     </div>
                 </a>
@@ -380,7 +380,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Sub-Activities Master</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">SLA TAT & default employee mapping</small>
+                            <small class="text-muted fs-8 d-block">Configure sub-activities & SLA</small>
                         </div>
                     </div>
                 </a>
@@ -394,7 +394,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Category Master</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Query categories & classifications</small>
+                            <small class="text-muted fs-8 d-block">Manage ticket categories</small>
                         </div>
                     </div>
                 </a>
@@ -408,7 +408,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">System Audit Logs</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Audit trail & Excel data backup</small>
+                            <small class="text-muted fs-8 d-block">Audit trail & data backups</small>
                         </div>
                     </div>
                 </a>
@@ -422,7 +422,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">System Settings</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Global application settings</small>
+                            <small class="text-muted fs-8 d-block">App global settings</small>
                         </div>
                     </div>
                 </a>
@@ -437,7 +437,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h6 class="fw-bold text-dark mb-0 fs-7">Reports & Export</h6>
-                            <small class="text-muted fs-8 d-block text-truncate">Custom data filtering & CSV exports</small>
+                            <small class="text-muted fs-8 d-block">Custom reports & CSV export</small>
                         </div>
                     </div>
                 </a>

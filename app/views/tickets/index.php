@@ -70,7 +70,6 @@
                             <th>Category</th>
                             <th>Received Date</th>
                             <th>From / Agency</th>
-                            <th>Subject</th>
                             <th>Activity</th>
                             <th>Current Bucket Owner</th>
                             <th>Status</th>
@@ -82,7 +81,7 @@
                         <?php foreach ($tickets as $t): ?>
                         <tr>
                             <td class="text-nowrap">
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold" title="Click to view ticket details">
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold" title="Subject: <?= htmlspecialchars($t['subject'], ENT_QUOTES) ?>">
                                     <?= htmlspecialchars($t['ticket_number']) ?>
                                 </a>
                             </td>
@@ -100,9 +99,6 @@
                                 <?php if (!empty($t['agency_code'])): ?>
                                     <small class="text-muted"><i class="fas fa-building me-1"></i><?= htmlspecialchars($t['agency_code']) ?></small>
                                 <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="fw-bold fs-7 text-dark"><?= htmlspecialchars($t['subject']) ?></div>
                             </td>
                             <td class="fs-8">
                                 <div class="fw-bold text-dark"><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>

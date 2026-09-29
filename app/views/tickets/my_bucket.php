@@ -121,7 +121,6 @@
                             <th>Type</th>
                             <th>Category</th>
                             <th>Current Stage & Bucket Owner</th>
-                            <th>Subject</th>
                             <th>Sub-Activity</th>
                             <th>Priority</th>
                             <th>Status</th>
@@ -134,7 +133,7 @@
                         <?php foreach ($tickets as $t): ?>
                         <tr>
                             <td class="fw-bold text-nowrap">
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold">
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold" title="Subject: <?= htmlspecialchars($t['subject'], ENT_QUOTES) ?>">
                                     <?= htmlspecialchars($t['ticket_number']) ?>
                                 </a>
                             </td>
@@ -157,9 +156,6 @@
                                 <?php if (!empty($bInfo['user_code'])): ?>
                                     <small class="text-muted fs-8"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($bInfo['user_code']) ?></small>
                                 <?php endif; ?>
-                            </td>
-                            <td class="text-truncate" style="max-width: 250px;" title="<?= htmlspecialchars($t['subject']) ?>">
-                                <div class="fw-bold text-dark fs-7"><?= htmlspecialchars($t['subject']) ?></div>
                             </td>
                             <td class="fs-8 text-muted text-nowrap">
                                 <div class="fw-bold text-dark"><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>

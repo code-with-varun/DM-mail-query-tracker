@@ -119,10 +119,12 @@
                         <tr>
                             <th>Ticket #</th>
                             <th>Type</th>
-                            <th>Stage & Bucket Owner</th>
+                            <th>Category</th>
+                            <th>Current Stage & Bucket Owner</th>
                             <th>Subject</th>
                             <th>Sub-Activity</th>
                             <th>Priority</th>
+                            <th>Status</th>
                             <th>Scheduled Date</th>
                             <th>SLA TAT</th>
                             <th class="text-end">Actions</th>
@@ -131,38 +133,49 @@
                     <tbody>
                         <?php foreach ($tickets as $t): ?>
                         <tr>
-                            <td class="fw-bold">
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="text-primary text-decoration-none fw-bold">
+                            <td class="fw-bold text-nowrap">
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold">
                                     <?= htmlspecialchars($t['ticket_number']) ?>
                                 </a>
                             </td>
-                             <td>
+                            <td class="text-nowrap">
                                 <span class="badge <?= ($t['ticket_type'] === 'Task Ticket' || !empty($t['is_task'])) ? 'badge-task-ticket' : 'badge-query-ticket' ?>">
                                     <?= htmlspecialchars($t['ticket_type'] ?? ($t['is_task'] ? 'Task Ticket' : 'Query Ticket')) ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="text-nowrap">
+                                <?= get_category_badge($t['category_name'] ?? '') ?>
+                            </td>
+                            <td class="fs-8 text-nowrap">
                                 <?php $bInfo = get_current_bucket_info($t); ?>
-                                <span class="badge <?= $bInfo['badge_class'] ?> fw-bold me-1"><?= htmlspecialchars($bInfo['role_label']) ?></span>
-                                <span class="fw-bold fs-8 text-dark d-block mt-1"><?= htmlspecialchars($bInfo['user_name']) ?></span>
+                                <div class="mb-1">
+                                    <span class="badge <?= $bInfo['badge_class'] ?> py-1 px-2 fw-bold fs-8">
+                                        <i class="fas <?= $bInfo['icon'] ?? 'fa-user' ?> me-1"></i><?= htmlspecialchars($bInfo['role_label']) ?>
+                                    </span>
+                                </div>
+                                <div class="fw-bold text-dark fs-7"><i class="fas fa-user-circle me-1 text-secondary"></i><?= htmlspecialchars($bInfo['user_name']) ?></div>
                                 <?php if (!empty($bInfo['user_code'])): ?>
-                                    <small class="text-muted fs-8">(ID: <?= htmlspecialchars($bInfo['user_code']) ?>)</small>
+                                    <small class="text-muted fs-8"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($bInfo['user_code']) ?></small>
                                 <?php endif; ?>
                             </td>
                             <td class="text-truncate" style="max-width: 250px;" title="<?= htmlspecialchars($t['subject']) ?>">
-                                <?= htmlspecialchars($t['subject']) ?>
+                                <div class="fw-bold text-dark fs-7"><?= htmlspecialchars($t['subject']) ?></div>
                             </td>
-                            <td class="fs-8 text-muted text-nowrap"><?= htmlspecialchars($t['sub_activity_name'] ?? 'General') ?></td>
-                            <td>
-                                <span class="badge bg-<?= strtolower($t['priority']) === 'high' || strtolower($t['priority']) === 'critical' ? 'danger' : 'secondary' ?>">
+                            <td class="fs-8 text-muted text-nowrap">
+                                <div class="fw-bold text-dark"><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>
+                                <small class="text-muted"><?= htmlspecialchars($t['sub_activity_name'] ?? '') ?></small>
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge bg-<?= strtolower($t['priority']) === 'high' || strtolower($t['priority']) === 'critical' ? 'danger' : 'secondary' ?> bg-opacity-10 text-<?= strtolower($t['priority']) === 'high' || strtolower($t['priority']) === 'critical' ? 'danger' : 'secondary' ?> border border-<?= strtolower($t['priority']) === 'high' || strtolower($t['priority']) === 'critical' ? 'danger' : 'secondary' ?> fw-bold">
                                     <?= htmlspecialchars($t['priority']) ?>
                                 </span>
                             </td>
+                            <td class="text-nowrap"><?= get_status_badge($t['status'] ?? 'New') ?></td>
                             <td class="fs-8 text-nowrap">
-                                <?= !empty($t['scheduled_date']) ? date('d M Y', strtotime($t['scheduled_date'])) : '<span class="text-muted">Today</span>' ?>
+                                <span class="fw-bold text-dark"><i class="fas fa-calendar-day me-1 text-primary"></i><?= !empty($t['scheduled_date']) ? date('d M Y', strtotime($t['scheduled_date'])) : 'Today' ?></span>
                             </td>
                             <td class="fs-8 text-nowrap">
-                                <?= format_datetime($t['tat_datetime']) ?>
+                                <?= get_tat_badge($t['tat_datetime'], $t['status'] ?? '') ?>
                             </td>
                             <td class="text-end text-nowrap">
                                 <div class="btn-group btn-group-sm">

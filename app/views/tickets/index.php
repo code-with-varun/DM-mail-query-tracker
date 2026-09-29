@@ -82,7 +82,7 @@
                         <?php foreach ($tickets as $t): ?>
                         <tr>
                             <td class="text-nowrap">
-                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link" title="Click to view ticket details">
+                                <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold" title="Click to view ticket details">
                                     <?= htmlspecialchars($t['ticket_number']) ?>
                                 </a>
                             </td>
@@ -92,33 +92,33 @@
                                 </span>
                             </td>
                             <td class="text-nowrap">
-                                <?php if (!empty($t['category_name'])): ?>
-                                    <span class="badge bg-secondary px-2 py-1"><?= htmlspecialchars($t['category_name']) ?></span>
-                                <?php else: ?>
-                                    <span class="text-muted fs-8">-</span>
-                                <?php endif; ?>
+                                <?= get_category_badge($t['category_name'] ?? '') ?>
                             </td>
                             <td class="fs-8 text-nowrap"><?= format_datetime($t['received_datetime']) ?></td>
                             <td>
-                                <div class="fw-bold fs-7"><?= htmlspecialchars($t['from_address']) ?></div>
+                                <div class="fw-bold fs-7 text-dark"><?= htmlspecialchars($t['from_address']) ?></div>
                                 <?php if (!empty($t['agency_code'])): ?>
-                                    <small class="text-muted">Agency: <?= htmlspecialchars($t['agency_code']) ?></small>
+                                    <small class="text-muted"><i class="fas fa-building me-1"></i><?= htmlspecialchars($t['agency_code']) ?></small>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <div class="fw-bold fs-7"><?= htmlspecialchars($t['subject']) ?></div>
+                                <div class="fw-bold fs-7 text-dark"><?= htmlspecialchars($t['subject']) ?></div>
                             </td>
                             <td class="fs-8">
-                                <div><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>
+                                <div class="fw-bold text-dark"><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>
                                 <small class="text-muted"><?= htmlspecialchars($t['sub_activity_name'] ?? '') ?></small>
                             </td>
                             <?php $bucket = get_current_bucket_info($t); ?>
                             <td class="fs-8 text-nowrap">
-                                <div class="fw-bold text-dark"><?= htmlspecialchars($bucket['user_name']) ?></div>
+                                <div class="mb-1">
+                                    <span class="badge <?= $bucket['badge_class'] ?> py-1 px-2 fw-bold fs-8">
+                                        <i class="fas <?= $bucket['icon'] ?? 'fa-user' ?> me-1"></i><?= htmlspecialchars($bucket['role_label']) ?>
+                                    </span>
+                                </div>
+                                <div class="fw-bold text-dark fs-7"><i class="fas fa-user-circle text-secondary me-1"></i><?= htmlspecialchars($bucket['user_name']) ?></div>
                                 <?php if (!empty($bucket['user_code'])): ?>
-                                    <small class="text-muted"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($bucket['user_code']) ?></small>
+                                    <small class="text-muted fs-8"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($bucket['user_code']) ?></small>
                                 <?php endif; ?>
-                                <div><span class="badge <?= $bucket['badge_class'] ?> fs-8 py-0 px-1 mt-1"><?= htmlspecialchars($bucket['role_label']) ?></span></div>
                             </td>
                             <td class="text-nowrap"><?= get_status_badge($t['status']) ?></td>
                             <td class="text-nowrap"><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>

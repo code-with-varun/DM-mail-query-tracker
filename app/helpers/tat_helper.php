@@ -27,6 +27,19 @@ function calculate_tat_status(string $tatDatetime, string $status = ''): string 
     return 'Within TAT';
 }
 
+function get_ticket_type_badge(?string $ticketType, bool $isTask = false): string {
+    $type = !empty($ticketType) ? $ticketType : ($isTask ? 'Task Ticket' : 'Query Ticket');
+    $typeLower = strtolower($type);
+    
+    if (str_contains($typeLower, 'query')) {
+        return '<span class="badge badge-query-ticket"><i class="fas fa-question-circle me-1"></i>Query Ticket</span>';
+    } elseif (str_contains($typeLower, 'internal')) {
+        return '<span class="badge badge-internal-task"><i class="fas fa-tasks me-1"></i>Internal Task</span>';
+    } else {
+        return '<span class="badge badge-task-ticket"><i class="fas fa-file-alt me-1"></i>Task Ticket (File Task)</span>';
+    }
+}
+
 function get_tat_badge(string $tatDatetime, string $status = ''): string {
     $tatStatus = calculate_tat_status($tatDatetime, $status);
 

@@ -359,6 +359,16 @@ body {
   display: inline-block;
 }
 
+.badge-internal-task {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+  font-weight: 700 !important;
+  padding: 0.35em 0.65em !important;
+  border-radius: 6px !important;
+  display: inline-block;
+}
+
 /* High Contrast Table Badges */
 .badge.bg-primary.bg-opacity-10,
 .badge.bg-primary.bg-opacity-15 {

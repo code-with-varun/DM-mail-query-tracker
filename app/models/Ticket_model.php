@@ -31,11 +31,29 @@ class Ticket_model extends Model {
         return $prefix . $nextNum;
     }
 
+    public function autoRolloverPendingTickets(): void {
+        $today = date('Y-m-d');
+        try {
+            $sql = "UPDATE tickets 
+                    SET scheduled_date = ? 
+                    WHERE status NOT IN ('Completed', 'Closed', 'Cancelled') 
+                    AND (scheduled_date IS NULL OR scheduled_date < ?)";
+            $this->db->prepare($sql)->execute([$today, $today]);
+        } catch (Exception $e) {
+            // Silently ignore if table locked or execution issue
+        }
+    }
+
     public function createTicket(array $data): int {
         if (empty($data['ticket_number'])) {
             $data['ticket_number'] = $this->generateTicketNumber();
         }
-        $data['created_at'] = date('Y-m-d H:i:s');
+        if (empty($data['created_at'])) {
+            $data['created_at'] = date('Y-m-d H:i:s');
+        }
+        if (empty($data['scheduled_date'])) {
+            $data['scheduled_date'] = date('Y-m-d', strtotime($data['created_at']));
+        }
         $ticketId = $this->insert('tickets', $data);
 
         $this->logAudit('Tickets', 'Create Ticket', null, ['id' => $ticketId, 'ticket_number' => $data['ticket_number']]);
@@ -69,6 +87,8 @@ class Ticket_model extends Model {
     }
 
     public function getTickets(array $filters = [], ?int $userId = null, ?int $roleId = null): array {
+        $this->autoRolloverPendingTickets();
+
         $sql = "SELECT t.*, 
                        tc.category_name,
                        a.activity_name, sa.sub_activity_name,
@@ -602,5 +622,98 @@ class Ticket_model extends Model {
 
         $sql .= " ORDER BY t.priority DESC, t.id DESC";
         return $this->fetchAll($sql, $params);
+    }
+
+    public function getQueryTickets(array $filters = [], ?int $userId = null, ?int $roleId = null): array {
+        $this->autoRolloverPendingTickets();
+
+        $sql = "SELECT t.*, 
+                       tc.category_name,
+                       a.activity_name, sa.sub_activity_name,
+                       u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
+                       u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code,
+                       u_creator.full_name as creator_name,
+                       u_replied.full_name as replied_user_name
+                FROM tickets t
+                LEFT JOIN ticket_categories tc ON t.category_id = tc.id
+                LEFT JOIN activities a ON t.activity_id = a.id
+                LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
+                LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
+                LEFT JOIN users u_chk ON t.checker_id = u_chk.id
+                LEFT JOIN users u_creator ON t.created_by = u_creator.id
+                LEFT JOIN users u_replied ON t.replied_by = u_replied.id
+                WHERE (t.ticket_type = 'Query Ticket' OR t.ticket_type = 'Query' OR (t.is_task = 0 AND (t.ticket_type IS NULL OR t.ticket_type != 'Internal Task')))";
+        $params = [];
+
+        if ($roleId == 3 && $userId) {
+            $sql .= " AND (t.allocated_to = ? OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($roleId == 2 && $userId) {
+            $sql .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+
+        if (!empty($filters['status'])) {
+            $sql .= " AND t.status = ?";
+            $params[] = $filters['status'];
+        }
+        if (!empty($filters['activity_id'])) {
+            $sql .= " AND t.activity_id = ?";
+            $params[] = $filters['activity_id'];
+        }
+        if (!empty($filters['allocated_to'])) {
+            $sql .= " AND t.allocated_to = ?";
+            $params[] = $filters['allocated_to'];
+        }
+        if (!empty($filters['search'])) {
+            $searchTerm = "%" . $filters['search'] . "%";
+            $sql .= " AND (t.ticket_number LIKE ? OR t.subject LIKE ? OR t.from_address LIKE ? OR t.agency_code LIKE ?)";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+
+        $sql .= " ORDER BY t.id DESC";
+        return $this->fetchAll($sql, $params);
+    }
+
+    public function getQueryTrackerStats(array $filters = [], ?int $userId = null, ?int $roleId = null): array {
+        $tickets = $this->getQueryTickets($filters, $userId, $roleId);
+        $total = count($tickets);
+        $open = 0;
+        $inProgress = 0;
+        $pending = 0;
+        $closed = 0;
+        $overdue = 0;
+        $now = date('Y-m-d H:i:s');
+
+        foreach ($tickets as $t) {
+            $status = $t['status'] ?? 'New';
+            if ($status === 'New' || $status === 'Assigned') {
+                $open++;
+            } elseif ($status === 'In Progress') {
+                $inProgress++;
+            } elseif ($status === 'Pending' || $status === 'Waiting for Customer' || $status === 'Waiting for Internal Team' || $status === 'On Hold') {
+                $pending++;
+            } elseif ($status === 'Completed' || $status === 'Closed') {
+                $closed++;
+            }
+            if (!in_array($status, ['Completed', 'Closed', 'Cancelled']) && !empty($t['tat_datetime']) && $t['tat_datetime'] < $now) {
+                $overdue++;
+            }
+        }
+
+        return [
+            'total' => $total,
+            'open' => $open,
+            'in_progress' => $inProgress,
+            'pending' => $pending,
+            'closed' => $closed,
+            'overdue' => $overdue
+        ];
     }
 }

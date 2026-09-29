@@ -98,4 +98,33 @@ class Tracker extends Controller {
             'tickets' => $ticketModel->getTickets([], Session::get('user_id'), Session::get('role_id'))
         ]);
     }
+
+    public function query() {
+        $this->requireAuth();
+        $ticketModel = $this->model('Ticket_model');
+        $userModel = $this->model('User_model');
+        $activityModel = $this->model('Activity_model');
+
+        $filters = [
+            'search' => sanitize($_GET['search'] ?? ''),
+            'status' => sanitize($_GET['status'] ?? ''),
+            'activity_id' => !empty($_GET['activity_id']) ? (int)$_GET['activity_id'] : null,
+            'allocated_to' => !empty($_GET['allocated_to']) ? (int)$_GET['allocated_to'] : null
+        ];
+
+        $userId = Session::get('user_id');
+        $roleId = Session::get('role_id');
+
+        $tickets = $ticketModel->getQueryTickets($filters, $userId, $roleId);
+        $stats = $ticketModel->getQueryTrackerStats($filters, $userId, $roleId);
+
+        $this->render('tracker/query', [
+            'title' => 'Query Tracker',
+            'tickets' => $tickets,
+            'stats' => $stats,
+            'filters' => $filters,
+            'users' => $userModel->getEmployees(),
+            'activities' => $activityModel->getActivities()
+        ]);
+    }
 }

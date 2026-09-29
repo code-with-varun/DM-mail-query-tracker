@@ -86,9 +86,7 @@
                                 </a>
                             </td>
                             <td class="text-nowrap">
-                                <span class="badge <?= ($t['ticket_type'] === 'Task Ticket' || !empty($t['is_task'])) ? 'badge-task-ticket' : 'badge-query-ticket' ?>">
-                                    <?= htmlspecialchars($t['ticket_type'] ?? ($t['is_task'] ? 'Task Ticket' : 'Query Ticket')) ?>
-                                </span>
+                                <?= get_ticket_type_badge($t['ticket_type'] ?? '', !empty($t['is_task'])) ?>
                             </td>
                             <td class="text-nowrap">
                                 <?= get_category_badge($t['category_name'] ?? '') ?>

@@ -98,7 +98,8 @@
                         <label class="form-label fs-8 fw-bold text-dark mb-1">Ticket Type <span class="text-danger">*</span></label>
                         <select name="ticket_type" class="form-select form-select-sm fw-bold" required>
                             <option value="Query Ticket" selected>Query Ticket</option>
-                            <option value="Task Ticket">Task Ticket</option>
+                            <option value="Task Ticket">Task Ticket (File Task)</option>
+                            <option value="Internal Task">Internal Task</option>
                         </select>
                     </div>
 

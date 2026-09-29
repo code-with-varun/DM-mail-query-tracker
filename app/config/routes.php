@@ -40,6 +40,8 @@ $routes = [
 
     'tracker/input' => 'Tracker/input',
     'tracker/delivery' => 'Tracker/delivery',
+    'tracker/query' => 'Tracker/query',
+    'query-tracker' => 'Tracker/query',
     'tracker/process-updates' => 'Processupdates/index',
     'tracker/process-updates/store' => 'Processupdates/store',
     'tracker/process-updates/preview/(:num)' => 'Processupdates/preview/$1',

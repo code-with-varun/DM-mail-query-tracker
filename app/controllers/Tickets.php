@@ -200,12 +200,15 @@ class Tickets extends Controller {
                 redirect('tickets');
             }
 
-            $ticketId = (int)($_POST['ticket_id'] ?? 0);
-            $status = sanitize($_POST['status'] ?? '');
-            $remarks = sanitize($_POST['remarks'] ?? '');
-
             $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+            if (!$ticket || !$this->canUserPerformAction($ticket, 'manage')) {
+                Session::setFlash('danger', 'Unauthorized action: Controls are restricted to assigned users & admins.');
+                redirect('tickets/view/' . $ticketId);
+            }
+
             if ($ticketModel->updateStatus($ticketId, $status, $remarks, Session::get('user_id'))) {
+
                 Session::setFlash('success', 'Ticket status updated successfully.');
             } else {
                 Session::setFlash('danger', 'Failed to update ticket status.');
@@ -481,6 +484,12 @@ class Tickets extends Controller {
             }
 
             $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+            if (!$ticket || !$this->canUserPerformAction($ticket, 'submit_checker')) {
+                Session::setFlash('danger', 'Unauthorized: Only the assigned Maker or Admin can submit ticket to Checker Queue.');
+                redirect('tickets/view/' . $ticketId);
+            }
+
             if ($ticketModel->submitToChecker($ticketId, $checkerId, $remarks, Session::get('user_id'))) {
                 Session::setFlash('success', 'Ticket successfully submitted to Checker for quality audit!');
             } else {
@@ -514,9 +523,7 @@ class Tickets extends Controller {
             }
 
             // Authorization Check: Only Admin, Super Admin, or Designated Checker allowed
-            $currentUserId = Session::get('user_id');
-            $isCheckerUser = is_admin() || is_super_admin() || (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
-            if (!$isCheckerUser) {
+            if (!$this->canUserPerformAction($ticket, 'checker_action')) {
                 Session::setFlash('danger', 'Unauthorized: Only designated Checkers or Admins can perform Checker Audit actions.');
                 redirect('tickets/view/' . $ticketId);
             }
@@ -557,6 +564,13 @@ class Tickets extends Controller {
             $ticketId = (int)($_POST['ticket_id'] ?? 0);
             $remarks = sanitize($_POST['remarks'] ?? '');
 
+            $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+            if (!$ticket || !$this->canUserPerformAction($ticket, 'deliver')) {
+                Session::setFlash('danger', 'Unauthorized: Delivery acknowledgment is the responsibility of the assigned Maker or Admin only.');
+                redirect('tickets/view/' . $ticketId);
+            }
+
             $attachmentPath = null;
             if (!empty($_FILES['closure_attachment']['name'])) {
                 $uploadDir = __DIR__ . '/../../public/uploads/';
@@ -572,7 +586,6 @@ class Tickets extends Controller {
                 }
             }
 
-            $ticketModel = $this->model('Ticket_model');
             if ($ticketModel->completeDelivery($ticketId, $attachmentPath, $remarks, Session::get('user_id'))) {
                 Session::setFlash('success', 'Ticket delivered and closed successfully! Logged in Delivery Tracker.');
             } else {
@@ -599,12 +612,18 @@ class Tickets extends Controller {
 
             $returnUrl = $_SERVER['HTTP_REFERER'] ?? base_url('tickets/view/' . $ticketId);
 
+            $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+            if (!$ticket || !$this->canUserPerformAction($ticket, 'manage')) {
+                Session::setFlash('danger', 'Unauthorized: Only assigned user or Admin can reschedule ticket.');
+                redirect($returnUrl);
+            }
+
             if (empty($scheduledDate) || $scheduledDate < date('Y-m-d')) {
                 Session::setFlash('danger', 'Reschedule date must be today or a future date.');
                 redirect($returnUrl);
             }
 
-            $ticketModel = $this->model('Ticket_model');
             if ($ticketModel->rescheduleTicket($ticketId, $scheduledDate, $remarks, Session::get('user_id'))) {
                 Session::setFlash('success', "Ticket rescheduled for work on {$scheduledDate}.");
             }
@@ -629,10 +648,18 @@ class Tickets extends Controller {
 
             $returnUrl = $_SERVER['HTTP_REFERER'] ?? base_url('tickets/view/' . $ticketId);
 
+            $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+            if (!$ticket || !$this->canUserPerformAction($ticket, 'manage')) {
+                Session::setFlash('danger', 'Unauthorized: Only assigned user or Admin can reassign ticket.');
+                redirect($returnUrl);
+            }
+
             if (!$ticketId || !$newUserId) {
                 Session::setFlash('danger', 'Please select a valid employee.');
                 redirect($returnUrl);
             }
+
 
             $ticketModel = $this->model('Ticket_model');
             if ($ticketModel->reassignTicket($ticketId, $newUserId, $remarks, Session::get('user_id'))) {
@@ -641,4 +668,34 @@ class Tickets extends Controller {
             redirect($returnUrl);
         }
     }
+
+    /**
+     * Check permissions for POST action endpoints based on role & ownership
+     */
+    private function canUserPerformAction(array $ticket, string $actionType): bool {
+        if (is_admin() || is_super_admin()) {
+            return true;
+        }
+
+        $userId = Session::get('user_id');
+        $isMaker = (!empty($ticket['allocated_to']) && $ticket['allocated_to'] == $userId);
+        $isChecker = (!empty($ticket['checker_id']) && $ticket['checker_id'] == $userId);
+        $stage = $ticket['stage'] ?? 'Maker Phase';
+
+        if ($actionType === 'manage') {
+            return $isMaker || ($isChecker && $stage === 'Checker Phase');
+        }
+        if ($actionType === 'submit_checker') {
+            return $isMaker && $stage === 'Maker Phase';
+        }
+        if ($actionType === 'checker_action') {
+            return $isChecker && $stage === 'Checker Phase';
+        }
+        if ($actionType === 'deliver') {
+            return $isMaker && $stage === 'Delivery Phase';
+        }
+
+        return false;
+    }
 }
+

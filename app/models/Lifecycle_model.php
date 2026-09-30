@@ -342,4 +342,29 @@ class Lifecycle_model extends Model {
 
         return $this->update('ticket_lifecycle_tracker', $update, "id = ?", [$id]);
     }
+
+    public function getActivityProgressReport(string $billingMonth): array {
+        $sql = "SELECT 
+                    a.id as activity_id,
+                    COALESCE(a.activity_name, t.activity_name, 'General Activity') as activity_name,
+                    COUNT(t.id) as total_tasks,
+                    SUM(CASE WHEN t.current_stage IN ('Input Received', 'Maker Queue', 'Maker Checker Rework') THEN 1 ELSE 0 END) as maker_stage_count,
+                    SUM(CASE WHEN t.current_stage IN ('Checker Queue', 'Error Log') THEN 1 ELSE 0 END) as checker_stage_count,
+                    SUM(CASE WHEN t.current_stage IN ('Delivery', 'Acknowledgement', 'Approval Queue', 'Uploader Queue', 'Dump Sharing', 'Consol Vendor Tracker') THEN 1 ELSE 0 END) as delivery_stage_count,
+                    SUM(CASE WHEN t.current_stage = 'Closed' THEN 1 ELSE 0 END) as closed_count
+                FROM ticket_lifecycle_tracker t
+                LEFT JOIN activities a ON t.activity_id = a.id
+                WHERE t.billing_month = ?
+                GROUP BY a.id, activity_name
+                ORDER BY total_tasks DESC";
+        $rows = $this->fetchAll($sql, [$billingMonth]);
+
+        foreach ($rows as &$r) {
+            $total = (int)$r['total_tasks'];
+            $closed = (int)$r['closed_count'];
+            $r['progress_percentage'] = $total > 0 ? round(($closed / $total) * 100, 1) : 0;
+        }
+        return $rows;
+    }
 }
+

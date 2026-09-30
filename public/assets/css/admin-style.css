@@ -564,3 +564,95 @@ body {
   font-size: 0.875rem;
   color: #64748b;
 }
+
+/* Horizontal Dropshipping-Style Step Tracker */
+.dropship-stepper-container {
+  width: 100%;
+  padding: 10px 0;
+}
+.dropship-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+}
+.stepper-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  width: 22%;
+}
+.stepper-node {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background-color: #F1F5F9;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+.stepper-item.active .stepper-node {
+  background-color: #E31B23;
+  color: #FFFFFF;
+  border-color: rgba(227, 27, 35, 0.2);
+  box-shadow: 0 0 0 5px rgba(227, 27, 35, 0.25);
+}
+.stepper-item.completed .stepper-node {
+  background-color: #10B981;
+  color: #FFFFFF;
+  border-color: #D1FAE5;
+  box-shadow: 0 3px 6px rgba(16, 185, 129, 0.2);
+}
+.stepper-content {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stepper-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+.stepper-sub {
+  font-size: 0.78rem;
+  color: #64748B;
+  margin-top: 2px;
+}
+.stepper-owner {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #F8FAFC;
+  color: #475569;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-top: 6px;
+  border: 1px solid #E2E8F0;
+}
+.stepper-line {
+  flex: 1 1 auto;
+  height: 4px;
+  background-color: #E2E8F0;
+  margin-top: 22px;
+  z-index: 1;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+.stepper-line.active {
+  background: linear-gradient(90deg, #10B981 0%, #E31B23 100%);
+}
+.stepper-line.completed {
+  background-color: #10B981;
+}
+

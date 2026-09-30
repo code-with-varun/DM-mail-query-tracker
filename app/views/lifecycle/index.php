@@ -34,8 +34,57 @@
         </div>
     </div>
 
+    <!-- Activity-Level Progress Summary Card -->
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center cursor-pointer" data-bs-toggle="collapse" data-bs-target="#activityProgressCollapse" aria-expanded="true">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-chart-pie text-primary fs-6"></i>
+                <span class="fw-bold fs-7 text-dark">Activity-Level Lifecycle Progress Overview (<?= htmlspecialchars($billingMonth) ?>)</span>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary fs-8 fw-bold ms-2"><?= count($activityProgress ?? []) ?> Activities</span>
+            </div>
+            <i class="fas fa-chevron-down text-muted fs-8"></i>
+        </div>
+        <div class="collapse show" id="activityProgressCollapse">
+            <div class="card-body p-3 bg-light border-top">
+                <?php if (empty($activityProgress)): ?>
+                    <p class="text-muted fs-8 mb-0">No active subtasks populated for month <?= htmlspecialchars($billingMonth) ?> yet. Click <strong>Populate Active Subtasks</strong> to initialize.</p>
+                <?php else: ?>
+                    <div class="row g-3">
+                        <?php foreach ($activityProgress as $ap): ?>
+                        <div class="col-md-6 col-lg-4">
+                            <div class="p-3 bg-white rounded border shadow-xs h-100">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="fw-bold text-dark fs-7 text-truncate me-2" title="<?= htmlspecialchars($ap['activity_name']) ?>">
+                                        <i class="fas fa-sitemap text-secondary me-1"></i><?= htmlspecialchars($ap['activity_name']) ?>
+                                    </div>
+                                    <span class="badge bg-dark text-white fs-8 flex-shrink-0"><?= $ap['closed_count'] ?> / <?= $ap['total_tasks'] ?> Closed</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mb-1 fs-8 text-muted">
+                                    <span>Maker: <strong><?= $ap['maker_stage_count'] ?></strong></span>
+                                    <span>Checker: <strong><?= $ap['checker_stage_count'] ?></strong></span>
+                                    <span>Delivery: <strong><?= $ap['delivery_stage_count'] ?></strong></span>
+                                </div>
+
+                                <div class="progress mt-2" style="height: 7px;">
+                                    <div class="progress-bar bg-<?= $ap['progress_percentage'] >= 100 ? 'success' : ($ap['progress_percentage'] >= 50 ? 'info' : 'warning') ?>" role="progressbar" style="width: <?= min(100, $ap['progress_percentage']) ?>%;"></div>
+                                </div>
+                                <div class="text-end mt-1">
+                                    <small class="fw-bold fs-8 text-dark"><?= $ap['progress_percentage'] ?>% Completed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters Bar -->
     <div class="card border-0 shadow-sm mb-3 bg-light border-start border-3 border-primary">
+
         <div class="card-body p-2 px-3">
             <form action="<?= base_url('lifecycle') ?>" method="GET" class="row g-2 align-items-center">
                 <input type="hidden" name="month" value="<?= htmlspecialchars($billingMonth) ?>">
@@ -378,15 +427,12 @@
                         <label class="form-label fs-8 fw-bold">Select Sub Activity <span class="text-danger">*</span></label>
                         <select name="sub_activity_id" class="form-select form-select-sm" required>
                             <option value="">-- Choose Sub Activity --</option>
-                            <?php 
-                                $activityModel = new Activity_model();
-                                $allSubs = $activityModel->getAllSubActivities();
-                                foreach ($allSubs as $sa):
-                            ?>
+                            <?php foreach (($allSubActivities ?? []) as $sa): ?>
                                 <option value="<?= $sa['id'] ?>">
-                                    [<?= htmlspecialchars($sa['division_name'] ?? 'Gen') ?>] <?= htmlspecialchars($sa['activity_name']) ?> &rarr; <?= htmlspecialchars($sa['sub_activity_name']) ?>
+                                    [<?= htmlspecialchars($sa['division_name'] ?? 'Gen') ?>] <?= htmlspecialchars($sa['activity_name'] ?? '') ?> &rarr; <?= htmlspecialchars($sa['sub_activity_name']) ?>
                                 </option>
                             <?php endforeach; ?>
+
                         </select>
                     </div>
 

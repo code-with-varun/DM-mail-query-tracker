@@ -23,16 +23,21 @@ class Lifecycle extends Controller {
         ];
 
         $items = $lifecycleModel->getLifecycleItems($billingMonth, $filters);
+        $activityProgress = $lifecycleModel->getActivityProgressReport($billingMonth);
 
         $this->render('lifecycle/index', [
             'title' => 'Process Lifecycle & Monthwise Tracker',
             'billingMonth' => $billingMonth,
             'items' => $items,
+            'activityProgress' => $activityProgress,
             'filters' => $filters,
             'activities' => $activityModel->getActivities(),
+            'allSubActivities' => $activityModel->getAllSubActivitiesWithHierarchy(),
             'users' => $userModel->getEmployees()
         ]);
     }
+
+
 
     public function populate_subtasks() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -1,3 +1,32 @@
+<?php
+    $curStage = $ticket['stage'] ?? 'Maker Phase';
+    $currentUserId = Session::get('user_id');
+    $isAdminOrSuper = is_admin() || is_super_admin();
+
+    $isAllocatedMaker = (!empty($ticket['allocated_to']) && $ticket['allocated_to'] == $currentUserId);
+    $isAssignedChecker = (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
+
+    // Action button authorization: Restricted to Assigned Maker, Assigned Checker (in Checker Phase), & Admins
+    $canManageTicket = $isAdminOrSuper || $isAllocatedMaker || ($isAssignedChecker && $curStage === 'Checker Phase');
+    $canSubmitToChecker = ($isAdminOrSuper || $isAllocatedMaker) && ($curStage === 'Maker Phase') && ($ticket['status'] !== 'Closed');
+    $canPerformCheckerAudit = ($isAdminOrSuper || $isAssignedChecker) && ($curStage === 'Checker Phase') && ($ticket['status'] !== 'Closed');
+    $canDeliverTicket = ($isAdminOrSuper || $isAllocatedMaker) && ($curStage === 'Delivery Phase') && ($ticket['status'] !== 'Closed');
+
+    // Horizontal Stepper States
+    $step1State = ($curStage === 'Maker Phase') ? 'active' : 'completed';
+    $step2State = ($curStage === 'Checker Phase') ? 'active' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'completed' : '');
+    $step3State = ($curStage === 'Delivery Phase') ? 'active' : ($curStage === 'Completed' ? 'completed' : '');
+    $step4State = ($curStage === 'Completed') ? 'completed' : '';
+
+    $line12State = ($curStage === 'Maker Phase') ? 'active' : 'completed';
+    $line23State = ($curStage === 'Checker Phase') ? 'active' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'completed' : '');
+    $line34State = ($curStage === 'Delivery Phase') ? 'active' : ($curStage === 'Completed' ? 'completed' : '');
+
+    $step1Sub = ($curStage === 'Maker Phase') ? 'File in Preparation' : 'Completed';
+    $step2Sub = ($curStage === 'Checker Phase') ? 'Under Review' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'Approved' : 'Pending');
+    $step3Sub = ($curStage === 'Delivery Phase') ? 'Awaiting Dispatch' : ($curStage === 'Completed' ? 'Delivered' : 'Pending');
+    $step4Sub = ($curStage === 'Completed') ? 'Closed' : 'Pending';
+?>
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
@@ -13,6 +42,7 @@
         <div class="d-flex gap-2 flex-wrap">
             <a href="<?= base_url('tickets') ?>" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back</a>
             
+            <?php if ($canManageTicket && $ticket['status'] !== 'Closed'): ?>
             <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#rescheduleModal">
                 <i class="fas fa-clock me-1"></i>Reschedule
             </button>
@@ -24,74 +54,136 @@
             <button type="button" class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#statusModal">
                 <i class="fas fa-sync-alt me-1"></i>Update Status
             </button>
+            <?php endif; ?>
         </div>
     </div>
 
-    <!-- Workflow Stage Progress Banner -->
+    <!-- Horizontal Dropshipping Order-Tracking Step Pipeline -->
     <div class="card border-0 shadow-sm mb-4 bg-white border-top border-4 border-primary">
-        <div class="card-body p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0 text-dark fs-7"><i class="fas fa-route text-primary me-2"></i>Visual Process Queue Pipeline</h6>
-                <span class="badge bg-light text-dark border fs-8">Current Stage: <strong><?= htmlspecialchars($curStage ?? 'Maker Phase') ?></strong></span>
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark fs-7"><i class="fas fa-truck-loading text-primary me-2"></i>Task Process Queue Pipeline</h6>
+                    <small class="text-muted fs-8">Horizontal Stage Tracker & Queue Ownership Monitor</small>
+                </div>
+                <span class="badge bg-light text-dark border fs-8 px-3 py-1">Current Stage: <strong><?= htmlspecialchars($curStage ?? 'Maker Phase') ?></strong></span>
             </div>
 
-            <div class="row text-center g-2 align-items-center">
-                <?php
-                    $curStage = $ticket['stage'] ?? 'Maker Phase';
-                    $currentUserId = Session::get('user_id');
-                    $isCheckerUser = is_admin() || is_super_admin() || (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
-                ?>
-                <div class="col-md-3">
-                    <div class="p-2 rounded border <?= $curStage === 'Maker Phase' ? 'bg-primary text-white shadow-sm' : (($curStage === 'Checker Phase' || $curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-light text-muted') ?>">
-                        <i class="fas fa-pencil-alt me-1"></i><strong>1. Maker Phase</strong>
-                        <div class="fs-8 mt-1"><?= $curStage === 'Maker Phase' ? 'File in Preparation' : 'Completed' ?></div>
+            <!-- Stepper Container -->
+            <div class="dropship-stepper-container">
+                <div class="dropship-stepper">
+                    <!-- Step 1: Maker Phase -->
+                    <div class="stepper-item <?= $step1State ?>">
+                        <div class="stepper-node">
+                            <i class="fas <?= $step1State === 'completed' ? 'fa-check' : 'fa-pencil-ruler' ?>"></i>
+                        </div>
+                        <div class="stepper-content">
+                            <span class="stepper-title">1. Maker Phase</span>
+                            <span class="stepper-sub"><?= $step1Sub ?></span>
+                            <span class="stepper-owner"><i class="fas fa-user me-1"></i><?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?></span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-2 rounded border <?= $curStage === 'Checker Phase' ? 'bg-warning text-dark shadow-sm' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-light text-muted') ?>">
-                        <i class="fas fa-user-check me-1"></i><strong>2. Checker Audit</strong>
-                        <div class="fs-8 mt-1"><?= $curStage === 'Checker Phase' ? 'Under Review' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'Approved' : 'Pending') ?></div>
+
+                    <!-- Step Line 1-2 -->
+                    <div class="stepper-line <?= $line12State ?>"></div>
+
+                    <!-- Step 2: Checker Audit -->
+                    <div class="stepper-item <?= $step2State ?>">
+                        <div class="stepper-node">
+                            <i class="fas <?= $step2State === 'completed' ? 'fa-check' : 'fa-clipboard-check' ?>"></i>
+                        </div>
+                        <div class="stepper-content">
+                            <span class="stepper-title">2. Checker Audit</span>
+                            <span class="stepper-sub"><?= $step2Sub ?></span>
+                            <span class="stepper-owner"><i class="fas fa-user-check me-1"></i><?= htmlspecialchars($ticket['checker_user_name'] ?? 'Audit Pool') ?></span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-2 rounded border <?= $curStage === 'Delivery Phase' ? 'bg-success text-white shadow-sm' : ($curStage === 'Completed' ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-light text-muted') ?>">
-                        <i class="fas fa-paper-plane me-1"></i><strong>3. Delivery Phase</strong>
-                        <div class="fs-8 mt-1"><?= $curStage === 'Delivery Phase' ? 'Awaiting Dispatch' : ($curStage === 'Completed' ? 'Delivered' : 'Pending') ?></div>
+
+                    <!-- Step Line 2-3 -->
+                    <div class="stepper-line <?= $line23State ?>"></div>
+
+                    <!-- Step 3: Delivery Phase -->
+                    <div class="stepper-item <?= $step3State ?>">
+                        <div class="stepper-node">
+                            <i class="fas <?= $step3State === 'completed' ? 'fa-check' : 'fa-paper-plane' ?>"></i>
+                        </div>
+                        <div class="stepper-content">
+                            <span class="stepper-title">3. Delivery Phase</span>
+                            <span class="stepper-sub"><?= $step3Sub ?></span>
+                            <span class="stepper-owner"><i class="fas fa-user me-1"></i><?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker Delivery') ?></span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-2 rounded border <?= $curStage === 'Completed' ? 'bg-dark text-white shadow-sm' : 'bg-light text-muted' ?>">
-                        <i class="fas fa-check-circle me-1"></i><strong>4. Ticket Closed</strong>
-                        <div class="fs-8 mt-1"><?= $curStage === 'Completed' ? 'Closed' : 'Pending' ?></div>
+
+                    <!-- Step Line 3-4 -->
+                    <div class="stepper-line <?= $line34State ?>"></div>
+
+                    <!-- Step 4: Ticket Closed -->
+                    <div class="stepper-item <?= $step4State ?>">
+                        <div class="stepper-node">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div class="stepper-content">
+                            <span class="stepper-title">4. Ticket Closed</span>
+                            <span class="stepper-sub"><?= $step4Sub ?></span>
+                            <span class="stepper-owner"><i class="fas fa-archive me-1"></i>Output Ready</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Stage Action Buttons -->
-            <div class="mt-3 text-end pt-2 border-top">
-                <?php if ($curStage === 'Maker Phase' && $ticket['status'] !== 'Closed'): ?>
-                    <button type="button" class="btn btn-warning text-dark fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#submitCheckerModal">
-                        <i class="fas fa-paper-plane me-1"></i>Submit to Checker Queue
-                    </button>
-                <?php elseif ($curStage === 'Checker Phase' && $ticket['status'] !== 'Closed'): ?>
-                    <?php if ($isCheckerUser): ?>
-                        <button type="button" class="btn btn-success fw-bold px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
-                            <i class="fas fa-check-circle me-1"></i>Approve Checker Audit
-                        </button>
-                        <button type="button" class="btn btn-danger fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectCheckerModal">
-                            <i class="fas fa-times-circle me-1"></i>Reject & Log Error
-                        </button>
-                    <?php else: ?>
-                        <span class="badge bg-warning text-dark fs-7 px-3 py-2 border"><i class="fas fa-user-clock me-1"></i>Awaiting Checker Audit Review</span>
+            <!-- Stage Control Bar -->
+            <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="text-start">
+                    <small class="text-muted fw-bold fs-8 d-block"><i class="fas fa-shield-alt text-primary me-1"></i>Stage Ownership Rights:</small>
+                    <span class="fs-8 text-dark">
+                        <?php if ($curStage === 'Maker Phase'): ?>
+                            Controlled by <strong>Maker</strong> (<?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Unassigned') ?>)
+                        <?php elseif ($curStage === 'Checker Phase'): ?>
+                            Controlled by <strong>Checker</strong> (<?= htmlspecialchars($ticket['checker_user_name'] ?? 'Audit Pool') ?>)
+                        <?php elseif ($curStage === 'Delivery Phase'): ?>
+                            Controlled by <strong>Maker</strong> (<?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Unassigned') ?>)
+                        <?php else: ?>
+                            Ticket is Closed & Archived
+                        <?php endif; ?>
+                    </span>
+                </div>
+
+                <div class="text-end">
+                    <?php if ($curStage === 'Maker Phase' && $ticket['status'] !== 'Closed'): ?>
+                        <?php if ($canSubmitToChecker): ?>
+                            <button type="button" class="btn btn-warning text-dark fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#submitCheckerModal">
+                                <i class="fas fa-paper-plane me-1"></i>Submit to Checker Queue
+                            </button>
+                        <?php else: ?>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Maker File Preparation (Owner: <?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?>)</span>
+                        <?php endif; ?>
+
+                    <?php elseif ($curStage === 'Checker Phase' && $ticket['status'] !== 'Closed'): ?>
+                        <?php if ($canPerformCheckerAudit): ?>
+                            <button type="button" class="btn btn-success fw-bold px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
+                                <i class="fas fa-check-circle me-1"></i>Approve Checker Audit
+                            </button>
+                            <button type="button" class="btn btn-danger fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectCheckerModal">
+                                <i class="fas fa-times-circle me-1"></i>Reject & Log Error
+                            </button>
+                        <?php else: ?>
+                            <span class="badge bg-warning bg-opacity-15 text-dark border border-warning px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Checker Audit Review (Owner: <?= htmlspecialchars($ticket['checker_user_name'] ?? 'Checker Pool') ?>)</span>
+                        <?php endif; ?>
+
+                    <?php elseif ($curStage === 'Delivery Phase' && $ticket['status'] !== 'Closed'): ?>
+                        <?php if ($canDeliverTicket): ?>
+                            <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#deliverModal">
+                                <i class="fas fa-file-upload me-1"></i>Deliver File & Close Ticket
+                            </button>
+                        <?php else: ?>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Maker Delivery Acknowledgment (Owner: <?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?>)</span>
+                        <?php endif; ?>
                     <?php endif; ?>
-                <?php elseif ($curStage === 'Delivery Phase' && $ticket['status'] !== 'Closed'): ?>
-                    <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#deliverModal">
-                        <i class="fas fa-file-upload me-1"></i>Deliver File & Close Ticket
-                    </button>
-                <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
+
 
     <div class="row g-4">
         <!-- Ticket Information Left Column -->

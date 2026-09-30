@@ -80,6 +80,9 @@ $routes = [
 
     'reports' => 'Reports/index',
     'reports/export' => 'Reports/export_csv',
+    'reports/production' => 'Reports/production',
+    'reports/production/export' => 'Reports/export_production_csv',
+
 
     'audit' => 'Audit/index',
     'audit/reset' => 'Audit/reset',

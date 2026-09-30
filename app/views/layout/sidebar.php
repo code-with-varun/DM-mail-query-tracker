@@ -150,6 +150,10 @@
             <a href="<?= base_url('reports') ?>" class="nav-link <?= is_sb_active('reports', $currentRoute) ? 'active' : '' ?>" title="Reports & Export">
                 <i class="fas fa-chart-bar"></i> <span>Reports & Export</span>
             </a>
+            <a href="<?= base_url('reports/production') ?>" class="nav-link <?= is_sb_active('reports/production', $currentRoute) ? 'active' : '' ?>" title="Daywise Production Tracker">
+                <i class="fas fa-industry"></i> <span>Daywise Production</span>
+            </a>
+
 
         </div>
     </div>

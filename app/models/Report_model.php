@@ -56,4 +56,101 @@ class Report_model extends Model {
                 ORDER BY completed_count DESC";
         return $this->fetchAll($sql);
     }
+
+    public function getDaywiseProductionReport(array $filters): array {
+        $startDate = !empty($filters['start_date']) ? $filters['start_date'] : date('Y-m-01');
+        $endDate = !empty($filters['end_date']) ? $filters['end_date'] : date('Y-m-d');
+        $employeeId = !empty($filters['allocated_to']) ? (int)$filters['allocated_to'] : null;
+        $activityId = !empty($filters['activity_id']) ? (int)$filters['activity_id'] : null;
+
+        $userWhere = "";
+        $paramsInitial = [$startDate];
+        if ($employeeId) {
+            $userWhere .= " AND allocated_to = ?";
+            $paramsInitial[] = $employeeId;
+        }
+        if ($activityId) {
+            $userWhere .= " AND activity_id = ?";
+            $paramsInitial[] = $activityId;
+        }
+
+        // Tickets created before start_date
+        $sqlCreatedBefore = "SELECT COUNT(*) as cnt FROM tickets WHERE DATE(created_at) < ?" . $userWhere;
+        $createdBefore = (int)($this->fetchOne($sqlCreatedBefore, $paramsInitial)['cnt'] ?? 0);
+
+        // Tickets closed before start_date
+        $paramsClosedBefore = [$startDate];
+        if ($employeeId) $paramsClosedBefore[] = $employeeId;
+        if ($activityId) $paramsClosedBefore[] = $activityId;
+        
+        $sqlClosedBefore = "SELECT COUNT(*) as cnt FROM tickets WHERE status IN ('Completed', 'Closed') AND DATE(COALESCE(replied_datetime, updated_at)) < ?" . $userWhere;
+        $closedBefore = (int)($this->fetchOne($sqlClosedBefore, $paramsClosedBefore)['cnt'] ?? 0);
+
+        $runningOpeningBalance = max(0, $createdBefore - $closedBefore);
+
+        // Daily creation counts
+        $paramsCreated = [$startDate, $endDate];
+        if ($employeeId) $paramsCreated[] = $employeeId;
+        if ($activityId) $paramsCreated[] = $activityId;
+
+        $sqlDailyNew = "SELECT DATE(created_at) as dt, COUNT(*) as cnt 
+                        FROM tickets 
+                        WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?" . $userWhere . " 
+                        GROUP BY DATE(created_at)";
+        $dailyNewRows = $this->fetchAll($sqlDailyNew, $paramsCreated);
+        $dailyNewMap = [];
+        foreach ($dailyNewRows as $r) {
+            $dailyNewMap[$r['dt']] = (int)$r['cnt'];
+        }
+
+        // Daily closure counts
+        $paramsClosed = [$startDate, $endDate];
+        if ($employeeId) $paramsClosed[] = $employeeId;
+        if ($activityId) $paramsClosed[] = $activityId;
+
+        $sqlDailyClosed = "SELECT DATE(COALESCE(replied_datetime, updated_at)) as dt, COUNT(*) as cnt 
+                           FROM tickets 
+                           WHERE status IN ('Completed', 'Closed') 
+                             AND DATE(COALESCE(replied_datetime, updated_at)) >= ? 
+                             AND DATE(COALESCE(replied_datetime, updated_at)) <= ?" . $userWhere . " 
+                           GROUP BY DATE(COALESCE(replied_datetime, updated_at))";
+        $dailyClosedRows = $this->fetchAll($sqlDailyClosed, $paramsClosed);
+        $dailyClosedMap = [];
+        foreach ($dailyClosedRows as $r) {
+            $dailyClosedMap[$r['dt']] = (int)$r['cnt'];
+        }
+
+        // Chronological computation for opening & closing balance carryforward
+        $result = [];
+        $current = strtotime($startDate);
+        $end = strtotime($endDate);
+
+        while ($current <= $end) {
+            $dateStr = date('Y-m-d', $current);
+            $newTasks = $dailyNewMap[$dateStr] ?? 0;
+            $closedTasks = $dailyClosedMap[$dateStr] ?? 0;
+            $openingBalance = $runningOpeningBalance;
+            $pendingTasks = max(0, $openingBalance + $newTasks - $closedTasks);
+            $totalWorkload = $openingBalance + $newTasks;
+            $closureRate = $totalWorkload > 0 ? round(($closedTasks / $totalWorkload) * 100, 1) : 0;
+
+            $result[] = [
+                'date' => $dateStr,
+                'date_formatted' => date('d M Y', $current),
+                'day_name' => date('D', $current),
+                'opening_balance' => $openingBalance,
+                'new_tasks' => $newTasks,
+                'closed_tasks' => $closedTasks,
+                'pending_tasks' => $pendingTasks,
+                'total_workload' => $totalWorkload,
+                'closure_rate' => $closureRate
+            ];
+
+            $runningOpeningBalance = $pendingTasks;
+            $current = strtotime('+1 day', $current);
+        }
+
+        return array_reverse($result);
+    }
 }
+

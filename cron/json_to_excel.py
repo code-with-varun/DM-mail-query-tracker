@@ -27,14 +27,35 @@ try:
         bottom=Side(style='thin', color='D9D9D9')
     )
 
-    for table_name, rows in data.items():
-        sheet_title = table_name[:31] # Excel sheet limit
-        sheet = wb.create_sheet(title=sheet_title)
-        if not rows:
-            sheet.append(["id"])
-            continue
+    used_titles = set()
 
-        headers = list(rows[0].keys())
+    for table_name, table_info in data.items():
+        # Sanitize sheet title for Excel (max 31 chars, no invalid chars)
+        clean_title = table_name.replace(':', '_').replace('\\', '_').replace('/', '_').replace('?', '_').replace('*', '_').replace('[', '_').replace(']', '_')[:31]
+        
+        base_title = clean_title
+        counter = 1
+        while clean_title.lower() in used_titles:
+            suffix = f"_{counter}"
+            clean_title = base_title[:31 - len(suffix)] + suffix
+            counter += 1
+        used_titles.add(clean_title.lower())
+
+        sheet = wb.create_sheet(title=clean_title)
+
+        if isinstance(table_info, dict) and '_headers' in table_info:
+            headers = table_info['_headers']
+            rows = table_info.get('_rows', [])
+        elif isinstance(table_info, list):
+            rows = table_info
+            headers = list(rows[0].keys()) if rows else []
+        else:
+            headers = []
+            rows = []
+
+        if not headers:
+            headers = ["id"]
+
         sheet.append(headers)
 
         # Header styling
@@ -51,14 +72,17 @@ try:
                 val = row_data.get(h)
                 if val is None:
                     row_values.append("")
+                elif isinstance(val, (dict, list)):
+                    row_values.append(json.dumps(val, ensure_ascii=False))
                 else:
-                    row_values.append(val)
+                    row_values.append(str(val))
             sheet.append(row_values)
 
         # Styling & column auto-width
-        for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=len(headers)):
-            for cell in row:
-                cell.border = thin_border
+        if sheet.max_row >= 2:
+            for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=1, max_col=len(headers)):
+                for cell in row:
+                    cell.border = thin_border
 
         for col in sheet.columns:
             max_len = max(len(str(cell.value or '')) for cell in col)

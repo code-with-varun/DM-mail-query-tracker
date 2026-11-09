@@ -51,6 +51,7 @@ class Auth extends Controller {
                 Session::set('email', $user['email']);
                 Session::set('role_id', $user['role_id']);
                 Session::set('role_name', $user['role_name']);
+                Session::set('designation', $user['designation'] ?? '');
                 Session::set('department', $user['department']);
 
                 $userModel->updateLastLogin($user['id']);
@@ -80,20 +81,29 @@ class Auth extends Controller {
     public function profile() {
         $this->requireAuth();
         $userModel = $this->model('User_model');
-        $user = $userModel->getById(Session::get('user_id'));
+        $userId = Session::get('user_id');
+        
+        $user = $userModel->getById($userId);
+        $skills = $userModel->getUserSkillsDetailed($userId);
+        $stats = $userModel->getUserStats($userId);
+        $auditTrail = $userModel->getUserAuditTrail($userId, 20);
 
         $this->render('auth/profile', [
             'title' => 'My Profile',
-            'user' => $user
+            'user' => $user,
+            'skills' => $skills,
+            'stats' => $stats,
+            'auditTrail' => $auditTrail
         ]);
     }
 
     public function change_password() {
         $this->requireAuth();
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!Session::verifyCsrf()) {
                 Session::setFlash('danger', 'Invalid security token.');
-                redirect('profile');
+                redirect('change-password');
             }
 
             $currentPass = $_POST['current_password'] ?? '';
@@ -102,25 +112,36 @@ class Auth extends Controller {
 
             if (empty($currentPass) || empty($newPass) || empty($confirmPass)) {
                 Session::setFlash('danger', 'All password fields are required.');
-                redirect('profile');
+                redirect('change-password');
             }
 
             if ($newPass !== $confirmPass) {
                 Session::setFlash('danger', 'New password and confirm password do not match.');
-                redirect('profile');
+                redirect('change-password');
             }
 
             $userModel = $this->model('User_model');
-            $user = $userModel->getById(Session::get('user_id'));
+            $userId = Session::get('user_id');
+            $user = $userModel->getById($userId);
 
             if (!password_verify($currentPass, $user['password'])) {
                 Session::setFlash('danger', 'Current password is incorrect.');
-                redirect('profile');
+                redirect('change-password');
             }
 
-            $userModel->updateUser($user['id'], ['password' => $newPass]);
+            $userModel->updateUser($userId, ['password' => $newPass]);
+            $userModel->logAudit('Auth', 'Change Password', ['id' => $userId], ['updated' => true]);
+            
             Session::setFlash('success', 'Password updated successfully.');
-            redirect('profile');
+            redirect('change-password');
         }
+
+        $userModel = $this->model('User_model');
+        $user = $userModel->getById(Session::get('user_id'));
+
+        $this->render('auth/change_password', [
+            'title' => 'Change Password',
+            'user' => $user
+        ]);
     }
 }

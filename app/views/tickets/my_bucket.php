@@ -4,21 +4,14 @@
             <h4 class="fw-bold mb-1"><i class="fas fa-user-clock text-primary me-2"></i>My Bucket</h4>
             <p class="text-muted fs-7 mb-0">Active tickets & tasks assigned to you across Maker, Checker, and Delivery stages</p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary btn-sm fw-bold">
-                <i class="fas fa-plus-circle me-1"></i>Create Mail Ticket
-            </a>
-            <a href="<?= base_url('tasks/create') ?>" class="btn btn-outline-primary btn-sm fw-bold">
-                <i class="fas fa-tasks me-1"></i>New Internal Task
-            </a>
-        </div>
     </div>
 
     <!-- Summary KPI Cards -->
     <?php
-        $makerCount = count(array_filter($tickets, fn($t) => ($t['stage'] ?? '') === 'Maker Phase'));
-        $checkerCount = count(array_filter($tickets, fn($t) => ($t['stage'] ?? '') === 'Checker Phase'));
-        $deliveryCount = count(array_filter($tickets, fn($t) => ($t['stage'] ?? '') === 'Delivery Phase'));
+        $currUserId = Session::get('user_id');
+        $makerCount = count(array_filter($tickets, fn($t) => ($t['allocated_to'] == $currUserId && !in_array($t['status'], ['Closed', 'Completed', 'Cancelled']))));
+        $checkerCount = count(array_filter($tickets, fn($t) => ($t['checker_id'] == $currUserId && !in_array($t['status'], ['Closed', 'Completed', 'Cancelled']))));
+        $deliveryCount = count(array_filter($tickets, fn($t) => (($t['stage'] ?? '') === 'Delivery Phase' && $t['allocated_to'] == $currUserId && !in_array($t['status'], ['Closed', 'Completed', 'Cancelled']))));
         $totalBucket = count($tickets);
     ?>
     <div class="row g-3 mb-4">
@@ -87,24 +80,114 @@
         </div>
     </div>
 
-    <!-- Filter Card -->
+    <!-- Filter Slicer Card (MIS Analytics Style Custom Multi-Select Dropdowns) -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
-            <form action="<?= base_url('tickets/my-bucket') ?>" method="GET" class="row g-2 align-items-center">
-                <div class="col-md-5">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search ticket #, subject, sender email..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
-                </div>
-                <div class="col-md-4">
-                    <select name="stage" class="form-select form-select-sm">
-                        <option value="">All Stages</option>
-                        <option value="Maker Phase" <?= ($filters['stage'] ?? '') === 'Maker Phase' ? 'selected' : '' ?>>Maker Phase</option>
-                        <option value="Checker Phase" <?= ($filters['stage'] ?? '') === 'Checker Phase' ? 'selected' : '' ?>>Checker Phase</option>
-                        <option value="Delivery Phase" <?= ($filters['stage'] ?? '') === 'Delivery Phase' ? 'selected' : '' ?>>Delivery Phase</option>
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold"><i class="fas fa-filter me-1"></i>Filter</button>
-                    <a href="<?= base_url('tickets/my-bucket') ?>" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo"></i></a>
+            <form action="<?= base_url('tickets/my-bucket') ?>" method="GET" id="bucketFilterForm">
+                <div class="row g-3 align-items-end">
+                    <!-- Keyword Search -->
+                    <div class="col-md-3">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-search me-1 text-primary"></i>Keyword Search</label>
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search ticket #, subject, sender..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+                    </div>
+
+                    <!-- 1. STATUS SLICER -->
+                    <?php 
+                    $statusOptions = ['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'On Hold', 'Released', 'Completed', 'Closed', 'Cancelled'];
+                    $isStatusSet = isset($_GET['status']);
+                    $selectedStatuses = $isStatusSet ? (array)$filters['status'] : ['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'On Hold', 'Released'];
+                    $statusCount = count($selectedStatuses);
+                    $statusLabel = ($statusCount === 0) ? 'None Selected (0)' : (($statusCount === count($statusOptions)) ? 'All Selected (' . count($statusOptions) . ')' : $statusCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-tasks me-1 text-primary"></i>Status Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-status', event)">
+                            <span id="btn-status-label" class="truncate"><?= $statusLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-status" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('status')" id="search-status" placeholder="Search status..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('status')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('status')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-status" class="slicer-list-scroll">
+                                <?php foreach ($statusOptions as $st): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="status[]" value="<?= $st ?>" <?= in_array($st, $selectedStatuses) ? 'checked' : '' ?> onchange="updateSlicerLabel('status')">
+                                        <span><?= $st ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. STAGE SLICER -->
+                    <?php 
+                    $stageOptions = ['Maker Phase', 'Checker Phase', 'Delivery Phase', 'Acknowledgement', 'Approval Queue', 'Uploader Queue', 'Dump Sharing', 'Consol Vendor Tracker', 'Closed'];
+                    $isStageSet = isset($_GET['stage']);
+                    $selectedStages = $isStageSet ? (array)$filters['stage'] : $stageOptions;
+                    $stageCount = count($selectedStages);
+                    $stageLabel = ($stageCount === 0) ? 'None Selected (0)' : (($stageCount === count($stageOptions)) ? 'All Selected (' . count($stageOptions) . ')' : $stageCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-layer-group me-1 text-primary"></i>Stage Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-stage', event)">
+                            <span id="btn-stage-label" class="truncate"><?= $stageLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-stage" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('stage')" id="search-stage" placeholder="Search stage..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('stage')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('stage')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-stage" class="slicer-list-scroll">
+                                <?php foreach ($stageOptions as $stg): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="stage[]" value="<?= $stg ?>" <?= in_array($stg, $selectedStages) ? 'checked' : '' ?> onchange="updateSlicerLabel('stage')">
+                                        <span><?= $stg ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. PRIORITY SLICER -->
+                    <?php 
+                    $prioOptions = ['Low', 'Medium', 'High', 'Critical'];
+                    $isPrioSet = isset($_GET['priority']);
+                    $selectedPrios = $isPrioSet ? (array)$filters['priority'] : $prioOptions;
+                    $prioCount = count($selectedPrios);
+                    $prioLabel = ($prioCount === 0) ? 'None Selected (0)' : (($prioCount === count($prioOptions)) ? 'All Selected (' . count($prioOptions) . ')' : $prioCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-exclamation-circle me-1 text-primary"></i>Priority Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-priority', event)">
+                            <span id="btn-priority-label" class="truncate"><?= $prioLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-priority" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('priority')" id="search-priority" placeholder="Search priority..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('priority')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('priority')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-priority" class="slicer-list-scroll">
+                                <?php foreach ($prioOptions as $p): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="priority[]" value="<?= $p ?>" <?= in_array($p, $selectedPrios) ? 'checked' : '' ?> onchange="updateSlicerLabel('priority')">
+                                        <span><?= $p ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2 pt-1">
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-4"><i class="fas fa-filter me-1"></i>Apply Slicers</button>
+                        <a href="<?= base_url('tickets/my-bucket') ?>" class="btn btn-outline-secondary btn-sm fw-bold px-3"><i class="fas fa-undo me-1"></i>Reset</a>
+                    </div>
                 </div>
             </form>
         </div>
@@ -118,9 +201,11 @@
                     <thead class="table-light align-middle text-nowrap">
                         <tr>
                             <th>Ticket #</th>
-                            <th>Type</th>
                             <th>Category</th>
-                            <th>Current Stage & Bucket Owner</th>
+                            <th>Current Stage</th>
+                            <th>Maker Details</th>
+                            <th>Checker Details</th>
+                            <th>My Role</th>
                             <th>Sub-Activity</th>
                             <th>Priority</th>
                             <th>Status</th>
@@ -130,7 +215,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($tickets as $t): ?>
+                        <?php foreach ($tickets as $t): 
+                            $isMaker = ($t['allocated_to'] == $currUserId);
+                            $isChecker = (!empty($t['checker_id']) && $t['checker_id'] == $currUserId);
+                            $isCreator = ($t['created_by'] == $currUserId);
+
+                            if ($isMaker && $isChecker) {
+                                $myRoleBadge = '<span class="badge bg-purple text-white fw-bold fs-8"><i class="fas fa-user-tag me-1"></i>Maker & Checker</span>';
+                            } elseif ($isMaker) {
+                                $myRoleBadge = '<span class="badge bg-primary bg-opacity-15 text-primary border border-primary fw-bold fs-8"><i class="fas fa-pencil-alt me-1"></i>Maker</span>';
+                            } elseif ($isChecker) {
+                                $myRoleBadge = '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-user-check me-1"></i>Checker</span>';
+                            } elseif ($isCreator) {
+                                $myRoleBadge = '<span class="badge bg-info bg-opacity-15 text-info border border-info fw-bold fs-8"><i class="fas fa-user-plus me-1"></i>Creator</span>';
+                            } else {
+                                $myRoleBadge = '<span class="badge bg-secondary bg-opacity-10 text-secondary border fw-bold fs-8">Viewer</span>';
+                            }
+                        ?>
                         <tr>
                             <td class="fw-bold text-nowrap">
                                 <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold" title="Subject: <?= htmlspecialchars($t['subject'], ENT_QUOTES) ?>">
@@ -138,22 +239,32 @@
                                 </a>
                             </td>
                             <td class="text-nowrap">
-                                <?= get_ticket_type_badge($t['ticket_type'] ?? '', !empty($t['is_task'])) ?>
-                            </td>
-                            <td class="text-nowrap">
                                 <?= get_category_badge($t['category_name'] ?? '') ?>
                             </td>
                             <td class="fs-8 text-nowrap">
                                 <?php $bInfo = get_current_bucket_info($t); ?>
-                                <div class="mb-1">
-                                    <span class="badge <?= $bInfo['badge_class'] ?> py-1 px-2 fw-bold fs-8">
-                                        <i class="fas <?= $bInfo['icon'] ?? 'fa-user' ?> me-1"></i><?= htmlspecialchars($bInfo['role_label']) ?>
-                                    </span>
-                                </div>
-                                <div class="fw-bold text-dark fs-7"><i class="fas fa-user-circle me-1 text-secondary"></i><?= htmlspecialchars($bInfo['user_name']) ?></div>
-                                <?php if (!empty($bInfo['user_code'])): ?>
-                                    <small class="text-muted fs-8"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($bInfo['user_code']) ?></small>
+                                <span class="badge <?= $bInfo['badge_class'] ?> py-1 px-2 fw-bold fs-8">
+                                    <i class="fas <?= $bInfo['icon'] ?? 'fa-layer-group' ?> me-1"></i><?= htmlspecialchars($bInfo['stage_name']) ?>
+                                </span>
+                            </td>
+                            <td class="fs-8 text-nowrap">
+                                <div class="fw-bold text-dark"><i class="fas fa-pencil-alt me-1 text-primary"></i><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></div>
+                                <?php if (!empty($t['allocated_user_code'])): ?>
+                                    <small class="text-muted fs-8"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($t['allocated_user_code']) ?></small>
                                 <?php endif; ?>
+                            </td>
+                            <td class="fs-8 text-nowrap">
+                                <?php if (!empty($t['checker_user_name'])): ?>
+                                    <div class="fw-bold text-dark"><i class="fas fa-user-check me-1 text-warning"></i><?= htmlspecialchars($t['checker_user_name']) ?></div>
+                                    <?php if (!empty($t['checker_user_code'])): ?>
+                                        <small class="text-muted fs-8"><i class="fas fa-id-badge me-1"></i>ID: <?= htmlspecialchars($t['checker_user_code']) ?></small>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted fs-8"><i class="fas fa-user-clock me-1"></i>Unassigned</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-nowrap">
+                                <?= $myRoleBadge ?>
                             </td>
                             <td class="fs-8 text-muted text-nowrap">
                                 <div class="fw-bold text-dark"><?= htmlspecialchars($t['activity_name'] ?? 'N/A') ?></div>
@@ -268,6 +379,90 @@
 </div>
 
 <script>
+function toggleSlicerDropdown(dropdownId, event) {
+    if (event) event.stopPropagation();
+    const targetPanel = document.getElementById(dropdownId);
+    const isShowing = targetPanel.classList.contains('show');
+    
+    document.querySelectorAll('.slicer-panel').forEach(panel => {
+        if (panel !== targetPanel) panel.classList.remove('show');
+    });
+
+    if (!isShowing) {
+        targetPanel.classList.add('show');
+        const searchInput = targetPanel.querySelector('.slicer-search-input');
+        if (searchInput) {
+            setTimeout(() => searchInput.focus(), 50);
+        }
+    } else {
+        targetPanel.classList.remove('show');
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.slicer-dropdown-container')) {
+        document.querySelectorAll('.slicer-panel').forEach(panel => panel.classList.remove('show'));
+    }
+});
+
+function filterSlicerOptions(key) {
+    const input = document.getElementById('search-' + key);
+    const filter = input.value.toLowerCase();
+    const list = document.getElementById('list-' + key);
+    const options = list.getElementsByClassName('slicer-item-option');
+
+    for (let i = 0; i < options.length; i++) {
+        const txtValue = options[i].textContent || options[i].innerText;
+        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+            options[i].style.display = "flex";
+        } else {
+            options[i].style.display = "none";
+        }
+    }
+}
+
+function selectAllSlicer(key) {
+    const list = document.getElementById('list-' + key);
+    const options = list.getElementsByClassName('slicer-item-option');
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].style.display !== 'none') {
+            const cb = options[i].querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = true;
+        }
+    }
+    updateSlicerLabel(key);
+}
+
+function clearAllSlicer(key) {
+    const list = document.getElementById('list-' + key);
+    const options = list.getElementsByClassName('slicer-item-option');
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].style.display !== 'none') {
+            const cb = options[i].querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = false;
+        }
+    }
+    updateSlicerLabel(key);
+}
+
+function updateSlicerLabel(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+    const checked = list.querySelectorAll('input[type="checkbox"]:checked');
+    const labelSpan = document.getElementById('btn-' + key + '-label');
+
+    if (!labelSpan) return;
+
+    if (checked.length === 0) {
+        labelSpan.textContent = 'None Selected (0)';
+    } else if (checked.length === checkboxes.length) {
+        labelSpan.textContent = 'All Selected (' + checkboxes.length + ')';
+    } else {
+        labelSpan.textContent = checked.length + ' Selected';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-reschedule').forEach(function(btn) {
         btn.addEventListener('click', function() {

@@ -93,27 +93,19 @@
                 <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
                 
                 <!-- Compact Row 1: Core Identifiers -->
+                <input type="hidden" name="ticket_type" value="Mail Ticket">
                 <div class="row g-2 mb-3">
                     <div class="col-md-3">
-                        <label class="form-label fs-8 fw-bold text-dark mb-1">Ticket Type <span class="text-danger">*</span></label>
-                        <select name="ticket_type" class="form-select form-select-sm fw-bold" required>
-                            <option value="Query Ticket" selected>Query Ticket</option>
-                            <option value="Task Ticket">Task Ticket (File Task)</option>
-                            <option value="Internal Task">Internal Task</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-2 col-lg-2">
                         <label class="form-label fs-8 fw-bold text-dark mb-1"><i class="fas fa-calendar-alt text-primary me-1"></i>Billing Month <span class="text-danger">*</span></label>
                         <input type="month" name="billing_month" id="billing_month" class="form-control form-control-sm fw-bold" value="<?= date('Y-m') ?>" required>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fs-8 fw-bold text-dark mb-1">Received Date & Time <span class="text-danger">*</span></label>
                         <input type="datetime-local" name="received_datetime" id="received_datetime" class="form-control form-control-sm" value="<?= date('Y-m-d\TH:i') ?>" required>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label class="form-label fs-8 fw-bold text-dark mb-1">From Address / Sender <span class="text-danger">*</span></label>
                         <input type="text" name="from_address" id="from_address" class="form-control form-control-sm" placeholder="client@agency.com or Sender Name" required>
                     </div>
@@ -121,15 +113,15 @@
 
                 <!-- Compact Row 2: Subject, Category & Priority -->
                 <div class="row g-2 mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <label class="form-label fs-8 fw-bold text-dark mb-1">Email Subject / Title <span class="text-danger">*</span></label>
                         <input type="text" name="subject" id="subject" class="form-control form-control-sm fw-bold" placeholder="Enter query email subject line" required>
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label fs-8 fw-bold text-dark mb-1">Category</label>
-                        <select name="category_id" id="category_id" class="form-select form-select-sm">
-                            <option value="">General Query / Unclassified</option>
+                    <div class="col-md-4">
+                        <label class="form-label fs-8 fw-bold text-dark mb-1">Category <span class="text-danger">*</span></label>
+                        <select name="category_id" id="category_id" class="form-select form-select-sm fw-bold" required>
+                            <option value="">Select Mail Category *</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
                             <?php endforeach; ?>

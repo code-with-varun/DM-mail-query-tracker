@@ -18,13 +18,12 @@
                             <th>Pending Reason / Status</th>
                             <th>Allocated To</th>
                             <th>TAT SLA</th>
-                            <th class="text-end text-nowrap" style="width: 160px;">Action</th>
                         </tr>
                     </thead>
                     <tbody class="fs-7">
                         <?php if (empty($tickets)): ?>
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="fas fa-folder-open fs-2 mb-2 d-block"></i>
                                     No hold/release tickets found in register.
                                 </td>
@@ -59,14 +58,6 @@
                                 </td>
                                 <td class="text-nowrap"><?= htmlspecialchars($t['allocated_user_name'] ?? 'Unassigned') ?></td>
                                 <td class="text-nowrap"><?= get_tat_badge($t['tat_datetime'], $t['status']) ?></td>
-                                <td class="text-end text-nowrap">
-                                    <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="btn btn-sm btn-outline-secondary p-1 px-2 me-1" title="View Ticket Details"><i class="fas fa-eye"></i></a>
-                                    <?php if ($t['status'] === 'On Hold' || (isset($t['category_slug']) && str_contains($t['category_slug'], 'hold'))): ?>
-                                        <button type="button" class="btn btn-sm btn-success p-1 px-2 fw-bold" onclick="openReleaseModal(<?= $t['id'] ?>, '<?= htmlspecialchars($t['ticket_number']) ?>')" title="Release Ticket from Hold">
-                                            <i class="fas fa-play me-1"></i>Release
-                                        </button>
-                                    <?php endif; ?>
-                                </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

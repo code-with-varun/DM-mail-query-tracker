@@ -19,9 +19,11 @@ CREATE TABLE IF NOT EXISTS `roles` (
 
 INSERT INTO `roles` (`role_id`, `role_name`, `description`) VALUES
 (1, 'Super Admin', 'Full system access, global configuration, admin management'),
-(2, 'Admin', 'Manager / Team Lead, employee & team ticket management'),
-(3, 'Employee', 'Individual worker, assigned ticket execution')
-ON DUPLICATE KEY UPDATE `role_name` = VALUES(`role_name`);
+(2, 'Admin (TL)', 'Team Lead, team queue & ticket management'),
+(3, 'Manager', 'Operations Manager, department oversight & analytics'),
+(4, 'Employee', 'Individual worker, assigned ticket execution'),
+(5, 'Senior Management', 'Executive oversight, cross-project analytics & SLA reporting')
+ON DUPLICATE KEY UPDATE `role_name` = VALUES(`role_name`), `description` = VALUES(`description`);
 
 -- ----------------------------------------------------
 -- Table: users

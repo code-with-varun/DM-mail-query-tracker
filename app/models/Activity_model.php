@@ -7,6 +7,18 @@ class Activity_model extends Model {
     public function __construct() {
         parent::__construct();
         $this->ensureDefaultCheckerColumn();
+        $this->ensureEnabledQueuesColumn();
+        $this->ensurePointWeightColumn();
+        $this->ensureDivisionTeamLeaderColumn();
+    }
+
+    public function ensureDivisionTeamLeaderColumn(): void {
+        try {
+            $cols = $this->fetchAll("SHOW COLUMNS FROM divisions LIKE 'team_leader_id'");
+            if (empty($cols)) {
+                $this->db->exec("ALTER TABLE `divisions` ADD COLUMN `team_leader_id` INT NULL AFTER `project_id`");
+            }
+        } catch (Exception $e) {}
     }
 
     public function ensureDefaultCheckerColumn(): void {
@@ -14,6 +26,24 @@ class Activity_model extends Model {
             $cols = $this->fetchAll("SHOW COLUMNS FROM sub_activities LIKE 'default_checker_id'");
             if (empty($cols)) {
                 $this->db->exec("ALTER TABLE `sub_activities` ADD COLUMN `default_checker_id` INT NULL AFTER `default_user_id`");
+            }
+        } catch (Exception $e) {}
+    }
+
+    public function ensureEnabledQueuesColumn(): void {
+        try {
+            $cols = $this->fetchAll("SHOW COLUMNS FROM sub_activities LIKE 'enabled_queues'");
+            if (empty($cols)) {
+                $this->db->exec("ALTER TABLE `sub_activities` ADD COLUMN `enabled_queues` TEXT NULL AFTER `default_occurrence_day`");
+            }
+        } catch (Exception $e) {}
+    }
+
+    public function ensurePointWeightColumn(): void {
+        try {
+            $cols = $this->fetchAll("SHOW COLUMNS FROM sub_activities LIKE 'point_weight'");
+            if (empty($cols)) {
+                $this->db->exec("ALTER TABLE `sub_activities` ADD COLUMN `point_weight` DECIMAL(6,2) DEFAULT 1.00 AFTER `default_tat_hours`");
             }
         } catch (Exception $e) {}
     }
@@ -57,11 +87,12 @@ class Activity_model extends Model {
 
     public function getAllSubActivitiesWithHierarchy(): array {
         $subActs = $this->fetchAll("
-            SELECT sa.*, a.activity_name, d.division_name, d.code as division_code, 
+            SELECT sa.*, w.workflow_name, a.activity_name, d.division_name, d.code as division_code, 
                    u.full_name as default_user_name, u.user_code as default_user_code,
                    uc.full_name as default_checker_name, uc.user_code as default_checker_code
             FROM sub_activities sa
             JOIN activities a ON sa.activity_id = a.id
+            LEFT JOIN workflows w ON sa.workflow_id = w.id
             LEFT JOIN divisions d ON COALESCE(sa.division_id, a.division_id) = d.id
             LEFT JOIN users u ON sa.default_user_id = u.id
             LEFT JOIN users uc ON sa.default_checker_id = uc.id
@@ -113,7 +144,15 @@ class Activity_model extends Model {
     }
 
     public function getDivisions(): array {
-        return $this->fetchAll("SELECT * FROM divisions WHERE status = 'Active' ORDER BY division_name ASC");
+        return $this->fetchAll("
+            SELECT d.*, p.project_name, p.code as project_code,
+                   u.full_name as tl_name, u.user_code as tl_code
+            FROM divisions d 
+            LEFT JOIN projects p ON d.project_id = p.id 
+            LEFT JOIN users u ON d.team_leader_id = u.id
+            WHERE d.status = 'Active' 
+            ORDER BY d.id DESC
+        ");
     }
 
     public function getAllActivitiesWithSub(): array {
@@ -149,7 +188,7 @@ class Activity_model extends Model {
         ]);
     }
 
-    public function createSubActivity(int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null, ?int $defaultCheckerId = null): int {
+    public function createSubActivity(int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null, ?int $defaultCheckerId = null, ?string $enabledQueues = null, ?int $workflowId = null): int {
         $id = $this->insert('sub_activities', [
             'activity_id' => $activityId,
             'sub_activity_name' => $name,
@@ -158,6 +197,8 @@ class Activity_model extends Model {
             'default_user_id' => $defaultUserId,
             'default_checker_id' => $defaultCheckerId,
             'default_occurrence_day' => $occurrenceDay,
+            'enabled_queues' => $enabledQueues,
+            'workflow_id' => $workflowId,
             'status' => 'Active',
             'created_at' => date('Y-m-d H:i:s')
         ]);
@@ -165,7 +206,7 @@ class Activity_model extends Model {
         return $id;
     }
 
-    public function updateSubActivity(int $id, int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null, ?int $defaultCheckerId = null): bool {
+    public function updateSubActivity(int $id, int $activityId, string $name, int $tatHours, ?int $divisionId = null, ?int $defaultUserId = null, ?int $occurrenceDay = null, ?int $defaultCheckerId = null, ?string $enabledQueues = null, ?int $workflowId = null): bool {
         $res = $this->update('sub_activities', [
             'activity_id' => $activityId,
             'sub_activity_name' => $name,
@@ -173,7 +214,9 @@ class Activity_model extends Model {
             'default_tat_hours' => $tatHours,
             'default_user_id' => $defaultUserId,
             'default_checker_id' => $defaultCheckerId,
-            'default_occurrence_day' => $occurrenceDay
+            'default_occurrence_day' => $occurrenceDay,
+            'enabled_queues' => $enabledQueues,
+            'workflow_id' => $workflowId
         ], "id = ?", [$id]);
         $this->syncSubActivityToSkillMatrix($id, $defaultUserId, $defaultCheckerId);
         return $res;
@@ -214,12 +257,32 @@ class Activity_model extends Model {
         }
     }
 
-    public function createDivision(string $name, string $code): int {
+    public function createDivision(string $name, string $code, ?int $projectId = null, ?int $teamLeaderId = null): int {
         return $this->insert('divisions', [
             'division_name' => $name,
             'code' => strtoupper($code),
+            'project_id' => $projectId,
+            'team_leader_id' => $teamLeaderId,
             'status' => 'Active',
             'created_at' => date('Y-m-d H:i:s')
         ]);
+    }
+
+    public function getDivisionByCodeOrName(string $val): ?array {
+        $clean = trim($val);
+        if (empty($clean)) return null;
+        return $this->fetchOne("SELECT * FROM divisions WHERE UPPER(code) = ? OR LOWER(division_name) = ? LIMIT 1", [strtoupper($clean), strtolower($clean)]);
+    }
+
+    public function getActivityByName(string $name): ?array {
+        $clean = trim($name);
+        if (empty($clean)) return null;
+        return $this->fetchOne("SELECT * FROM activities WHERE LOWER(activity_name) = ? LIMIT 1", [strtolower($clean)]);
+    }
+
+    public function getSubActivityByName(string $name): ?array {
+        $clean = trim($name);
+        if (empty($clean)) return null;
+        return $this->fetchOne("SELECT * FROM sub_activities WHERE LOWER(sub_activity_name) = ? LIMIT 1", [strtolower($clean)]);
     }
 }

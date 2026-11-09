@@ -13,14 +13,13 @@ require_once __DIR__ . '/../app/config/database.php';
 require_once __DIR__ . '/../app/core/Database.php';
 require_once __DIR__ . '/../app/core/Model.php';
 require_once __DIR__ . '/../app/models/Ticket_model.php';
-require_once __DIR__ . '/../app/models/Recurring_model.php';
 
-echo "[" . date('Y-m-d H:i:s') . "] Starting Mail Query Tracker Recurring Task Scheduler...\n";
+echo "[" . date('Y-m-d H:i:s') . "] Starting Mail Query Tracker Task Scheduler...\n";
 
 try {
-    $recurringModel = new Recurring_model();
-    $result = $recurringModel->processScheduler();
-    echo "[" . date('Y-m-d H:i:s') . "] Scheduler Completed. Generated tickets: " . $result['generated_count'] . "\n";
+    $ticketModel = new Ticket_model();
+    $ticketModel->autoRolloverPendingTickets();
+    echo "[" . date('Y-m-d H:i:s') . "] Scheduler Completed successfully.\n";
 } catch (Exception $e) {
     echo "[" . date('Y-m-d H:i:s') . "] ERROR: " . $e->getMessage() . "\n";
 }

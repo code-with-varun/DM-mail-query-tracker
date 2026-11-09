@@ -9,11 +9,12 @@
 </div>
 <!-- /#wrapper -->
 
-<!-- Offline Bundled JavaScript Assets -->
+<!-- Bundled JavaScript Assets -->
 <script src="<?= base_url('public/assets/js/jquery.min.js') ?>"></script>
 <script src="<?= base_url('public/assets/js/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= base_url('public/assets/js/jquery.dataTables.min.js') ?>"></script>
 <script src="<?= base_url('public/assets/js/dataTables.bootstrap5.js') ?>"></script>
+<script src="<?= base_url('public/assets/js/select2.min.js') ?>"></script>
 <script src="<?= base_url('public/assets/js/chart.min.js') ?>"></script>
 <script src="<?= base_url('public/assets/js/app.js') ?>"></script>
 </body>

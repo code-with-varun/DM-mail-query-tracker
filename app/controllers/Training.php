@@ -12,24 +12,37 @@ class Training extends Controller {
     /**
      * Training Plan & Knowledge Transfer (KT) Page
      */
+    /**
+     * Training Plan & Knowledge Transfer (KT) Page
+     */
     public function plan() {
         $user = current_user();
         $trainingModel = $this->model('Training_model');
         $activityModel = $this->model('Activity_model');
+        $userModel = $this->model('User_model');
 
         $isAdmin = (is_super_admin() || is_admin());
-        $activityCards = $trainingModel->getGroupedTrainingPlan($user['id'], $isAdmin);
+        $filterUserId = !empty($_GET['user_id']) ? (int)$_GET['user_id'] : null;
+
+        $targetUserId = ($filterUserId && $isAdmin) ? $filterUserId : $user['id'];
+        $flatTable = $trainingModel->getFlatTrainingPlanTable($user['id'], $isAdmin, $filterUserId);
         $subActivities = $activityModel->getAllSubActivitiesWithHierarchy();
+        $scheduledPlans = $trainingModel->getScheduledTrainingPlansForUser($user['id'], $isAdmin, $filterUserId);
+        $allUsers = $userModel->getDownlineUsers((int)$user['id'], (int)$user['role_id']);
 
         $this->render('training/plan', [
             'title' => 'Training Plan & KT Materials',
-            'activityCards' => $activityCards,
-            'subActivities' => $subActivities
+            'flatTable' => $flatTable,
+            'subActivities' => $subActivities,
+            'scheduledPlans' => $scheduledPlans,
+            'users' => $allUsers,
+            'filterUserId' => $filterUserId,
+            'isAdmin' => $isAdmin
         ]);
     }
 
     /**
-     * Add KT Module (Admin / Super Admin / Senior Executive)
+     * Add / Create Training Plan & KT Session with Trainer & Multi-select Trainees (Admin / Super Admin)
      */
     public function add_kt_module() {
         $this->requireRole([1, 2]);
@@ -41,11 +54,20 @@ class Training extends Controller {
             }
 
             $subActivityId = (int)($_POST['sub_activity_id'] ?? 0);
+            $trainerId = !empty($_POST['trainer_id']) ? (int)$_POST['trainer_id'] : current_user()['id'];
+            $traineeIds = !empty($_POST['trainee_ids']) && is_array($_POST['trainee_ids']) ? $_POST['trainee_ids'] : [];
             $title = sanitize($_POST['title'] ?? '');
             $description = sanitize($_POST['description'] ?? '');
+            $trainingDate = sanitize($_POST['training_date'] ?? '');
+            $meetingUrl = sanitize($_POST['meeting_url'] ?? '');
 
             if ($subActivityId <= 0 || empty($title)) {
-                Session::setFlash('danger', 'Please select Sub Activity and enter Module Title.');
+                Session::setFlash('danger', 'Please select Sub Activity and enter Training Title.');
+                redirect('training/plan');
+            }
+
+            if (empty($traineeIds)) {
+                Session::setFlash('danger', 'Please select at least one Trainee employee.');
                 redirect('training/plan');
             }
 
@@ -71,17 +93,72 @@ class Training extends Controller {
             }
 
             $trainingModel = $this->model('Training_model');
-            $trainingModel->insert('training_plans', [
+            $trainingModel->createTrainingPlanWithTrainees([
+                'trainer_id' => $trainerId,
+                'trainee_ids' => $traineeIds,
                 'sub_activity_id' => $subActivityId,
                 'title' => $title,
                 'description' => $description,
+                'training_date' => $trainingDate,
+                'meeting_url' => $meetingUrl,
                 'kt_document_path' => $filePath,
                 'kt_document_name' => $fileName,
-                'created_by' => current_user()['id'],
-                'created_at' => date('Y-m-d H:i:s')
+                'created_by' => current_user()['id']
             ]);
 
-            Session::setFlash('success', 'KT Training Material added successfully!');
+            Session::setFlash('success', 'Training Plan & KT Session scheduled successfully with selected trainees!');
+            redirect('training/plan');
+        }
+    }
+
+    /**
+     * Employee Acknowledge Training KT Plan Session
+     */
+    public function acknowledge_plan() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('training/plan');
+            }
+
+            $planId = (int)($_POST['plan_id'] ?? 0);
+            $user = current_user();
+
+            if ($planId <= 0) {
+                Session::setFlash('danger', 'Invalid training plan session.');
+                redirect('training/plan');
+            }
+
+            $trainingModel = $this->model('Training_model');
+            $res = $trainingModel->acknowledgeTraineeKT($planId, $user['id']);
+            if (!empty($res['success'])) {
+                if ($res['status'] === 'acknowledged') {
+                    Session::setFlash('success', 'Training KT Session acknowledged successfully! Competency progress updated.');
+                } else {
+                    Session::setFlash('warning', 'Training KT acknowledgment revoked/unticked.');
+                }
+            } else {
+                Session::setFlash('danger', 'Failed to update training session status.');
+            }
+            redirect('training/plan');
+        }
+    }
+
+    /**
+     * Delete Training Plan (Admin Only)
+     */
+    public function delete_plan() {
+        $this->requireRole([1, 2]);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('training/plan');
+            }
+
+            $planId = (int)($_POST['plan_id'] ?? 0);
+            $trainingModel = $this->model('Training_model');
+            $trainingModel->deleteTrainingPlan($planId);
+            Session::setFlash('success', 'Training plan removed.');
             redirect('training/plan');
         }
     }

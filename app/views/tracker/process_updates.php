@@ -1,8 +1,8 @@
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fas fa-mail-bulk text-primary me-2"></i>Process Updates Tracker</h4>
-            <p class="text-muted fs-7 mb-0">Preserve Outlook process update emails, policy revisions & monthly billing guidelines</p>
+            <h4 class="fw-bold mb-1"><i class="fas fa-mail-bulk text-primary me-2"></i>Process Updates & Reference Library</h4>
+            <p class="text-muted fs-7 mb-0">Preserve Outlook process updates, checklist, allocation exclude, grid & penalty reference mails for reference and documentation</p>
         </div>
         <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#newProcessUpdateModal">
             <i class="fas fa-plus-circle me-1"></i>Log Process Update Mail
@@ -13,8 +13,16 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
             <form action="<?= base_url('tracker/process-updates') ?>" method="GET" class="row g-2 align-items-center">
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search title, notes, or file name..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+                <div class="col-md-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search title, notes, or file..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+                </div>
+                <div class="col-md-2">
+                    <select name="category_id" class="form-select form-select-sm">
+                        <option value="">All Categories</option>
+                        <?php if (!empty($categories)): foreach ($categories as $c): ?>
+                            <option value="<?= $c['id'] ?>" <?= ($filters['category_id'] ?? '') == $c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['category_name']) ?></option>
+                        <?php endforeach; endif; ?>
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <select name="division_id" id="filter_division_id" class="form-select form-select-sm" onchange="onFilterDivisionChange(this.value)">
@@ -40,7 +48,7 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <input type="month" name="billing_month" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['billing_month'] ?? '') ?>" title="Billing Month">
                 </div>
                 <div class="col-md-1 d-flex gap-1">
@@ -51,7 +59,7 @@
         </div>
     </div>
 
-    <!-- Process Updates Table -->
+    <!-- Process Updates & Reference Library Table -->
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -59,6 +67,7 @@
                     <thead class="table-light align-middle text-nowrap">
                         <tr>
                             <th>Billing Month</th>
+                            <th>Category</th>
                             <th>Title / Subject</th>
                             <th>Division</th>
                             <th>Activity / Sub-Activity</th>
@@ -74,10 +83,35 @@
                             <td class="text-nowrap">
                                 <span class="badge bg-primary fs-8 px-2 py-1"><i class="far fa-calendar-alt me-1"></i><?= htmlspecialchars($u['billing_month']) ?></span>
                             </td>
+                            <td class="text-nowrap">
+                                <?php 
+                                $catName = $u['category_name'] ?? 'Process Updates';
+                                $badgeClass = 'bg-info text-dark';
+                                $icon = 'fa-file-alt';
+
+                                if (stripos($catName, 'allocation') !== false) {
+                                    $badgeClass = 'bg-warning text-dark';
+                                    $icon = 'fa-user-slash';
+                                } elseif (stripos($catName, 'checklist') !== false) {
+                                    $badgeClass = 'bg-success';
+                                    $icon = 'fa-tasks';
+                                } elseif (stripos($catName, 'grid') !== false) {
+                                    $badgeClass = 'bg-primary';
+                                    $icon = 'fa-th';
+                                } elseif (stripos($catName, 'penalty') !== false) {
+                                    $badgeClass = 'bg-danger';
+                                    $icon = 'fa-exclamation-triangle';
+                                }
+                                ?>
+                                <span class="badge <?= $badgeClass ?> fs-8 px-2 py-1"><i class="fas <?= $icon ?> me-1"></i><?= htmlspecialchars($catName) ?></span>
+                            </td>
                             <td class="fw-bold text-dark">
-                                <a href="javascript:void(0)" onclick="previewProcessUpdate(<?= $u['id'] ?>)" class="text-dark text-decoration-none hover-primary">
+                                <a href="javascript:void(0)" onclick="previewProcessUpdate(<?= $u['id'] ?>, '<?= $u['source'] ?>')" class="text-dark text-decoration-none hover-primary">
                                     <?= htmlspecialchars($u['title']) ?>
                                 </a>
+                                <?php if (!empty($u['ticket_number'])): ?>
+                                    <div class="fs-8 text-muted fw-normal"><i class="fas fa-ticket-alt me-1 text-secondary"></i><?= htmlspecialchars($u['ticket_number']) ?></div>
+                                <?php endif; ?>
                             </td>
                             <td class="fs-8 text-nowrap">
                                 <?php if (!empty($u['division_name'])): ?>
@@ -112,17 +146,18 @@
                             </td>
                             <td class="text-end text-nowrap">
                                 <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-outline-info" onclick="previewProcessUpdate(<?= $u['id'] ?>)" title="Preview Mail / Process Update">
+                                    <button type="button" class="btn btn-outline-info" onclick="previewProcessUpdate(<?= $u['id'] ?>, '<?= $u['source'] ?>')" title="Preview Record">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     <?php if (!empty($u['file_path'])): ?>
-                                        <a href="<?= base_url('tracker/process-updates/download/' . $u['id']) ?>" class="btn btn-outline-success" title="Download Mail Attachment">
+                                        <a href="<?= base_url('tracker/process-updates/download/' . $u['id'] . '?source=' . $u['source']) ?>" class="btn btn-outline-success" title="Download Attachment">
                                             <i class="fas fa-download"></i>
                                         </a>
                                     <?php endif; ?>
                                     <?php if (is_super_admin() || is_admin()): ?>
-                                    <form action="<?= base_url('tracker/process-updates/delete/' . $u['id']) ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this process update record?');">
+                                    <form action="<?= base_url('tracker/process-updates/delete/' . $u['id']) ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this reference record?');">
                                         <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                                        <input type="hidden" name="source" value="<?= $u['source'] ?>">
                                         <button type="submit" class="btn btn-outline-danger" title="Delete Record">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
@@ -228,21 +263,25 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white py-3">
-                <h5 class="modal-title fw-bold" id="preview_modal_title"><i class="fas fa-mail-bulk text-info me-2"></i>Process Update Mail Preview</h5>
+                <h5 class="modal-title fw-bold" id="preview_modal_title"><i class="fas fa-mail-bulk text-info me-2"></i>Record Preview</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 
                 <div class="row g-3 mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <small class="text-muted d-block fs-8">Category</small>
+                        <span id="preview_category" class="badge bg-info text-dark fs-7"></span>
+                    </div>
+                    <div class="col-md-3">
                         <small class="text-muted d-block fs-8">Billing Month</small>
                         <span id="preview_billing_month" class="badge bg-primary fs-7"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <small class="text-muted d-block fs-8">Division / Activity</small>
                         <strong id="preview_hierarchy" class="text-dark fs-7"></strong>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <small class="text-muted d-block fs-8">Uploaded By</small>
                         <span id="preview_creator" class="fw-bold text-dark fs-7"></span>
                     </div>
@@ -424,20 +463,26 @@ function onFilterActivityChange(actId) {
 }
 
 // Mail Preview AJAX Call
-function previewProcessUpdate(id) {
-    fetch('<?= base_url('tracker/process-updates/preview/') ?>' + id)
+function previewProcessUpdate(id, source) {
+    var src = source || 'process_update';
+    fetch('<?= base_url('tracker/process-updates/preview/') ?>' + id + '?source=' + src)
         .then(function(res) { return res.json(); })
         .then(function(res) {
             if (res.success && res.data) {
                 var d = res.data;
-                document.getElementById('preview_modal_title').innerHTML = '<i class="fas fa-mail-bulk text-info me-2"></i>' + d.title;
-                document.getElementById('preview_billing_month').textContent = d.billing_month;
+                var titleText = d.title;
+                if (d.ticket_number) {
+                    titleText = '[' + d.ticket_number + '] ' + titleText;
+                }
+                document.getElementById('preview_modal_title').innerHTML = '<i class="fas fa-file-alt text-info me-2"></i>' + escapeHtml(titleText);
+                document.getElementById('preview_category').textContent = d.category_name || 'Process Updates';
+                document.getElementById('preview_billing_month').textContent = d.billing_month || 'N/A';
                 
                 var hier = (d.division_name || 'General') + ' > ' + (d.activity_name || 'N/A');
                 if (d.sub_activity_name) hier += ' > ' + d.sub_activity_name;
                 document.getElementById('preview_hierarchy').textContent = hier;
                 
-                document.getElementById('preview_creator').textContent = (d.creator_name || 'System') + ' (' + (d.created_at || '') + ')';
+                document.getElementById('preview_creator').textContent = (d.creator_name || 'System') + (d.created_at ? ' (' + d.created_at + ')' : '');
                 document.getElementById('preview_notes').textContent = d.notes || 'No process notes recorded.';
 
                 var dlBtn = document.getElementById('preview_download_btn');
@@ -446,8 +491,8 @@ function previewProcessUpdate(id) {
 
                 if (d.file_name && d.file_path) {
                     dlBtn.style.display = 'inline-block';
-                    dlBtn.href = '<?= base_url('tracker/process-updates/download/') ?>' + d.id;
-                    fileInfo.innerHTML = '<i class="fas fa-paperclip me-1"></i>' + d.file_name + ' (' + (d.file_ext ? d.file_ext.toUpperCase() : 'FILE') + ')';
+                    dlBtn.href = '<?= base_url('tracker/process-updates/download/') ?>' + d.id + '?source=' + src;
+                    fileInfo.innerHTML = '<i class="fas fa-paperclip me-1"></i>' + escapeHtml(d.file_name) + ' (' + (d.file_ext ? d.file_ext.toUpperCase() : 'FILE') + ')';
 
                     if (res.file_content) {
                         contentBox.style.display = 'block';
@@ -464,7 +509,7 @@ function previewProcessUpdate(id) {
                 var modal = new bootstrap.Modal(document.getElementById('previewModal'));
                 modal.show();
             } else {
-                alert('Failed to load process update preview.');
+                alert('Failed to load record preview.');
             }
         })
         .catch(function(err) {

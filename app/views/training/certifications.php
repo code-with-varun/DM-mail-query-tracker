@@ -7,79 +7,124 @@
         </div>
     </div>
 
-    <!-- My Certifications Cards -->
+    <!-- My Certifications Line Items Table -->
     <h5 class="fw-bold text-dark mb-3"><i class="fas fa-user-graduate me-2 text-primary"></i>My Assigned Activity Competency Matrix</h5>
 
-    <div class="row g-4 mb-5">
-        <?php if (empty($myCertifications)): ?>
-            <div class="col-12">
-                <div class="card border-0 shadow-sm p-4 text-center bg-white">
+    <div class="card border-0 shadow-sm mb-5 rounded-3 overflow-hidden">
+        <div class="card-body p-0">
+            <?php if (empty($myCertifications)): ?>
+                <div class="p-4 text-center bg-white">
                     <p class="text-muted fs-7 mb-0">No assigned activities found for your user profile. Ask your supervisor to assign handled activities.</p>
                 </div>
-            </div>
-        <?php else: ?>
-            <?php foreach ($myCertifications as $c): ?>
-                <div class="col-md-6 col-lg-4">
-                    <div class="card border-0 shadow-sm h-100 border-start border-4 <?= ($c['status'] ?? '') === 'Certified' ? 'border-success' : 'border-primary' ?>">
-                        <div class="card-body p-4 d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-light text-dark border fs-8">
-                                    <?= htmlspecialchars($c['division_name'] ?? 'Operations') ?>
-                                </span>
-                                <?php if (($c['status'] ?? '') === 'Certified'): ?>
-                                    <span class="badge bg-success text-white fw-bold fs-8"><i class="fas fa-certificate me-1"></i>CERTIFIED</span>
-                                <?php else: ?>
-                                    <span class="badge bg-warning-subtle text-warning border border-warning fw-bold fs-8"><i class="fas fa-spinner fa-spin me-1"></i>IN PROGRESS</span>
-                                <?php endif; ?>
-                            </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 fs-7 border-top">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;" class="text-center">#</th>
+                                <th style="min-width: 240px;">DIVISION, ACTIVITY & SUB-ACTIVITY</th>
+                                <th style="width: 140px;">1. KT TRAINING</th>
+                                <th style="width: 160px;">2. PKT EXAM</th>
+                                <th style="width: 150px;">3. PRACTICE FILE</th>
+                                <th style="min-width: 170px;">OVERALL PROGRESS</th>
+                                <th style="width: 180px;" class="text-center">STATUS & ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($myCertifications as $idx => $c): ?>
+                            <?php
+                                $pPercent = 0;
+                                if (!empty($c['training_completed'])) $pPercent += 34;
+                                if (!empty($c['pkt_passed'])) $pPercent += 33;
+                                if (!empty($c['practice_passed'])) $pPercent += 33;
 
-                            <h5 class="fw-bold text-dark mb-1"><?= htmlspecialchars($c['sub_activity_name']) ?></h5>
-                            <p class="text-muted fs-8 mb-3">Activity: <?= htmlspecialchars($c['activity_name']) ?></p>
+                                $barBg = 'bg-secondary';
+                                if ($pPercent == 100) $barBg = 'bg-success';
+                                elseif ($pPercent >= 67) $barBg = 'bg-info';
+                                elseif ($pPercent >= 34) $barBg = 'bg-primary';
+                            ?>
+                            <tr>
+                                <td class="text-center text-muted fw-bold"><?= $idx + 1 ?></td>
 
-                            <!-- Milestone Checklist -->
-                            <div class="bg-light p-3 rounded mb-4 fs-7">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>1. KT Training Plan Items:</span>
+                                <!-- Division & Activity Top, Sub Activity Below -->
+                                <td>
+                                    <div class="text-muted fs-8 mb-1">
+                                        <span class="badge bg-light text-dark border fs-8 me-1"><i class="fas fa-building me-1 text-secondary"></i><?= htmlspecialchars($c['division_name'] ?? 'Operations') ?></span>
+                                        <span class="fw-semibold text-secondary"><?= htmlspecialchars($c['activity_name']) ?></span>
+                                    </div>
+                                    <div class="fw-bold text-primary fs-7"><?= htmlspecialchars($c['sub_activity_name']) ?></div>
+                                </td>
+
+                                <!-- 1. KT Training -->
+                                <td>
                                     <?php if (!empty($c['training_completed'])): ?>
-                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>Completed</span>
+                                        <span class="badge bg-success-subtle text-success border border-success px-2 py-1 fs-8">
+                                            <i class="fas fa-check me-1"></i>Completed
+                                        </span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary">Pending</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fs-8">
+                                            <i class="far fa-clock me-1"></i>Pending
+                                        </span>
                                     <?php endif; ?>
-                                </div>
+                                </td>
 
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span>2. PKT Process Knowledge Test:</span>
+                                <!-- 2. PKT Exam -->
+                                <td>
                                     <?php if (!empty($c['pkt_passed'])): ?>
-                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>Score: <?= number_format($c['pkt_score'], 1) ?>%</span>
+                                        <span class="badge bg-success-subtle text-success border border-success px-2 py-1 fs-8">
+                                            <i class="fas fa-check me-1"></i>Passed (<?= number_format($c['pkt_score'], 1) ?>%)
+                                        </span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary">Pending</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fs-8">
+                                            <i class="far fa-clock me-1"></i>Pending
+                                        </span>
                                     <?php endif; ?>
-                                </div>
+                                </td>
 
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span>3. Practice File Validation:</span>
+                                <!-- 3. Practice File -->
+                                <td>
                                     <?php if (!empty($c['practice_passed'])): ?>
-                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>Approved</span>
+                                        <span class="badge bg-success-subtle text-success border border-success px-2 py-1 fs-8">
+                                            <i class="fas fa-check me-1"></i>Approved
+                                        </span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary">Pending</span>
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1 fs-8">
+                                            <i class="far fa-clock me-1"></i>Pending
+                                        </span>
                                     <?php endif; ?>
-                                </div>
-                            </div>
+                                </td>
 
-                            <div class="mt-auto">
-                                <?php if (($c['status'] ?? '') === 'Certified'): ?>
-                                    <a href="<?= base_url('training/certificate/' . $c['id']) ?>" class="btn btn-success btn-sm w-100 fw-bold py-2" target="_blank">
-                                        <i class="fas fa-award me-1"></i>View & Print Certificate
-                                    </a>
-                                <?php else: ?>
-                                    <div class="text-center text-muted fs-8">Complete all 3 milestones to unlock certification</div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
+                                <!-- Overall Progress Bar -->
+                                <td>
+                                    <div style="min-width: 150px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-1 fs-8">
+                                            <span class="fw-bold text-dark"><?= $pPercent ?>% Completed</span>
+                                        </div>
+                                        <div class="progress shadow-sm" style="height: 6px; border-radius: 3px;">
+                                            <div class="progress-bar <?= $barBg ?> progress-bar-striped progress-bar-animated" role="progressbar" style="width: <?= $pPercent ?>%;"></div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Status & Action -->
+                                <td class="text-center">
+                                    <?php if (($c['status'] ?? '') === 'Certified'): ?>
+                                        <a href="<?= base_url('training/certificate/' . $c['id']) ?>" class="btn btn-success btn-sm fw-bold px-3 py-1 rounded-pill fs-8 text-nowrap shadow-sm" target="_blank">
+                                            <i class="fas fa-certificate me-1"></i>View Certificate
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-2 py-1 fs-8 rounded-pill">
+                                            <i class="fas fa-spinner fa-spin me-1"></i>In Progress
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Admin Master Certifications Table -->

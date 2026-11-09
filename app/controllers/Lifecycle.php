@@ -24,12 +24,14 @@ class Lifecycle extends Controller {
 
         $items = $lifecycleModel->getLifecycleItems($billingMonth, $filters);
         $activityProgress = $lifecycleModel->getActivityProgressReport($billingMonth);
+        $monthOverall = $lifecycleModel->getMonthOverallProgress($billingMonth);
 
         $this->render('lifecycle/index', [
             'title' => 'Process Lifecycle & Monthwise Tracker',
             'billingMonth' => $billingMonth,
             'items' => $items,
             'activityProgress' => $activityProgress,
+            'monthOverall' => $monthOverall,
             'filters' => $filters,
             'activities' => $activityModel->getActivities(),
             'allSubActivities' => $activityModel->getAllSubActivitiesWithHierarchy(),
@@ -49,16 +51,15 @@ class Lifecycle extends Controller {
             $month = !empty($_POST['billing_month']) ? sanitize($_POST['billing_month']) : date('Y-m');
             $lifecycleModel = $this->model('Lifecycle_model');
 
-            $count = $lifecycleModel->populateFromActiveSubtasks($month, Session::get('user_id'));
+            $count = $lifecycleModel->resetAndSyncWithTickets($month, Session::get('user_id'));
 
-            if ($count > 0) {
-                Session::setFlash('success', "Successfully populated {$count} active sub-activities for {$month} into the Lifecycle Tracker!");
-            } else {
-                Session::setFlash('info', "All active sub-activities for {$month} are already present in the Lifecycle Tracker.");
-            }
-
+            Session::setFlash('success', "Successfully reset & synced {$count} Lifecycle items with File Preparation tickets for {$month}!");
             redirect('lifecycle?month=' . urlencode($month));
         }
+    }
+
+    public function reset_sync() {
+        $this->populate_subtasks();
     }
 
     public function create() {

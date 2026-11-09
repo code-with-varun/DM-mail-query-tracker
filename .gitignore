@@ -4,6 +4,11 @@ scratch/
 .DS_Store
 Thumbs.db
 
+# Node dependencies & Cypress test output
+node_modules/
+cypress/screenshots/
+cypress/videos/
+
 # Keep uploads folder structure
 public/uploads/*
 !public/uploads/.gitkeep

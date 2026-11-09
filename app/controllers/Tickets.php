@@ -5,25 +5,30 @@
 
 class Tickets extends Controller {
     public function index() {
-        $this->requireAuth();
+        $this->requirePermission('all_tasks');
 
         $ticketModel = $this->model('Ticket_model');
         $activityModel = $this->model('Activity_model');
         $userModel = $this->model('User_model');
 
+        $rawStatus = $_GET['status'] ?? [];
+        $rawActivity = $_GET['activity_id'] ?? [];
+        $rawAssignee = $_GET['allocated_to'] ?? [];
+
         $filters = [
             'search' => sanitize($_GET['search'] ?? ''),
-            'status' => sanitize($_GET['status'] ?? ''),
-            'activity_id' => !empty($_GET['activity_id']) ? (int)$_GET['activity_id'] : null,
-            'allocated_to' => !empty($_GET['allocated_to']) ? (int)$_GET['allocated_to'] : null,
+            'status' => is_array($rawStatus) ? array_map('sanitize', $rawStatus) : (empty($rawStatus) ? [] : [sanitize($rawStatus)]),
+            'activity_id' => is_array($rawActivity) ? array_map('intval', $rawActivity) : (!empty($rawActivity) ? [(int)$rawActivity] : []),
+            'allocated_to' => is_array($rawAssignee) ? array_map('intval', $rawAssignee) : (!empty($rawAssignee) ? [(int)$rawAssignee] : []),
             'date_from' => sanitize($_GET['date_from'] ?? ''),
             'date_to' => sanitize($_GET['date_to'] ?? '')
         ];
 
-        $tickets = $ticketModel->getTickets($filters, Session::get('user_id'), Session::get('role_id'));
+        // All Tasks Register: Common access for all users to view any record
+        $tickets = $ticketModel->getTickets($filters, null, null);
 
         $this->render('tickets/index', [
-            'title' => 'Mail Query & Task Tickets',
+            'title' => 'All Tasks Register',
             'tickets' => $tickets,
             'filters' => $filters,
             'activities' => $activityModel->getActivities(),
@@ -32,7 +37,7 @@ class Tickets extends Controller {
     }
 
     public function create() {
-        $this->requireAuth();
+        $this->requirePermission('create_ticket');
         $activityModel = $this->model('Activity_model');
         $userModel = $this->model('User_model');
         $ticketModel = $this->model('Ticket_model');
@@ -171,6 +176,19 @@ class Tickets extends Controller {
             redirect('tickets');
         }
 
+        $workflowModel = $this->model('Workflow_model');
+        $workflow = null;
+        if (!empty($ticket['workflow_id'])) {
+            $workflow = $workflowModel->getWorkflowById((int)$ticket['workflow_id']);
+        }
+        if (!$workflow) {
+            $workflow = $workflowModel->getWorkflowForTicket($ticket['category_id'] ?? null, $ticket['sub_activity_id'] ?? null);
+            if ($workflow) {
+                $ticketModel->update('tickets', ['workflow_id' => $workflow['id']], "id = ?", [$id]);
+                $ticket['workflow_id'] = $workflow['id'];
+            }
+        }
+
         $comments = $ticketModel->getComments($id);
         $holdHistory = $ticketModel->getHoldHistory($id);
         $attachments = $ticketModel->fetchAll("SELECT * FROM ticket_attachments WHERE ticket_id = ?", [$id]);
@@ -184,6 +202,7 @@ class Tickets extends Controller {
         $this->render('tickets/view', [
             'title' => 'Ticket ' . $ticket['ticket_number'],
             'ticket' => $ticket,
+            'workflow' => $workflow,
             'comments' => $comments,
             'holdHistory' => $holdHistory,
             'attachments' => $attachments,
@@ -444,13 +463,20 @@ class Tickets extends Controller {
      * My Bucket View
      */
     public function my_bucket() {
-        $this->requireAuth();
+        $this->requirePermission('my_bucket');
 
         $ticketModel = $this->model('Ticket_model');
         $userModel = $this->model('User_model');
+
+        $rawStatus = $_GET['status'] ?? [];
+        $rawStage = $_GET['stage'] ?? [];
+        $rawPriority = $_GET['priority'] ?? [];
+
         $filters = [
             'search' => sanitize($_GET['search'] ?? ''),
-            'stage' => sanitize($_GET['stage'] ?? '')
+            'status' => is_array($rawStatus) ? array_map('sanitize', $rawStatus) : (empty($rawStatus) ? [] : [sanitize($rawStatus)]),
+            'stage' => is_array($rawStage) ? array_map('sanitize', $rawStage) : (empty($rawStage) ? [] : [sanitize($rawStage)]),
+            'priority' => is_array($rawPriority) ? array_map('sanitize', $rawPriority) : (empty($rawPriority) ? [] : [sanitize($rawPriority)]),
         ];
 
         $tickets = $ticketModel->getMyBucketTickets(Session::get('user_id'), $filters);
@@ -587,9 +613,57 @@ class Tickets extends Controller {
             }
 
             if ($ticketModel->completeDelivery($ticketId, $attachmentPath, $remarks, Session::get('user_id'))) {
-                Session::setFlash('success', 'Ticket delivered and closed successfully! Logged in Delivery Tracker.');
+                Session::setFlash('success', 'Ticket delivery logged successfully! Progressed to next queue in pipeline.');
             } else {
                 Session::setFlash('danger', 'Failed to complete delivery.');
+            }
+            redirect('tickets/view/' . $ticketId);
+        }
+    }
+
+    /**
+     * Advance Ticket to Next Enabled Queue in Pipeline
+     */
+    public function advance_queue() {
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tickets');
+            }
+
+            $ticketId = (int)($_POST['ticket_id'] ?? 0);
+            $currentStage = sanitize($_POST['current_stage'] ?? '');
+            $remarks = sanitize($_POST['remarks'] ?? '');
+
+            $ticketModel = $this->model('Ticket_model');
+            $ticket = $ticketModel->getTicketById($ticketId);
+            if (!$ticket) {
+                Session::setFlash('danger', 'Ticket not found.');
+                redirect('tickets');
+            }
+
+            $attachmentPath = null;
+            if (!empty($_FILES['stage_attachment']['name'])) {
+                $uploadDir = __DIR__ . '/../../public/uploads/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+
+                $fileName = time() . '_stage_' . basename($_FILES['stage_attachment']['name']);
+                $targetFile = $uploadDir . $fileName;
+
+                if (move_uploaded_file($_FILES['stage_attachment']['tmp_name'], $targetFile)) {
+                    $attachmentPath = 'public/uploads/' . $fileName;
+                }
+            }
+
+            $nextStage = $ticketModel->advanceToNextQueue($ticketId, $currentStage, $attachmentPath, $remarks, Session::get('user_id'));
+            
+            if ($nextStage === 'Closed') {
+                Session::setFlash('success', "Queue action logged! Ticket successfully closed & archived.");
+            } else {
+                Session::setFlash('success', "Queue action logged! Ticket progressed to next queue: [{$nextStage}].");
             }
             redirect('tickets/view/' . $ticketId);
         }

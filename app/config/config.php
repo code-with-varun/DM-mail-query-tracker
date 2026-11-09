@@ -13,6 +13,7 @@ $dir_name = rtrim($dir_name, '/');
 define('BASE_URL', (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($dir_name ? $dir_name : ''));
 define('APP_NAME', 'DM-Ispark (Business Operations & Performance Management System)');
 define('APP_VERSION', '1.0.0');
+define('APP_PATH', dirname(__DIR__));
 define('TIMEZONE', 'Asia/Kolkata');
 
 // Set application timezone

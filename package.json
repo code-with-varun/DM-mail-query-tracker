@@ -1,0 +1,14 @@
+{
+  "name": "mqt-e2e-tests",
+  "version": "1.0.0",
+  "description": "Cypress E2E Visual Test Suite for Mail Query Tracker",
+  "main": "index.js",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run --headed",
+    "test:e2e": "cypress run --headed --browser chrome"
+  },
+  "devDependencies": {
+    "cypress": "^13.17.0"
+  }
+}

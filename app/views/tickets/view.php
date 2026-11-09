@@ -7,25 +7,122 @@
     $isAssignedChecker = (!empty($ticket['checker_id']) && $ticket['checker_id'] == $currentUserId);
 
     // Action button authorization: Restricted to Assigned Maker, Assigned Checker (in Checker Phase), & Admins
-    $canManageTicket = $isAdminOrSuper || $isAllocatedMaker || ($isAssignedChecker && $curStage === 'Checker Phase');
-    $canSubmitToChecker = ($isAdminOrSuper || $isAllocatedMaker) && ($curStage === 'Maker Phase') && ($ticket['status'] !== 'Closed');
-    $canPerformCheckerAudit = ($isAdminOrSuper || $isAssignedChecker) && ($curStage === 'Checker Phase') && ($ticket['status'] !== 'Closed');
-    $canDeliverTicket = ($isAdminOrSuper || $isAllocatedMaker) && ($curStage === 'Delivery Phase') && ($ticket['status'] !== 'Closed');
+    $canManageTicket = $isAdminOrSuper || $isAllocatedMaker || ($isAssignedChecker && ($curStage === 'Checker Phase' || $curStage === 'Checker Queue'));
+    $canSubmitToChecker = ($isAdminOrSuper || $isAllocatedMaker) && ($curStage === 'Maker Phase' || $curStage === 'Maker Queue' || $curStage === 'Input Received') && ($ticket['status'] !== 'Closed');
+    $canPerformCheckerAudit = ($isAdminOrSuper || $isAssignedChecker) && ($curStage === 'Checker Phase' || $curStage === 'Checker Queue') && ($ticket['status'] !== 'Closed');
+    $canDeliverTicket = ($isAdminOrSuper || $isAllocatedMaker) && ($curStage === 'Delivery Phase' || $curStage === 'Delivery') && ($ticket['status'] !== 'Closed');
 
-    // Horizontal Stepper States
-    $step1State = ($curStage === 'Maker Phase') ? 'active' : 'completed';
-    $step2State = ($curStage === 'Checker Phase') ? 'active' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'completed' : '');
-    $step3State = ($curStage === 'Delivery Phase') ? 'active' : ($curStage === 'Completed' ? 'completed' : '');
-    $step4State = ($curStage === 'Completed') ? 'completed' : '';
+    // 12 Master Lifecycle Stages Fallback
+    $master12Stages = [
+        1 => ['name' => 'Input Received', 'title' => 'Input Recv', 'queue_type' => 'Input', 'icon' => 'fa-inbox', 'owner' => 'Client', 'remarks' => 'Task or Mail input received'],
+        2 => ['name' => 'Maker Queue', 'title' => 'Maker Phase', 'queue_type' => 'Maker', 'icon' => 'fa-pencil-ruler', 'owner' => !empty($ticket['allocated_user_name']) ? htmlspecialchars($ticket['allocated_user_name']) : 'Maker', 'remarks' => 'we have to prepare and update ticket'],
+        3 => ['name' => 'Checker Queue', 'title' => 'Checker Audit', 'queue_type' => 'Checker', 'icon' => 'fa-clipboard-check', 'owner' => !empty($ticket['checker_user_name']) ? htmlspecialchars($ticket['checker_user_name']) : 'Checker', 'remarks' => 'Quality audit and verification'],
+        4 => ['name' => 'Error Log', 'title' => 'Error Log', 'queue_type' => 'ErrorLog', 'icon' => 'fa-exclamation-triangle', 'owner' => !empty($ticket['checker_user_name']) ? htmlspecialchars($ticket['checker_user_name']) : 'Audit', 'remarks' => 'Error logged during audit'],
+        5 => ['name' => 'Maker Checker Rework', 'title' => 'MC Rework', 'queue_type' => 'Rework', 'icon' => 'fa-sync', 'owner' => !empty($ticket['allocated_user_name']) ? htmlspecialchars($ticket['allocated_user_name']) : 'Maker', 'remarks' => 'Rework loop for audit correction'],
+        6 => ['name' => 'Delivery', 'title' => 'Delivery Phase', 'queue_type' => 'Delivery', 'icon' => 'fa-paper-plane', 'owner' => !empty($ticket['allocated_user_name']) ? htmlspecialchars($ticket['allocated_user_name']) : 'Maker', 'remarks' => 'we have to prepare and update ticket'],
+        7 => ['name' => 'Acknowledgement', 'title' => 'Ack Recv', 'queue_type' => 'Ack', 'icon' => 'fa-envelope-open-text', 'owner' => 'Client', 'remarks' => 'we receive email confirmation and update ticket'],
+        8 => ['name' => 'Approval Queue', 'title' => 'Approval', 'queue_type' => 'Approval', 'icon' => 'fa-user-shield', 'owner' => 'Business Head', 'remarks' => 'we receive email confirmation and update ticket'],
+        9 => ['name' => 'Uploader Queue', 'title' => 'Uploader', 'queue_type' => 'Uploader', 'icon' => 'fa-cloud-upload-alt', 'owner' => 'Claims uploading', 'remarks' => 'we have to upload and update ticket'],
+        10 => ['name' => 'Dump Sharing', 'title' => 'Dump Share', 'queue_type' => 'DumpShare', 'icon' => 'fa-database', 'owner' => 'Shared to Finance Team', 'remarks' => 'we have to share and update ticket'],
+        11 => ['name' => 'Consol Vendor Tracker', 'title' => 'Consol Vendor', 'queue_type' => 'ConsolVendor', 'icon' => 'fa-truck-moving', 'owner' => 'Maker', 'remarks' => 'we have to prepare and update ticket'],
+        12 => ['name' => 'Closed', 'title' => 'Ticket Closed', 'queue_type' => 'Closed', 'icon' => 'fa-check-double', 'owner' => 'Maker', 'remarks' => 'Ticket output ready & completed']
+    ];
 
-    $line12State = ($curStage === 'Maker Phase') ? 'active' : 'completed';
-    $line23State = ($curStage === 'Checker Phase') ? 'active' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'completed' : '');
-    $line34State = ($curStage === 'Delivery Phase') ? 'active' : ($curStage === 'Completed' ? 'completed' : '');
+    $queueMetaMap = [
+        'Input'        => ['icon' => 'fa-inbox', 'default_owner' => 'Client', 'default_title' => 'Input Recv'],
+        'Maker'        => ['icon' => 'fa-pencil-ruler', 'default_owner' => !empty($ticket['allocated_user_name']) ? htmlspecialchars($ticket['allocated_user_name']) : 'Maker', 'default_title' => 'Maker Phase'],
+        'Checker'      => ['icon' => 'fa-clipboard-check', 'default_owner' => !empty($ticket['checker_user_name']) ? htmlspecialchars($ticket['checker_user_name']) : 'Checker', 'default_title' => 'Checker Audit'],
+        'ErrorLog'     => ['icon' => 'fa-exclamation-triangle', 'default_owner' => !empty($ticket['checker_user_name']) ? htmlspecialchars($ticket['checker_user_name']) : 'Audit', 'default_title' => 'Error Log'],
+        'Rework'       => ['icon' => 'fa-sync', 'default_owner' => !empty($ticket['allocated_user_name']) ? htmlspecialchars($ticket['allocated_user_name']) : 'Maker', 'default_title' => 'MC Rework'],
+        'Delivery'     => ['icon' => 'fa-paper-plane', 'default_owner' => !empty($ticket['allocated_user_name']) ? htmlspecialchars($ticket['allocated_user_name']) : 'Maker', 'default_title' => 'Delivery Phase'],
+        'Ack'          => ['icon' => 'fa-envelope-open-text', 'default_owner' => 'Client', 'default_title' => 'Ack Recv'],
+        'Approval'     => ['icon' => 'fa-user-shield', 'default_owner' => 'Business Head', 'default_title' => 'Approval'],
+        'Uploader'     => ['icon' => 'fa-cloud-upload-alt', 'default_owner' => 'Claims uploader', 'default_title' => 'Uploader'],
+        'DumpShare'    => ['icon' => 'fa-database', 'default_owner' => 'Shared to Finance', 'default_title' => 'Dump Share'],
+        'ConsolVendor' => ['icon' => 'fa-truck-moving', 'default_owner' => 'Maker', 'default_title' => 'Consol Vendor'],
+        'Closed'       => ['icon' => 'fa-check-double', 'default_owner' => 'Maker', 'default_title' => 'Ticket Closed']
+    ];
 
-    $step1Sub = ($curStage === 'Maker Phase') ? 'File in Preparation' : 'Completed';
-    $step2Sub = ($curStage === 'Checker Phase') ? 'Under Review' : (($curStage === 'Delivery Phase' || $curStage === 'Completed') ? 'Approved' : 'Pending');
-    $step3Sub = ($curStage === 'Delivery Phase') ? 'Awaiting Dispatch' : ($curStage === 'Completed' ? 'Delivered' : 'Pending');
-    $step4Sub = ($curStage === 'Completed') ? 'Closed' : 'Pending';
+    $hasCustomWorkflow = !empty($workflow) && !empty($workflow['stages']);
+    $pipelineStages = [];
+
+    if ($hasCustomWorkflow) {
+        foreach ($workflow['stages'] as $stg) {
+            $qType = $stg['queue_type'] ?? 'Maker';
+            $meta = $queueMetaMap[$qType] ?? $queueMetaMap['Maker'];
+            
+            $owner = $meta['default_owner'];
+            if (!empty($stg['assigned_role'])) {
+                if ($stg['assigned_role'] === 'Checker') {
+                    $owner = !empty($ticket['checker_user_name']) ? htmlspecialchars($ticket['checker_user_name']) : 'Checker';
+                } elseif ($stg['assigned_role'] === 'Admin') {
+                    $owner = 'Business Head';
+                } elseif ($stg['assigned_role'] === 'Both') {
+                    $owner = 'Maker / Checker';
+                }
+            }
+
+            $pipelineStages[] = [
+                'id' => $stg['id'],
+                'order' => $stg['stage_order'],
+                'name' => $stg['stage_name'],
+                'title' => $stg['stage_name'],
+                'queue_type' => $qType,
+                'icon' => $meta['icon'],
+                'owner' => $owner,
+                'remarks' => $stg['description'] ?? ''
+            ];
+        }
+    } else {
+        $enabledQueuesList = !empty($ticket['enabled_queues']) ? json_decode($ticket['enabled_queues'], true) : null;
+        foreach ($master12Stages as $sKey => $sVal) {
+            if ($enabledQueuesList === null || !is_array($enabledQueuesList) || in_array($sVal['name'], $enabledQueuesList)) {
+                $pipelineStages[] = $sVal;
+            }
+        }
+    }
+
+    $totalStagesCount = count($pipelineStages);
+    $curStageNum = 1;
+
+    if ($ticket['status'] === 'Closed' || $ticket['status'] === 'Completed') {
+        $curStageNum = $totalStagesCount;
+    } else {
+        $foundStage = false;
+        if (!empty($ticket['current_stage_id'])) {
+            foreach ($pipelineStages as $idx => $stgItem) {
+                if (isset($stgItem['id']) && (int)$stgItem['id'] === (int)$ticket['current_stage_id']) {
+                    $curStageNum = $idx + 1;
+                    $foundStage = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$foundStage) {
+            foreach ($pipelineStages as $idx => $stgItem) {
+                if (strcasecmp(trim($stgItem['name']), trim($curStage)) === 0 || strcasecmp(trim($stgItem['title']), trim($curStage)) === 0) {
+                    $curStageNum = $idx + 1;
+                    $foundStage = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$foundStage) {
+            foreach ($pipelineStages as $idx => $stgItem) {
+                $qType = $stgItem['queue_type'] ?? '';
+                if (!empty($qType) && (stripos($curStage, $qType) !== false || stripos($qType, $curStage) !== false)) {
+                    $curStageNum = $idx + 1;
+                    $foundStage = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    $activeStageObj = $pipelineStages[$curStageNum - 1] ?? ($pipelineStages[0] ?? null);
+    $activeQueueType = $activeStageObj['queue_type'] ?? 'Maker';
 ?>
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -33,7 +130,12 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h4 class="fw-bold mb-0">Ticket #<?= htmlspecialchars($ticket['ticket_number']) ?></h4>
                 <?= get_status_badge($ticket['status']) ?>
-                <span class="badge bg-purple text-white fw-bold"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($ticket['stage'] ?? 'Maker Phase') ?></span>
+                <?php if (!empty($ticket['category_name'])): ?>
+                    <span class="badge bg-secondary text-white fw-bold"><i class="fas fa-folder me-1"></i><?= htmlspecialchars($ticket['category_name']) ?></span>
+                <?php endif; ?>
+                <?php if (strcasecmp($curStage, $ticket['status']) !== 0 && strcasecmp($curStage, 'Completed') !== 0 && strcasecmp($curStage, 'Closed') !== 0): ?>
+                    <span class="badge bg-purple text-white fw-bold"><i class="fas fa-layer-group me-1"></i><?= htmlspecialchars($curStage) ?></span>
+                <?php endif; ?>
                 <?= get_tat_badge($ticket['tat_datetime'], $ticket['status']) ?>
             </div>
             <p class="text-muted fs-7 mb-0">Created on <?= format_datetime($ticket['created_at']) ?> by <?= htmlspecialchars($ticket['creator_name'] ?? 'System') ?></p>
@@ -58,76 +160,79 @@
         </div>
     </div>
 
-    <!-- Horizontal Dropshipping Order-Tracking Step Pipeline -->
+    <!-- Process Queue Pipeline Banner -->
     <div class="card border-0 shadow-sm mb-4 bg-white border-top border-4 border-primary">
         <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark fs-7"><i class="fas fa-truck-loading text-primary me-2"></i>Task Process Queue Pipeline</h6>
-                    <small class="text-muted fs-8">Horizontal Stage Tracker & Queue Ownership Monitor</small>
+                    <h6 class="fw-bold mb-0 text-dark fs-7"><i class="fas fa-project-diagram text-primary me-2"></i><?= $hasCustomWorkflow ? htmlspecialchars($workflow['workflow_name']) : 'Task Process Queue Pipeline' ?></h6>
+                    <small class="text-muted fs-8"><?= $hasCustomWorkflow ? 'Configured Category Process Workflow Tracker & Ownership Monitor' : 'Configured Sub-Activity Lifecycle Tracker & Queue Ownership Monitor (6 Per Row)' ?></small>
                 </div>
-                <span class="badge bg-light text-dark border fs-8 px-3 py-1">Current Stage: <strong><?= htmlspecialchars($curStage ?? 'Maker Phase') ?></strong></span>
+                <div class="d-flex gap-2 align-items-center">
+                    <?php if ($hasCustomWorkflow): ?>
+                        <span class="badge bg-purple text-white border border-purple fs-8"><i class="fas fa-sitemap me-1"></i>Category Workflow (<?= count($pipelineStages) ?> Stages)</span>
+                    <?php endif; ?>
+                    <span class="badge bg-light text-dark border fs-8 px-3 py-1">Current Stage: <strong><?= htmlspecialchars($curStage) ?></strong></span>
+                </div>
             </div>
 
             <!-- Stepper Container -->
-            <div class="dropship-stepper-container">
-                <div class="dropship-stepper">
-                    <!-- Step 1: Maker Phase -->
-                    <div class="stepper-item <?= $step1State ?>">
-                        <div class="stepper-node">
-                            <i class="fas <?= $step1State === 'completed' ? 'fa-check' : 'fa-pencil-ruler' ?>"></i>
-                        </div>
-                        <div class="stepper-content">
-                            <span class="stepper-title">1. Maker Phase</span>
-                            <span class="stepper-sub"><?= $step1Sub ?></span>
-                            <span class="stepper-owner"><i class="fas fa-user me-1"></i><?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?></span>
-                        </div>
-                    </div>
+            <div class="dropship-stepper-12-container">
+                <div class="dropship-stepper-12">
+                    <?php 
+                    $stageChunks = array_chunk($pipelineStages, 6, true);
+                    foreach ($stageChunks as $rIdx => $rowStages):
+                        $rowItemCount = count($rowStages);
+                        $itemNum = 0;
+                    ?>
+                        <div class="pipeline-row">
+                            <?php foreach ($rowStages as $idx => $stg): 
+                                $itemNum++;
+                                $stageNum = $idx + 1;
+                                $isLastStage = ($stageNum === $totalStagesCount) || (($stg['queue_type'] ?? '') === 'Closed');
 
-                    <!-- Step Line 1-2 -->
-                    <div class="stepper-line <?= $line12State ?>"></div>
+                                if ($ticket['status'] === 'Closed' || $stageNum < $curStageNum) {
+                                    $nodeClass = 'completed';
+                                    $subText = $isLastStage ? 'Closed' : 'Completed';
+                                } elseif ($stageNum === $curStageNum) {
+                                    if ($isLastStage || $ticket['status'] === 'Closed') {
+                                        $nodeClass = 'completed';
+                                        $subText = 'Closed';
+                                    } else {
+                                        $nodeClass = 'active';
+                                        $subText = 'In Progress';
+                                    }
+                                } else {
+                                    $nodeClass = '';
+                                    $subText = 'Pending';
+                                }
+                            ?>
+                                <div class="stepper-12-item <?= $nodeClass ?>" title="<?= htmlspecialchars($stg['name'] . (!empty($stg['remarks']) ? ': ' . $stg['remarks'] : '')) ?>">
+                                    <div class="stepper-12-node">
+                                        <i class="fas <?= $nodeClass === 'completed' ? ($isLastStage ? 'fa-check-double' : 'fa-check') : $stg['icon'] ?>"></i>
+                                    </div>
+                                    <div class="stepper-12-content">
+                                        <span class="stepper-12-title" title="<?= htmlspecialchars($stg['name']) ?>"><?= htmlspecialchars($stg['title']) ?></span>
+                                        <span class="stepper-12-sub" title="<?= htmlspecialchars($stg['remarks'] ?? '') ?>"><?= $subText ?></span>
+                                        <span class="stepper-12-owner" title="<?= htmlspecialchars($stg['remarks'] ?? '') ?>"><i class="fas fa-user me-1"></i><?= htmlspecialchars($stg['owner']) ?></span>
+                                    </div>
+                                </div>
 
-                    <!-- Step 2: Checker Audit -->
-                    <div class="stepper-item <?= $step2State ?>">
-                        <div class="stepper-node">
-                            <i class="fas <?= $step2State === 'completed' ? 'fa-check' : 'fa-clipboard-check' ?>"></i>
+                                <?php if ($itemNum < $rowItemCount): ?>
+                                    <?php 
+                                    if ($ticket['status'] === 'Closed' || $stageNum < $curStageNum) {
+                                        $lineClass = 'completed';
+                                    } elseif ($stageNum === $curStageNum - 1) {
+                                        $lineClass = 'active';
+                                    } else {
+                                        $lineClass = '';
+                                    }
+                                    ?>
+                                    <div class="stepper-12-line <?= $lineClass ?>"></div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </div>
-                        <div class="stepper-content">
-                            <span class="stepper-title">2. Checker Audit</span>
-                            <span class="stepper-sub"><?= $step2Sub ?></span>
-                            <span class="stepper-owner"><i class="fas fa-user-check me-1"></i><?= htmlspecialchars($ticket['checker_user_name'] ?? 'Audit Pool') ?></span>
-                        </div>
-                    </div>
-
-                    <!-- Step Line 2-3 -->
-                    <div class="stepper-line <?= $line23State ?>"></div>
-
-                    <!-- Step 3: Delivery Phase -->
-                    <div class="stepper-item <?= $step3State ?>">
-                        <div class="stepper-node">
-                            <i class="fas <?= $step3State === 'completed' ? 'fa-check' : 'fa-paper-plane' ?>"></i>
-                        </div>
-                        <div class="stepper-content">
-                            <span class="stepper-title">3. Delivery Phase</span>
-                            <span class="stepper-sub"><?= $step3Sub ?></span>
-                            <span class="stepper-owner"><i class="fas fa-user me-1"></i><?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker Delivery') ?></span>
-                        </div>
-                    </div>
-
-                    <!-- Step Line 3-4 -->
-                    <div class="stepper-line <?= $line34State ?>"></div>
-
-                    <!-- Step 4: Ticket Closed -->
-                    <div class="stepper-item <?= $step4State ?>">
-                        <div class="stepper-node">
-                            <i class="fas fa-check-double"></i>
-                        </div>
-                        <div class="stepper-content">
-                            <span class="stepper-title">4. Ticket Closed</span>
-                            <span class="stepper-sub"><?= $step4Sub ?></span>
-                            <span class="stepper-owner"><i class="fas fa-archive me-1"></i>Output Ready</span>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
 
@@ -136,20 +241,19 @@
                 <div class="text-start">
                     <small class="text-muted fw-bold fs-8 d-block"><i class="fas fa-shield-alt text-primary me-1"></i>Stage Ownership Rights:</small>
                     <span class="fs-8 text-dark">
-                        <?php if ($curStage === 'Maker Phase'): ?>
-                            Controlled by <strong>Maker</strong> (<?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Unassigned') ?>)
-                        <?php elseif ($curStage === 'Checker Phase'): ?>
-                            Controlled by <strong>Checker</strong> (<?= htmlspecialchars($ticket['checker_user_name'] ?? 'Audit Pool') ?>)
-                        <?php elseif ($curStage === 'Delivery Phase'): ?>
-                            Controlled by <strong>Maker</strong> (<?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Unassigned') ?>)
+                        <?php if ($ticket['status'] === 'Closed'): ?>
+                            Ticket is <strong>Closed & Archived</strong>
                         <?php else: ?>
-                            Ticket is Closed & Archived
+                            Controlled by <strong><?= htmlspecialchars($activeStageObj['owner'] ?? 'Queue Processor') ?></strong> (Stage: <?= htmlspecialchars($activeStageObj['name'] ?? $curStage) ?>)
                         <?php endif; ?>
                     </span>
                 </div>
 
                 <div class="text-end">
-                    <?php if ($curStage === 'Maker Phase' && $ticket['status'] !== 'Closed'): ?>
+                    <?php if ($ticket['status'] === 'Closed'): ?>
+                        <span class="badge bg-success bg-opacity-15 text-success border border-success px-3 py-2 fs-8"><i class="fas fa-check-double me-1"></i>Ticket Fully Completed & Archived</span>
+
+                    <?php elseif (in_array($activeQueueType, ['Input', 'Maker', 'Rework'])): ?>
                         <?php if ($canSubmitToChecker): ?>
                             <button type="button" class="btn btn-warning text-dark fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#submitCheckerModal">
                                 <i class="fas fa-paper-plane me-1"></i>Submit to Checker Queue
@@ -158,7 +262,7 @@
                             <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Maker File Preparation (Owner: <?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?>)</span>
                         <?php endif; ?>
 
-                    <?php elseif ($curStage === 'Checker Phase' && $ticket['status'] !== 'Closed'): ?>
+                    <?php elseif (in_array($activeQueueType, ['Checker', 'ErrorLog'])): ?>
                         <?php if ($canPerformCheckerAudit): ?>
                             <button type="button" class="btn btn-success fw-bold px-3 me-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#approveCheckerModal">
                                 <i class="fas fa-check-circle me-1"></i>Approve Checker Audit
@@ -170,13 +274,33 @@
                             <span class="badge bg-warning bg-opacity-15 text-dark border border-warning px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Checker Audit Review (Owner: <?= htmlspecialchars($ticket['checker_user_name'] ?? 'Checker Pool') ?>)</span>
                         <?php endif; ?>
 
-                    <?php elseif ($curStage === 'Delivery Phase' && $ticket['status'] !== 'Closed'): ?>
-                        <?php if ($canDeliverTicket): ?>
+                    <?php elseif ($activeQueueType === 'Delivery'): ?>
+                        <?php if ($canDeliverTicket || $isAdminOrSuper): ?>
                             <button type="button" class="btn btn-success fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#deliverModal">
-                                <i class="fas fa-file-upload me-1"></i>Deliver File & Close Ticket
+                                <i class="fas fa-paper-plane me-1"></i>Log Delivery & Advance Queue
                             </button>
                         <?php else: ?>
                             <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Maker Delivery Acknowledgment (Owner: <?= htmlspecialchars($ticket['allocated_user_name'] ?? 'Maker') ?>)</span>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <?php if ($canManageTicket || $isAdminOrSuper): ?>
+                            <?php
+                            $actionLabels = [
+                                'Ack'          => '<i class="fas fa-envelope-open-text me-1"></i>Log Client Ack & Proceed',
+                                'Approval'     => '<i class="fas fa-user-shield me-1"></i>Log Manager Approval & Proceed',
+                                'Uploader'     => '<i class="fas fa-cloud-upload-alt me-1"></i>Log Claims Upload & Proceed',
+                                'DumpShare'    => '<i class="fas fa-database me-1"></i>Log Dump Share & Proceed',
+                                'ConsolVendor' => '<i class="fas fa-truck-moving me-1"></i>Log Vendor Consolidation & Close',
+                            ];
+                            $btnText = $actionLabels[$activeQueueType] ?? '<i class="fas fa-step-forward me-1"></i>Log & Advance Queue';
+                            $btnClass = ($activeQueueType === 'ConsolVendor' || $curStageNum === $totalStagesCount) ? 'btn-success' : 'btn-primary';
+                            ?>
+                            <button type="button" class="btn <?= $btnClass ?> fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#advanceQueueModal">
+                                <?= $btnText ?>
+                            </button>
+                        <?php else: ?>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 fs-8"><i class="fas fa-lock me-1"></i>Awaiting Queue Processing (Stage: <?= htmlspecialchars($curStage) ?>)</span>
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
@@ -671,3 +795,42 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Advance Queue Phase -->
+<div class="modal fade" id="advanceQueueModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="<?= base_url('tickets/advance-queue') ?>" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
+                <input type="hidden" name="current_stage" value="<?= htmlspecialchars($curStage) ?>">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-step-forward me-2"></i>Log Queue Completion & Proceed</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="p-3 bg-light rounded border border-primary border-opacity-25 mb-3">
+                        <small class="text-muted text-uppercase fw-bold fs-8 d-block mb-1">Current Queue Stage</small>
+                        <div class="fw-bold text-dark fs-6"><i class="fas fa-layer-group text-primary me-2"></i><?= htmlspecialchars($curStage) ?></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Upload Proof Document / Screenshot (Optional)</label>
+                        <input type="file" name="stage_attachment" class="form-control" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+                        <small class="text-muted fs-8">Attach email screenshot, upload confirmation, or reference document.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Queue Action Remarks / Notes <span class="text-danger">*</span></label>
+                        <textarea name="remarks" class="form-control" rows="3" placeholder="Enter completion notes for stage <?= htmlspecialchars($curStage) ?>..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4"><i class="fas fa-check-circle me-1"></i>Complete & Advance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

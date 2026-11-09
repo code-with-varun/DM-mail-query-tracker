@@ -105,11 +105,15 @@ class Tracker extends Controller {
         $userModel = $this->model('User_model');
         $activityModel = $this->model('Activity_model');
 
+        $rawStatus = $_GET['status'] ?? [];
+        $rawActivity = $_GET['activity_id'] ?? [];
+        $rawAssignee = $_GET['allocated_to'] ?? [];
+
         $filters = [
             'search' => sanitize($_GET['search'] ?? ''),
-            'status' => sanitize($_GET['status'] ?? ''),
-            'activity_id' => !empty($_GET['activity_id']) ? (int)$_GET['activity_id'] : null,
-            'allocated_to' => !empty($_GET['allocated_to']) ? (int)$_GET['allocated_to'] : null
+            'status' => is_array($rawStatus) ? array_map('sanitize', $rawStatus) : (empty($rawStatus) ? [] : [sanitize($rawStatus)]),
+            'activity_id' => is_array($rawActivity) ? array_map('intval', $rawActivity) : (!empty($rawActivity) ? [(int)$rawActivity] : []),
+            'allocated_to' => is_array($rawAssignee) ? array_map('intval', $rawAssignee) : (!empty($rawAssignee) ? [(int)$rawAssignee] : [])
         ];
 
         $userId = Session::get('user_id');
@@ -127,4 +131,86 @@ class Tracker extends Controller {
             'activities' => $activityModel->getActivities()
         ]);
     }
+
+    public function timesheet() {
+        $this->requireAuth();
+        $trackerModel = $this->model('Tracker_model');
+        $userModel = $this->model('User_model');
+        $projectModel = $this->model('Project_model');
+        $activityModel = $this->model('Activity_model');
+
+        $loggedUserId = (int)$_SESSION['user_id'];
+        $loggedRoleId = (int)$_SESSION['role_id'];
+
+        $filters = [];
+        if (!is_super_admin() && !is_senior_management() && !is_manager() && !is_team_lead()) {
+            $filters['user_id'] = $loggedUserId;
+        } elseif (!empty($_GET['user_id'])) {
+            $reqUserId = (int)$_GET['user_id'];
+            $downlineIds = $userModel->getDownlineUserIds($loggedUserId, $loggedRoleId);
+            if (in_array($reqUserId, $downlineIds)) {
+                $filters['user_id'] = $reqUserId;
+            } else {
+                $filters['user_id'] = $loggedUserId;
+            }
+        }
+
+        if (!empty($_GET['start_date'])) $filters['start_date'] = sanitize($_GET['start_date']);
+        if (!empty($_GET['end_date'])) $filters['end_date'] = sanitize($_GET['end_date']);
+        if (!empty($_GET['project_id'])) $filters['project_id'] = (int)$_GET['project_id'];
+
+        $logs = $trackerModel->getTimesheetLogs($filters);
+        $employees = $userModel->getDownlineEmployees($loggedUserId, $loggedRoleId);
+        $projects = $projectModel->getProjects();
+        $activities = $activityModel->getActivities();
+
+        $this->render('tracker/timesheet', [
+            'title' => 'Daily Timesheet & Effort Tracker',
+            'logs' => $logs,
+            'employees' => $employees,
+            'projects' => $projects,
+            'activities' => $activities,
+            'filters' => $filters
+        ]);
+    }
+
+    public function store_timesheet() {
+        $this->requireAuth();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Session::verifyCsrf()) {
+                Session::setFlash('danger', 'Invalid security token.');
+                redirect('tracker/timesheet');
+            }
+
+            $trackerModel = $this->model('Tracker_model');
+            $data = [
+                'user_id' => !empty($_POST['user_id']) ? (int)$_POST['user_id'] : (int)$_SESSION['user_id'],
+                'project_id' => !empty($_POST['project_id']) ? (int)$_POST['project_id'] : null,
+                'activity_id' => !empty($_POST['activity_id']) ? (int)$_POST['activity_id'] : null,
+                'sub_activity_id' => !empty($_POST['sub_activity_id']) ? (int)$_POST['sub_activity_id'] : null,
+                'log_date' => sanitize($_POST['log_date'] ?? date('Y-m-d')),
+                'hours_spent' => (float)($_POST['hours_spent'] ?? 8.0),
+                'task_description' => sanitize($_POST['task_description'] ?? 'Operations processing and transaction delivery'),
+                'status' => 'Submitted'
+            ];
+
+            $trackerModel->createTimesheetLog($data);
+            Session::setFlash('success', 'Timesheet effort logged successfully.');
+        }
+
+        redirect('tracker/timesheet');
+    }
+
+    public function delete_timesheet($id = null) {
+        $this->requireAuth();
+        $id = (int)$id;
+        if ($id > 0) {
+            $trackerModel = $this->model('Tracker_model');
+            $trackerModel->deleteTimesheetLog($id);
+            Session::setFlash('success', 'Timesheet record removed.');
+        }
+        redirect('tracker/timesheet');
+    }
 }
+

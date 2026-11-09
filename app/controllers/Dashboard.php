@@ -28,11 +28,13 @@ class Dashboard extends Controller {
         $stats = $ticketModel->getDashboardStats($userId, $roleId, $filters);
 
         $viewName = 'employee';
-        if ($roleId == 1) {
+        if ($roleId == 1 || $roleId == 5) {
+            // Super Admin & Senior Management: Org-wide Executive Analytics
             $viewName = 'superadmin';
             $data['total_admins'] = count($userModel->getAdmins());
             $data['total_employees'] = count($userModel->getEmployees());
-        } elseif ($roleId == 2) {
+        } elseif ($roleId == 2 || $roleId == 3) {
+            // Admin (TL) & Manager: Team Operations & Workload
             $viewName = 'admin';
             $data['team_employees'] = $userModel->getTeamEmployees($userId);
         }
@@ -40,7 +42,7 @@ class Dashboard extends Controller {
         // Master Lists for Slicer Dropdowns
         $data['slicer_divisions'] = $activityModel->getDivisions();
         $data['slicer_activities'] = $activityModel->getActivities();
-        $data['slicer_employees'] = $userModel->getEmployees();
+        $data['slicer_employees'] = $userModel->getDownlineEmployees($userId, $roleId);
         $data['filters'] = $filters;
 
         // Analytics Datasets

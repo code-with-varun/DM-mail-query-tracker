@@ -111,40 +111,110 @@
         </div>
     </div>
 
-    <!-- Filter Card -->
+    <!-- Filter Slicer Card (Multi-Select Dropdown Slicers) -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
-            <form action="<?= base_url('tracker/query') ?>" method="GET" class="row g-2 align-items-center">
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search ticket #, sender, agency..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
-                </div>
-                <div class="col-md-2">
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="">All Statuses</option>
-                        <?php foreach (['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'On Hold', 'Closed', 'Cancelled'] as $st): ?>
-                            <option value="<?= $st ?>" <?= ($filters['status'] ?? '') === $st ? 'selected' : '' ?>><?= $st ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select name="activity_id" class="form-select form-select-sm">
-                        <option value="">All Activities</option>
-                        <?php foreach ($activities as $act): ?>
-                            <option value="<?= $act['id'] ?>" <?= ($filters['activity_id'] ?? '') == $act['id'] ? 'selected' : '' ?>><?= htmlspecialchars($act['activity_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="allocated_to" class="form-select form-select-sm">
-                        <option value="">All Assignees</option>
-                        <?php foreach ($users as $u): ?>
-                            <option value="<?= $u['id'] ?>" <?= ($filters['allocated_to'] ?? '') == $u['id'] ? 'selected' : '' ?>><?= htmlspecialchars($u['full_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex gap-1">
-                    <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold"><i class="fas fa-filter me-1"></i>Filter</button>
-                    <a href="<?= base_url('tracker/query') ?>" class="btn btn-sm btn-light border"><i class="fas fa-undo"></i></a>
+            <form action="<?= base_url('tracker/query') ?>" method="GET" id="queryFilterForm">
+                <div class="row g-3 align-items-end">
+                    <!-- Keyword Search -->
+                    <div class="col-md-3">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-search me-1 text-primary"></i>Keyword Search</label>
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search ticket #, sender, agency..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+                    </div>
+
+                    <!-- 1. STATUS SLICER -->
+                    <?php 
+                    $statusOptions = ['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'On Hold', 'Closed', 'Cancelled'];
+                    $isStatusSet = isset($_GET['status']);
+                    $selectedStatuses = $isStatusSet ? (array)$filters['status'] : [];
+                    $statusCount = count($selectedStatuses);
+                    $statusLabel = ($statusCount === 0) ? 'All Statuses' : (($statusCount === count($statusOptions)) ? 'All Selected (' . count($statusOptions) . ')' : $statusCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-tasks me-1 text-primary"></i>Status Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-status', event)">
+                            <span id="btn-status-label" class="truncate"><?= $statusLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-status" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('status')" id="search-status" placeholder="Search status..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('status')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('status')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-status" class="slicer-list-scroll">
+                                <?php foreach ($statusOptions as $st): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="status[]" value="<?= $st ?>" <?= in_array($st, $selectedStatuses) ? 'checked' : '' ?> onchange="updateSlicerLabel('status')">
+                                        <span><?= $st ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. ACTIVITY SLICER -->
+                    <?php 
+                    $selectedActivities = isset($_GET['activity_id']) ? (array)$filters['activity_id'] : [];
+                    $actCount = count($selectedActivities);
+                    $actLabel = ($actCount === 0) ? 'All Activities' : (($actCount === count($activities)) ? 'All Selected (' . count($activities) . ')' : $actCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-cubes me-1 text-primary"></i>Activity Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-activity', event)">
+                            <span id="btn-activity-label" class="truncate"><?= $actLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-activity" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('activity')" id="search-activity" placeholder="Search activity..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('activity')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('activity')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-activity" class="slicer-list-scroll">
+                                <?php foreach ($activities as $act): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="activity_id[]" value="<?= $act['id'] ?>" <?= in_array($act['id'], $selectedActivities) ? 'checked' : '' ?> onchange="updateSlicerLabel('activity')">
+                                        <span><?= htmlspecialchars($act['activity_name']) ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. ASSIGNEE SLICER -->
+                    <?php 
+                    $selectedAssignees = isset($_GET['allocated_to']) ? (array)$filters['allocated_to'] : [];
+                    $userCount = count($selectedAssignees);
+                    $userLabel = ($userCount === 0) ? 'All Assignees' : (($userCount === count($users)) ? 'All Selected (' . count($users) . ')' : $userCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-users me-1 text-primary"></i>Assignee Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-assignee', event)">
+                            <span id="btn-assignee-label" class="truncate"><?= $userLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-assignee" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('assignee')" id="search-assignee" placeholder="Search assignee..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('assignee')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('assignee')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-assignee" class="slicer-list-scroll">
+                                <?php foreach ($users as $u): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="allocated_to[]" value="<?= $u['id'] ?>" <?= in_array($u['id'], $selectedAssignees) ? 'checked' : '' ?> onchange="updateSlicerLabel('assignee')">
+                                        <span><?= htmlspecialchars($u['full_name']) ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2 pt-1">
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-4"><i class="fas fa-filter me-1"></i>Apply Slicers</button>
+                        <a href="<?= base_url('tracker/query') ?>" class="btn btn-outline-secondary btn-sm fw-bold px-3"><i class="fas fa-undo me-1"></i>Reset</a>
+                    </div>
                 </div>
             </form>
         </div>
@@ -325,6 +395,95 @@
 </div>
 
 <script>
+function toggleSlicerDropdown(dropdownId, event) {
+    if (event) event.stopPropagation();
+    const targetPanel = document.getElementById(dropdownId);
+    if (!targetPanel) return;
+    const isShowing = targetPanel.classList.contains('show');
+    
+    document.querySelectorAll('.slicer-panel').forEach(panel => {
+        if (panel !== targetPanel) panel.classList.remove('show');
+    });
+
+    if (!isShowing) {
+        targetPanel.classList.add('show');
+        const searchInput = targetPanel.querySelector('.slicer-search-input');
+        if (searchInput) {
+            setTimeout(() => searchInput.focus(), 50);
+        }
+    } else {
+        targetPanel.classList.remove('show');
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.slicer-dropdown-container')) {
+        document.querySelectorAll('.slicer-panel').forEach(panel => panel.classList.remove('show'));
+    }
+});
+
+function filterSlicerOptions(key) {
+    const input = document.getElementById('search-' + key);
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const options = list.getElementsByClassName('slicer-item-option');
+
+    for (let i = 0; i < options.length; i++) {
+        const txtValue = options[i].textContent || options[i].innerText;
+        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+            options[i].style.display = "flex";
+        } else {
+            options[i].style.display = "none";
+        }
+    }
+}
+
+function selectAllSlicer(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const options = list.getElementsByClassName('slicer-item-option');
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].style.display !== 'none') {
+            const cb = options[i].querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = true;
+        }
+    }
+    updateSlicerLabel(key);
+}
+
+function clearAllSlicer(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const options = list.getElementsByClassName('slicer-item-option');
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].style.display !== 'none') {
+            const cb = options[i].querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = false;
+        }
+    }
+    updateSlicerLabel(key);
+}
+
+function updateSlicerLabel(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+    const checked = list.querySelectorAll('input[type="checkbox"]:checked');
+    const labelSpan = document.getElementById('btn-' + key + '-label');
+
+    if (!labelSpan) return;
+
+    if (checked.length === 0) {
+        labelSpan.textContent = 'None Selected (0)';
+    } else if (checked.length === checkboxes.length) {
+        labelSpan.textContent = 'All Selected (' + checkboxes.length + ')';
+    } else {
+        labelSpan.textContent = checked.length + ' Selected';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-reschedule').forEach(function(btn) {
         btn.addEventListener('click', function() {

@@ -2,7 +2,7 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fas fa-industry text-primary me-2"></i>Daywise Production Tracker</h4>
+            <h4 class="fw-bold mb-1"><i class="fas fa-industry text-primary me-2"></i>Daywise Count Tracker</h4>
             <p class="text-muted fs-7 mb-0">Daily Opening Balance, New Task Inflow, Output Closures & Carryover Register</p>
         </div>
         <div class="d-flex gap-2">

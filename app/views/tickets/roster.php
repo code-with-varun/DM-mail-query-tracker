@@ -5,11 +5,25 @@
             <p class="text-muted fs-7 mb-0">Daily scheduled work items + auto-rescheduled pending tickets from previous days</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <form action="<?= base_url('roster') ?>" method="GET" class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0 fw-bold fs-7 text-muted text-nowrap">Planner Date:</label>
-                <input type="date" name="date" class="form-control form-control-sm fw-bold text-primary" value="<?= htmlspecialchars($targetDate) ?>" onchange="this.form.submit();">
-                <button type="submit" class="btn btn-sm btn-primary fw-bold px-3">Go</button>
+            <?php
+                $prevDate = date('Y-m-d', strtotime($targetDate . ' -1 day'));
+                $nextDate = date('Y-m-d', strtotime($targetDate . ' +1 day'));
+            ?>
+            <a href="<?= base_url('roster?date=' . $prevDate) ?>" class="btn btn-outline-secondary btn-sm fw-bold px-2 shadow-sm" title="Previous Day (<?= date('d M Y', strtotime($prevDate)) ?>)">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+
+            <form action="<?= base_url('roster') ?>" method="GET" class="d-flex align-items-center gap-1">
+                <input type="date" name="date" class="form-control form-control-sm fw-bold text-primary shadow-sm" value="<?= htmlspecialchars($targetDate) ?>" onchange="this.form.submit();" style="min-width: 135px;">
             </form>
+
+            <a href="<?= base_url('roster?date=' . $nextDate) ?>" class="btn btn-outline-secondary btn-sm fw-bold px-2 shadow-sm" title="Next Day (<?= date('d M Y', strtotime($nextDate)) ?>)">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+
+            <?php if ($targetDate !== date('Y-m-d')): ?>
+                <a href="<?= base_url('roster?date=' . date('Y-m-d')) ?>" class="btn btn-sm btn-primary fw-bold px-2 shadow-sm fs-8 ms-1" title="Go to Today's Roster">Today</a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -42,9 +56,123 @@
             <div class="card border-0 shadow-sm border-start border-4 border-warning">
                 <div class="card-body p-3">
                     <span class="text-uppercase text-muted fs-8 fw-bold">Pending Auto-Carryover Items</span>
-                    <h3 class="fw-bold text-warning mb-0 mt-1"><?= $pendingCarryover ?></h3>
+                    <h3 class="fw-bold mb-0 mt-1" style="color: #d97706;"><?= $pendingCarryover ?></h3>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Filter Slicer Card (Multi-Select Dropdown Slicers) -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form action="<?= base_url('roster') ?>" method="GET" id="rosterFilterForm">
+                <input type="hidden" name="date" value="<?= htmlspecialchars($targetDate) ?>">
+                <div class="row g-3 align-items-end">
+                    <!-- Keyword Search -->
+                    <div class="col-md-3">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-search me-1 text-primary"></i>Keyword Search</label>
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search ticket #, subject, agency..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
+                    </div>
+
+                    <!-- 1. STATUS SLICER -->
+                    <?php 
+                    $statusOptions = ['New', 'Assigned', 'In Progress', 'Pending', 'Waiting for Customer', 'Waiting for Internal Team', 'On Hold', 'Released', 'Completed', 'Closed', 'Cancelled'];
+                    $isStatusSet = isset($_GET['status']);
+                    $selectedStatuses = $isStatusSet ? (array)$filters['status'] : [];
+                    $statusCount = count($selectedStatuses);
+                    $statusLabel = ($statusCount === 0) ? 'All Statuses' : (($statusCount === count($statusOptions)) ? 'All Selected (' . count($statusOptions) . ')' : $statusCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-tasks me-1 text-primary"></i>Status Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-status', event)">
+                            <span id="btn-status-label" class="truncate"><?= $statusLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-status" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('status')" id="search-status" placeholder="Search status..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('status')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('status')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-status" class="slicer-list-scroll">
+                                <?php foreach ($statusOptions as $st): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="status[]" value="<?= $st ?>" <?= in_array($st, $selectedStatuses) ? 'checked' : '' ?> onchange="updateSlicerLabel('status')">
+                                        <span><?= $st ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. STAGE SLICER -->
+                    <?php 
+                    $stageOptions = ['Maker Phase', 'Checker Phase', 'Delivery Phase', 'Acknowledgement', 'Approval Queue', 'Uploader Queue', 'Dump Sharing', 'Consol Vendor Tracker', 'Closed'];
+                    $isStageSet = isset($_GET['stage']);
+                    $selectedStages = $isStageSet ? (array)$filters['stage'] : [];
+                    $stageCount = count($selectedStages);
+                    $stageLabel = ($stageCount === 0) ? 'All Stages' : (($stageCount === count($stageOptions)) ? 'All Selected (' . count($stageOptions) . ')' : $stageCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-layer-group me-1 text-primary"></i>Stage Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-stage', event)">
+                            <span id="btn-stage-label" class="truncate"><?= $stageLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-stage" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('stage')" id="search-stage" placeholder="Search stage..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('stage')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('stage')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-stage" class="slicer-list-scroll">
+                                <?php foreach ($stageOptions as $stg): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="stage[]" value="<?= $stg ?>" <?= in_array($stg, $selectedStages) ? 'checked' : '' ?> onchange="updateSlicerLabel('stage')">
+                                        <span><?= $stg ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. PRIORITY SLICER -->
+                    <?php 
+                    $prioOptions = ['Low', 'Medium', 'High', 'Critical'];
+                    $isPrioSet = isset($_GET['priority']);
+                    $selectedPrios = $isPrioSet ? (array)$filters['priority'] : [];
+                    $prioCount = count($selectedPrios);
+                    $prioLabel = ($prioCount === 0) ? 'All Priorities' : (($prioCount === count($prioOptions)) ? 'All Selected (' . count($prioOptions) . ')' : $prioCount . ' Selected');
+                    ?>
+                    <div class="col-md-3 slicer-dropdown-container">
+                        <label class="form-label fs-8 text-uppercase fw-bold text-muted mb-1"><i class="fas fa-exclamation-circle me-1 text-primary"></i>Priority Slicer</label>
+                        <button type="button" class="slicer-btn" onclick="toggleSlicerDropdown('dropdown-priority', event)">
+                            <span id="btn-priority-label" class="truncate"><?= $prioLabel ?></span>
+                            <i class="fas fa-chevron-down fs-8 text-muted"></i>
+                        </button>
+                        <div id="dropdown-priority" class="slicer-panel">
+                            <input type="text" oninput="filterSlicerOptions('priority')" id="search-priority" placeholder="Search priority..." class="form-control form-control-sm slicer-search-input mb-2">
+                            <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom fs-8">
+                                <button type="button" onclick="selectAllSlicer('priority')" class="btn btn-link p-0 text-primary fw-bold text-decoration-none fs-8">Select All</button>
+                                <button type="button" onclick="clearAllSlicer('priority')" class="btn btn-link p-0 text-muted text-decoration-none fs-8">Clear</button>
+                            </div>
+                            <div id="list-priority" class="slicer-list-scroll">
+                                <?php foreach ($prioOptions as $p): ?>
+                                    <label class="slicer-item-option">
+                                        <input type="checkbox" name="priority[]" value="<?= $p ?>" <?= in_array($p, $selectedPrios) ? 'checked' : '' ?> onchange="updateSlicerLabel('priority')">
+                                        <span><?= $p ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2 pt-1">
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-4"><i class="fas fa-filter me-1"></i>Apply Slicers</button>
+                        <a href="<?= base_url('roster?date=' . $targetDate) ?>" class="btn btn-outline-secondary btn-sm fw-bold px-3"><i class="fas fa-undo me-1"></i>Reset</a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -60,13 +188,11 @@
                     <thead class="table-light align-middle text-nowrap">
                         <tr>
                             <th>Ticket #</th>
-                            <th>Type</th>
                             <th>Category</th>
                             <th>Current Stage & Bucket Owner</th>
                             <th>Sub-Activity</th>
                             <th>Priority</th>
                             <th>Status</th>
-                            <th>Scheduled Date</th>
                             <th>SLA TAT</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -78,9 +204,6 @@
                                 <a href="<?= base_url('tickets/view/' . $t['id']) ?>" class="ticket-no-link fw-bold" title="Subject: <?= htmlspecialchars($t['subject'], ENT_QUOTES) ?>">
                                     <?= htmlspecialchars($t['ticket_number']) ?>
                                 </a>
-                            </td>
-                            <td class="text-nowrap">
-                                <?= get_ticket_type_badge($t['ticket_type'] ?? '', !empty($t['is_task'])) ?>
                             </td>
                             <td class="text-nowrap">
                                 <?= get_category_badge($t['category_name'] ?? '') ?>
@@ -107,16 +230,6 @@
                                 </span>
                             </td>
                             <td class="text-nowrap"><?= get_status_badge($t['status'] ?? 'New') ?></td>
-                            <td class="fs-8 text-nowrap fw-bold text-dark">
-                                <?php if (!empty($t['scheduled_date'])): ?>
-                                    <i class="fas fa-calendar-day me-1 text-primary"></i><?= date('d M Y', strtotime($t['scheduled_date'])) ?>
-                                    <?php if ($t['scheduled_date'] < $todayStr): ?>
-                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger ms-1">Overdue Carryover</span>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <span class="text-muted">Unscheduled</span>
-                                <?php endif; ?>
-                            </td>
                             <td class="fs-8 text-nowrap">
                                 <?= get_tat_badge($t['tat_datetime'], $t['status'] ?? '') ?>
                             </td>
@@ -219,6 +332,95 @@
 </div>
 
 <script>
+function toggleSlicerDropdown(dropdownId, event) {
+    if (event) event.stopPropagation();
+    const targetPanel = document.getElementById(dropdownId);
+    if (!targetPanel) return;
+    const isShowing = targetPanel.classList.contains('show');
+    
+    document.querySelectorAll('.slicer-panel').forEach(panel => {
+        if (panel !== targetPanel) panel.classList.remove('show');
+    });
+
+    if (!isShowing) {
+        targetPanel.classList.add('show');
+        const searchInput = targetPanel.querySelector('.slicer-search-input');
+        if (searchInput) {
+            setTimeout(() => searchInput.focus(), 50);
+        }
+    } else {
+        targetPanel.classList.remove('show');
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.slicer-dropdown-container')) {
+        document.querySelectorAll('.slicer-panel').forEach(panel => panel.classList.remove('show'));
+    }
+});
+
+function filterSlicerOptions(key) {
+    const input = document.getElementById('search-' + key);
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const options = list.getElementsByClassName('slicer-item-option');
+
+    for (let i = 0; i < options.length; i++) {
+        const txtValue = options[i].textContent || options[i].innerText;
+        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+            options[i].style.display = "flex";
+        } else {
+            options[i].style.display = "none";
+        }
+    }
+}
+
+function selectAllSlicer(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const options = list.getElementsByClassName('slicer-item-option');
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].style.display !== 'none') {
+            const cb = options[i].querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = true;
+        }
+    }
+    updateSlicerLabel(key);
+}
+
+function clearAllSlicer(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const options = list.getElementsByClassName('slicer-item-option');
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].style.display !== 'none') {
+            const cb = options[i].querySelector('input[type="checkbox"]');
+            if (cb) cb.checked = false;
+        }
+    }
+    updateSlicerLabel(key);
+}
+
+function updateSlicerLabel(key) {
+    const list = document.getElementById('list-' + key);
+    if (!list) return;
+    const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+    const checked = list.querySelectorAll('input[type="checkbox"]:checked');
+    const labelSpan = document.getElementById('btn-' + key + '-label');
+
+    if (!labelSpan) return;
+
+    if (checked.length === 0) {
+        labelSpan.textContent = 'None Selected (0)';
+    } else if (checked.length === checkboxes.length) {
+        labelSpan.textContent = 'All Selected (' + checkboxes.length + ')';
+    } else {
+        labelSpan.textContent = checked.length + ' Selected';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-reschedule').forEach(function(btn) {
         btn.addEventListener('click', function() {

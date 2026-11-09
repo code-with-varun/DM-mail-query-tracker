@@ -73,25 +73,45 @@ class Audit extends Controller {
         $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         $dbData = [];
-        $orderedTables = [
+        $priorityOrder = [
             'users', 'contacts', 'divisions', 'activities', 'sub_activities', 
-            'user_sub_activities', 'categories', 'error_tracker', 'tickets', 
-            'tasks', 'input_tracker', 'delivery_tracker', 'process_updates', 'recurring_templates'
+            'user_sub_activities', 'ticket_categories', 'tickets', 'task_tickets',
+            'ticket_comments', 'ticket_lifecycle_tracker', 'error_tracker', 
+            'input_tracker', 'delivery_tracker', 'process_updates', 
+            'training_plans', 'training_plan_trainees', 'user_training_progress', 
+            'pkt_tests', 'pkt_question_bank', 'pkt_test_attempts', 'practice_files', 
+            'activity_certifications', 'recurring_templates', 'recurring_instances',
+            'roles', 'settings', 'audit_logs', 'notifications', 'hold_history', 
+            'ticket_attachments', 'ticket_lifecycle_history'
         ];
 
-        foreach ($orderedTables as $tbl) {
-            if (in_array($tbl, $tables)) {
-                $dbData[$tbl] = $db->query("SELECT * FROM `{$tbl}`")->fetchAll(PDO::FETCH_ASSOC);
+        // Combine priority tables first, then any additional tables
+        $allOrderedTables = [];
+        foreach ($priorityOrder as $pt) {
+            if (in_array($pt, $tables) && !in_array($pt, $allOrderedTables)) {
+                $allOrderedTables[] = $pt;
             }
         }
-        foreach ($tables as $tbl) {
-            if (!isset($dbData[$tbl])) {
-                $dbData[$tbl] = $db->query("SELECT * FROM `{$tbl}`")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($tables as $t) {
+            if (!in_array($t, $allOrderedTables)) {
+                $allOrderedTables[] = $t;
             }
         }
 
-        $tempJsonPath = sys_get_temp_dir() . '/mqt_export_' . time() . '.json';
-        $tempXlsxPath = sys_get_temp_dir() . '/mqt_export_' . time() . '.xlsx';
+        foreach ($allOrderedTables as $tbl) {
+            $colStmt = $db->query("SHOW COLUMNS FROM `{$tbl}`");
+            $headers = $colStmt ? $colStmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+            $rows = $db->query("SELECT * FROM `{$tbl}`")->fetchAll(PDO::FETCH_ASSOC);
+
+            $dbData[$tbl] = [
+                '_headers' => $headers,
+                '_rows' => $rows
+            ];
+        }
+
+        $tempJsonPath = sys_get_temp_dir() . '/mqt_export_' . time() . '_' . rand(1000, 9999) . '.json';
+        $tempXlsxPath = sys_get_temp_dir() . '/mqt_export_' . time() . '_' . rand(1000, 9999) . '.xlsx';
 
         file_put_contents($tempJsonPath, json_encode($dbData, JSON_UNESCAPED_UNICODE));
 
@@ -102,17 +122,70 @@ class Audit extends Controller {
 
         @unlink($tempJsonPath);
 
-        if ($returnCode === 0 && file_exists($tempXlsxPath)) {
-            $filename = 'MQT_Master_Database_Backup_' . date('Y-m-d_H-i-s') . '.xlsx';
+        if ($returnCode === 0 && file_exists($tempXlsxPath) && filesize($tempXlsxPath) > 0) {
+            $filename = 'DM_ISPARK_Master_Database_Export_' . date('Y-m-d_H-i-s') . '.xlsx';
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Content-Length: ' . filesize($tempXlsxPath));
+            header('Cache-Control: max-age=0');
             readfile($tempXlsxPath);
             @unlink($tempXlsxPath);
             exit();
         } else {
-            Session::setFlash('danger', 'Failed to generate Excel export file.');
-            redirect('audit');
+            // Fallback: Generate XML Spreadsheet 2003 (.xls) multi-sheet workbook natively in PHP
+            $filename = 'DM_ISPARK_Master_Database_Export_' . date('Y-m-d_H-i-s') . '.xls';
+            header('Content-Type: application/vnd.ms-excel');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            echo "<?mso-application progid=\"Excel.Sheet\"?>\n";
+            echo "<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"\n";
+            echo " xmlns:o=\"urn:schemas-microsoft-com:office:office\"\n";
+            echo " xmlns:x=\"urn:schemas-microsoft-com:office:excel\"\n";
+            echo " xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\">\n";
+            echo "<Styles>\n";
+            echo "  <Style ss:ID=\"HeaderStyle\">\n";
+            echo "    <Font ss:FontName=\"Calibri\" ss:Size=\"11\" ss:Bold=\"1\" ss:Color=\"#FFFFFF\"/>\n";
+            echo "    <Interior ss:Color=\"#1F4E78\" ss:Pattern=\"Solid\"/>\n";
+            echo "    <Alignment ss:Horizontal=\"Center\" ss:Vertical=\"Center\"/>\n";
+            echo "  </Style>\n";
+            echo "</Styles>\n";
+
+            foreach ($dbData as $tblName => $tInfo) {
+                $sheetName = htmlspecialchars(substr(preg_replace('/[:\\\\\/\\?\\*\\[\\]]/', '_', $tblName), 0, 31));
+                echo "<Worksheet ss:Name=\"{$sheetName}\">\n";
+                echo "<Table>\n";
+                
+                $headers = $tInfo['_headers'] ?? [];
+                $rows = $tInfo['_rows'] ?? [];
+
+                if (!empty($headers)) {
+                    echo "<Row ss:Height=\"22\">\n";
+                    foreach ($headers as $h) {
+                        echo "<Cell ss:StyleID=\"HeaderStyle\"><Data ss:Type=\"String\">" . htmlspecialchars($h) . "</Data></Cell>\n";
+                    }
+                    echo "</Row>\n";
+                }
+
+                foreach ($rows as $r) {
+                    echo "<Row>\n";
+                    foreach ($headers as $h) {
+                        $val = $r[$h] ?? '';
+                        if (is_array($val) || is_object($val)) {
+                            $val = json_encode($val, JSON_UNESCAPED_UNICODE);
+                        }
+                        echo "<Cell><Data ss:Type=\"String\">" . htmlspecialchars((string)$val) . "</Data></Cell>\n";
+                    }
+                    echo "</Row>\n";
+                }
+
+                echo "</Table>\n";
+                echo "</Worksheet>\n";
+            }
+
+            echo "</Workbook>\n";
+            exit();
         }
     }
 
@@ -249,52 +322,11 @@ class Audit extends Controller {
                 redirect('audit');
             }
 
-            // Execute System Data Reset
-            $db = Database::getInstance();
-            $db->exec("SET FOREIGN_KEY_CHECKS = 0;");
+            // Execute Complete Production Reset
+            $settingModel = $this->model('Setting_model');
+            $res = $settingModel->executeProductionReset((int)Session::get('user_id'));
 
-            // Clear all operational & master tables and reset AUTO_INCREMENT primary keys
-            $tablesToClear = [
-                'tickets', 'ticket_comments', 'ticket_history', 'ticket_categories',
-                'task_tickets', 'tasks', 'task_comments',
-                'contacts', 'error_tracker', 'input_tracker', 'delivery_tracker', 'process_updates',
-                'recurring_templates', 'recurring_tasks', 'audit_logs', 'notifications', 'hold_history',
-                'sub_activities', 'activities', 'divisions'
-            ];
-
-            foreach ($tablesToClear as $tbl) {
-                try {
-                    $db->exec("TRUNCATE TABLE `{$tbl}`");
-                    $db->exec("ALTER TABLE `{$tbl}` AUTO_INCREMENT = 1");
-                } catch (\Throwable $e) {}
-            }
-
-            // Remove non-superadmin users (role_id != 1) and reset users AUTO_INCREMENT
-            try {
-                $db->exec("DELETE FROM `users` WHERE `role_id` != 1");
-                $maxUser = $db->query("SELECT MAX(id) as max_id FROM `users`")->fetch(PDO::FETCH_ASSOC);
-                $nextId = (int)($maxUser['max_id'] ?? 1) + 1;
-                $db->exec("ALTER TABLE `users` AUTO_INCREMENT = {$nextId}");
-            } catch (\Throwable $e) {}
-
-            $db->exec("SET FOREIGN_KEY_CHECKS = 1;");
-
-            // Clean public/uploads folder
-            $uploadDir = __DIR__ . '/../../public/uploads/';
-            if (is_dir($uploadDir)) {
-                $files = glob($uploadDir . '*');
-                foreach ($files as $file) {
-                    if (is_file($file) && basename($file) !== '.gitkeep') {
-                        @unlink($file);
-                    }
-                }
-            }
-
-            // Record fresh initial audit log
-            $auditModel = $this->model('Audit_model');
-            $auditModel->logAudit('System', 'FULL_PROJECT_RESET', null, ['reset_by' => Session::get('user_id'), 'timestamp' => date('Y-m-d H:i:s')]);
-
-            Session::setFlash('success', 'Full Project Reset Complete! All operational data and non-superadmin accounts have been wiped. Super Admin account retained for fresh setup!');
+            Session::setFlash('success', 'Production Reset Complete! All 45 tables cleared. Only Super Admin (EMP001), core roles, permissions, baseline categories & settings retained for fresh setup.');
             redirect('dashboard');
         }
     }

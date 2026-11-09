@@ -8,6 +8,7 @@ class Lifecycle_model extends Model {
     public function __construct() {
         parent::__construct();
         $this->ensureTablesExist();
+        $this->convertDummyTicketsToReal();
     }
 
     private function ensureTablesExist(): void {
@@ -105,17 +106,50 @@ class Lifecycle_model extends Model {
         }
     }
 
-    public function generateItemNumber(string $prefix = 'LFC'): string {
-        $year = date('Y');
-        $code = "{$prefix}-{$year}-";
-        $last = $this->fetchOne("SELECT ticket_number FROM ticket_lifecycle_tracker WHERE ticket_number LIKE ? ORDER BY id DESC LIMIT 1", ["{$code}%"]);
-        if ($last) {
-            $lastNum = (int)substr($last['ticket_number'], -5);
-            $nextNum = str_pad((string)($lastNum + 1), 5, '0', STR_PAD_LEFT);
-        } else {
-            $nextNum = "00001";
-        }
-        return $code . $nextNum;
+    /**
+     * Convert any existing dummy 'LFC-...' items to original tickets in tickets table
+     */
+    public function convertDummyTicketsToReal(): void {
+        try {
+            $dummyItems = $this->fetchAll("SELECT * FROM ticket_lifecycle_tracker WHERE ticket_id IS NULL OR ticket_number LIKE 'LFC-%'");
+            if (empty($dummyItems)) return;
+
+            require_once __DIR__ . '/Ticket_model.php';
+            $tModel = new Ticket_model();
+
+            foreach ($dummyItems as $item) {
+                $ticketNum = $tModel->generateTicketNumber();
+                $realTicketId = $tModel->createTicket([
+                    'ticket_number' => $ticketNum,
+                    'ticket_type' => $item['ticket_type'] ?: 'File Preparation',
+                    'subject' => ($item['sub_activity_name'] ?: 'Lifecycle Task') . ' (' . $item['billing_month'] . ')',
+                    'division_id' => $item['division_id'],
+                    'activity_id' => $item['activity_id'],
+                    'sub_activity_id' => $item['sub_activity_id'],
+                    'allocated_to' => $item['maker_id'],
+                    'checker_id' => $item['checker_id'],
+                    'billing_month' => $item['billing_month'],
+                    'stage' => ($item['current_stage'] === 'Input Received') ? 'Maker Phase' : ($item['current_stage'] === 'Closed' ? 'Closed' : 'Maker Phase'),
+                    'status' => ($item['current_stage'] === 'Closed') ? 'Closed' : 'Assigned',
+                    'created_at' => $item['created_at'] ?: date('Y-m-d H:i:s')
+                ]);
+
+                $this->update('ticket_lifecycle_tracker', [
+                    'ticket_id' => $realTicketId,
+                    'ticket_number' => $ticketNum
+                ], "id = ?", [$item['id']]);
+
+                $this->update('ticket_lifecycle_history', [
+                    'ticket_id' => $realTicketId
+                ], "lifecycle_id = ?", [$item['id']]);
+            }
+        } catch (Exception $e) {}
+    }
+
+    public function generateItemNumber(string $prefix = 'MQT'): string {
+        require_once __DIR__ . '/Ticket_model.php';
+        $tModel = new Ticket_model();
+        return $tModel->generateTicketNumber();
     }
 
     public function getLifecycleItems(string $billingMonth, array $filters = []): array {
@@ -178,38 +212,121 @@ class Lifecycle_model extends Model {
     }
 
     /**
-     * Copy-paste list of active subtasks & Maker-Checker details into Lifecycle Tracker for a selected billing month
+     * Reset and sync Lifecycle Tracker data for a selected billing month with real File Preparation / Task tickets
      */
-    public function populateFromActiveSubtasks(string $billingMonth, int $createdBy): int {
-        $sql = "SELECT sa.id as sub_activity_id, sa.sub_activity_name, sa.default_user_id, sa.default_checker_id,
-                       a.id as activity_id, a.activity_name,
-                       d.id as division_id, d.division_name
-                FROM sub_activities sa
-                JOIN activities a ON sa.activity_id = a.id
-                LEFT JOIN divisions d ON sa.division_id = d.id
-                WHERE sa.status = 'Active'
-                ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC";
-        
-        $subActs = $this->fetchAll($sql);
+    public function resetAndSyncWithTickets(string $billingMonth, int $createdBy): int {
+        // 1. Clear existing lifecycle tracker records for this month
+        try {
+            $this->db->prepare("DELETE FROM ticket_lifecycle_tracker WHERE billing_month = ?")->execute([$billingMonth]);
+        } catch (Exception $e) {}
+
+        require_once __DIR__ . '/Ticket_model.php';
+        $tModel = new Ticket_model();
+
+        // 2. Fetch all real tickets matching this billing month (or created in this month if billing_month was null)
+        $sql = "SELECT t.*, 
+                       d.division_name, a.activity_name, sa.sub_activity_name, sa.default_user_id, sa.default_checker_id
+                FROM tickets t
+                JOIN sub_activities sa ON t.sub_activity_id = sa.id
+                JOIN activities a ON t.activity_id = a.id
+                LEFT JOIN divisions d ON t.division_id = d.id
+                WHERE (t.billing_month = ? OR (t.billing_month IS NULL AND DATE_FORMAT(t.created_at, '%Y-%m') = ?))
+                ORDER BY t.id ASC";
+        $tickets = $this->fetchAll($sql, [$billingMonth, $billingMonth]);
+
+        $syncedSubIds = [];
         $count = 0;
+
+        $stageMap = [
+            'Input Received'        => 'Input Received',
+            'Maker Phase'           => 'Maker Queue',
+            'Maker Queue'           => 'Maker Queue',
+            'In Progress'           => 'Maker Queue',
+            'Assigned'              => 'Maker Queue',
+            'Checker Phase'         => 'Checker Queue',
+            'Checker Queue'         => 'Checker Queue',
+            'Error Log'             => 'Error Log',
+            'Maker Checker Rework'  => 'Maker Checker Rework',
+            'Delivery Phase'        => 'Delivery',
+            'Delivery'              => 'Delivery',
+            'Acknowledgement'       => 'Acknowledgement',
+            'Approval Queue'        => 'Approval Queue',
+            'Uploader Queue'        => 'Uploader Queue',
+            'Dump Sharing'          => 'Dump Sharing',
+            'Consol Vendor Tracker' => 'Consol Vendor Tracker',
+            'Completed'             => 'Closed',
+            'Closed'                => 'Closed',
+        ];
+
+        foreach ($tickets as $t) {
+            $syncedSubIds[] = $t['sub_activity_id'];
+            $currentStage = $stageMap[$t['stage'] ?? ''] ?? ($stageMap[$t['status'] ?? ''] ?? 'Maker Queue');
+
+            $this->insert('ticket_lifecycle_tracker', [
+                'ticket_id' => $t['id'],
+                'billing_month' => $billingMonth,
+                'ticket_number' => $t['ticket_number'],
+                'ticket_type' => $t['ticket_type'] ?: 'File Preparation',
+                'division_id' => $t['division_id'],
+                'activity_id' => $t['activity_id'],
+                'sub_activity_id' => $t['sub_activity_id'],
+                'division_name' => $t['division_name'] ?? 'General Operations',
+                'activity_name' => $t['activity_name'],
+                'sub_activity_name' => $t['sub_activity_name'],
+                'maker_id' => $t['allocated_to'] ?: ($t['default_user_id'] ?? null),
+                'checker_id' => $t['checker_id'] ?: ($t['default_checker_id'] ?? null),
+                'current_stage' => $currentStage,
+                'input_received_at' => $t['received_datetime'] ?: $t['created_at'],
+                'maker_queue_at' => $t['created_at'],
+                'created_at' => $t['created_at']
+            ]);
+            $count++;
+        }
+
+        // 3. For active sub-activities without a ticket yet for this month, create original tickets in tickets table
+        $sqlSub = "SELECT sa.id as sub_activity_id, sa.sub_activity_name, sa.default_user_id, sa.default_checker_id,
+                          a.id as activity_id, a.activity_name,
+                          d.id as division_id, d.division_name
+                   FROM sub_activities sa
+                   JOIN activities a ON sa.activity_id = a.id
+                   LEFT JOIN divisions d ON sa.division_id = d.id
+                   WHERE sa.status = 'Active'
+                   ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC";
+        
+        $subActs = $this->fetchAll($sqlSub);
 
         foreach ($subActs as $sa) {
             $subId = $sa['sub_activity_id'];
-            $existing = $this->fetchOne("SELECT id FROM ticket_lifecycle_tracker WHERE sub_activity_id = ? AND billing_month = ?", [$subId, $billingMonth]);
-            if ($existing) continue;
+            if (in_array($subId, $syncedSubIds)) continue;
 
-            // Lookup assigned Maker & Checker for this sub_activity
             $maker = $this->fetchOne("SELECT user_id FROM user_sub_activities WHERE sub_activity_id = ? AND role_type IN ('Maker', 'Both') LIMIT 1", [$subId]);
             $checker = $this->fetchOne("SELECT user_id FROM user_sub_activities WHERE sub_activity_id = ? AND role_type IN ('Checker', 'Both') LIMIT 1", [$subId]);
 
             $makerId = $maker['user_id'] ?? ($sa['default_user_id'] ?? null);
             $checkerId = $checker['user_id'] ?? ($sa['default_checker_id'] ?? null);
 
-            $itemNumber = $this->generateItemNumber('LFC');
+            // Create Original Ticket in tickets table
+            $ticketNum = $tModel->generateTicketNumber();
+            $realTicketId = $tModel->createTicket([
+                'ticket_number' => $ticketNum,
+                'ticket_type' => 'File Preparation',
+                'subject' => $sa['sub_activity_name'] . ' (' . $billingMonth . ')',
+                'division_id' => $sa['division_id'],
+                'activity_id' => $sa['activity_id'],
+                'sub_activity_id' => $subId,
+                'allocated_to' => $makerId,
+                'checker_id' => $checkerId,
+                'billing_month' => $billingMonth,
+                'stage' => 'Maker Phase',
+                'status' => 'Assigned',
+                'created_by' => $createdBy,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
 
             $this->insert('ticket_lifecycle_tracker', [
+                'ticket_id' => $realTicketId,
                 'billing_month' => $billingMonth,
-                'ticket_number' => $itemNumber,
+                'ticket_number' => $ticketNum,
                 'ticket_type' => 'File Preparation',
                 'division_id' => $sa['division_id'],
                 'activity_id' => $sa['activity_id'],
@@ -230,10 +347,36 @@ class Lifecycle_model extends Model {
         return $count;
     }
 
+    public function populateFromActiveSubtasks(string $billingMonth, int $createdBy): int {
+        return $this->resetAndSyncWithTickets($billingMonth, $createdBy);
+    }
+
     public function createLifecycleItem(array $data): int {
-        if (empty($data['ticket_number'])) {
-            $data['ticket_number'] = $this->generateItemNumber('LFC');
+        require_once __DIR__ . '/Ticket_model.php';
+        $tModel = new Ticket_model();
+
+        if (empty($data['ticket_id'])) {
+            $ticketNum = $tModel->generateTicketNumber();
+            $realTicketId = $tModel->createTicket([
+                'ticket_number' => $ticketNum,
+                'ticket_type' => $data['ticket_type'] ?? 'File Preparation',
+                'subject' => ($data['sub_activity_name'] ?? 'Lifecycle Task') . ' (' . ($data['billing_month'] ?? date('Y-m')) . ')',
+                'division_id' => $data['division_id'] ?? null,
+                'activity_id' => $data['activity_id'],
+                'sub_activity_id' => $data['sub_activity_id'],
+                'allocated_to' => $data['maker_id'] ?? null,
+                'checker_id' => $data['checker_id'] ?? null,
+                'billing_month' => $data['billing_month'] ?? date('Y-m'),
+                'stage' => 'Maker Phase',
+                'status' => 'Assigned',
+                'created_by' => $data['created_by'] ?? 1,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+
+            $data['ticket_id'] = $realTicketId;
+            $data['ticket_number'] = $ticketNum;
         }
+
         $data['input_received_at'] = date('Y-m-d H:i:s');
         $data['created_at'] = date('Y-m-d H:i:s');
         
@@ -241,11 +384,11 @@ class Lifecycle_model extends Model {
 
         $this->insert('ticket_lifecycle_history', [
             'lifecycle_id' => $id,
-            'ticket_id' => $data['ticket_id'] ?? null,
+            'ticket_id' => $data['ticket_id'],
             'stage_name' => 'Input Received',
             'performed_by' => $data['created_by'] ?? 1,
             'performed_at' => date('Y-m-d H:i:s'),
-            'remarks' => 'Lifecycle item logged'
+            'remarks' => 'Lifecycle item logged & ticket created'
         ]);
 
         return $id;
@@ -320,6 +463,34 @@ class Lifecycle_model extends Model {
 
         $this->update('ticket_lifecycle_tracker', $update, "id = ?", [$id]);
 
+        // Keep original ticket in tickets table 100% in sync
+        if (!empty($item['ticket_id'])) {
+            $ticketStageMap = [
+                'Input Received'        => 'Input Received',
+                'Maker Queue'           => 'Maker Phase',
+                'Checker Queue'         => 'Checker Phase',
+                'Error Log'             => 'Error Log',
+                'Maker Checker Rework'  => 'Maker Checker Rework',
+                'Delivery'              => 'Delivery Phase',
+                'Acknowledgement'       => 'Acknowledgement',
+                'Approval Queue'        => 'Approval Queue',
+                'Uploader Queue'        => 'Uploader Queue',
+                'Dump Sharing'          => 'Dump Sharing',
+                'Consol Vendor Tracker' => 'Consol Vendor Tracker',
+                'Closed'                => 'Closed'
+            ];
+            $tStage = $ticketStageMap[$newStage] ?? $newStage;
+            $tStatus = ($newStage === 'Closed') ? 'Closed' : 'In Progress';
+
+            $ticketUpdate = ['stage' => $tStage, 'status' => $tStatus];
+            if ($newStage === 'Closed') {
+                $ticketUpdate['closed_at'] = $now;
+            }
+            try {
+                $this->update('tickets', $ticketUpdate, "id = ?", [$item['ticket_id']]);
+            } catch (Exception $e) {}
+        }
+
         $this->insert('ticket_lifecycle_history', [
             'lifecycle_id' => $id,
             'ticket_id' => $item['ticket_id'],
@@ -339,6 +510,18 @@ class Lifecycle_model extends Model {
         if ($makerId !== null) $update['maker_id'] = $makerId;
         if ($checkerId !== null) $update['checker_id'] = $checkerId;
         if (empty($update)) return false;
+
+        $item = $this->getById($id);
+        if ($item && !empty($item['ticket_id'])) {
+            $tUpdate = [];
+            if ($makerId !== null) $tUpdate['allocated_to'] = $makerId;
+            if ($checkerId !== null) $tUpdate['checker_id'] = $checkerId;
+            if (!empty($tUpdate)) {
+                try {
+                    $this->update('tickets', $tUpdate, "id = ?", [$item['ticket_id']]);
+                } catch (Exception $e) {}
+            }
+        }
 
         return $this->update('ticket_lifecycle_tracker', $update, "id = ?", [$id]);
     }
@@ -366,5 +549,29 @@ class Lifecycle_model extends Model {
         }
         return $rows;
     }
-}
 
+    public function getMonthOverallProgress(string $billingMonth): array {
+        $sql = "SELECT 
+                    COUNT(*) as total_tasks,
+                    SUM(CASE WHEN current_stage = 'Closed' THEN 1 ELSE 0 END) as closed_tasks,
+                    SUM(CASE WHEN current_stage IN ('Input Received', 'Maker Queue', 'Maker Checker Rework') THEN 1 ELSE 0 END) as maker_stage_tasks,
+                    SUM(CASE WHEN current_stage IN ('Checker Queue', 'Error Log') THEN 1 ELSE 0 END) as checker_stage_tasks,
+                    SUM(CASE WHEN current_stage IN ('Delivery', 'Acknowledgement', 'Approval Queue', 'Uploader Queue', 'Dump Sharing', 'Consol Vendor Tracker') THEN 1 ELSE 0 END) as delivery_stage_tasks
+                FROM ticket_lifecycle_tracker
+                WHERE billing_month = ?";
+        $row = $this->fetchOne($sql, [$billingMonth]);
+
+        $total = (int)($row['total_tasks'] ?? 0);
+        $closed = (int)($row['closed_tasks'] ?? 0);
+        $percentage = $total > 0 ? round(($closed / $total) * 100, 1) : 0;
+
+        return [
+            'total' => $total,
+            'closed' => $closed,
+            'percentage' => $percentage,
+            'maker_tasks' => (int)($row['maker_stage_tasks'] ?? 0),
+            'checker_tasks' => (int)($row['checker_stage_tasks'] ?? 0),
+            'delivery_tasks' => (int)($row['delivery_stage_tasks'] ?? 0),
+        ];
+    }
+}

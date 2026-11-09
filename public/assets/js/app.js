@@ -27,15 +27,43 @@ $(document).ready(function () {
     });
   }
 
-  // Initialize DataTables automatically on any .datatable element
+  // Suppress DataTables alert popups globally for all tables across the application
+  if (typeof $ !== 'undefined' && $.fn && $.fn.dataTable) {
+    $.fn.dataTable.ext.errMode = 'none';
+  }
+
+  // Auto-initialize DataTables safely on any .datatable element
   if ($.fn.DataTable) {
-    $('.datatable').DataTable({
-      responsive: true,
-      pageLength: 25,
-      order: [[0, 'desc']],
-      language: {
-        search: "_INPUT_",
-        searchPlaceholder: "Search records..."
+    $.fn.dataTable.ext.errMode = 'none';
+
+    $('.datatable').each(function () {
+      var $tbl = $(this);
+
+      // Determine header columns count
+      var thCount = $tbl.find('thead tr:first th').length || $tbl.find('thead tr:first td').length || 1;
+      var $firstTd = $tbl.find('tbody tr:first td');
+
+      // If tbody has an empty state row with a single cell using colspan
+      if ($tbl.find('tbody tr').length === 1 && $firstTd.length === 1 && $firstTd.attr('colspan')) {
+        $firstTd.attr('colspan', thCount);
+      }
+
+      // Initialize DataTable safely
+      if (!$.fn.DataTable.isDataTable(this)) {
+        try {
+          $(this).DataTable({
+            responsive: true,
+            pageLength: 25,
+            order: [], // Flexible order to prevent invalid index errors on empty or colspan rows
+            language: {
+              search: "_INPUT_",
+              searchPlaceholder: "Search records...",
+              emptyTable: "No data available in table"
+            }
+          });
+        } catch (err) {
+          console.warn("DataTables initialization gracefully handled:", err);
+        }
       }
     });
   }
@@ -164,4 +192,19 @@ $(document).ready(function () {
     loadNotifications();
     setInterval(loadNotifications, 30000); // refresh every 30s
   }
+
+  // Collapsible Sidebar Groups - Accordion Chevron & Toggle Synchronization
+  try {
+    localStorage.removeItem('mqt_open_sb_groups');
+  } catch (e) {}
+
+  $('#sidebar-menu-accordion').on('show.bs.collapse', '.sidebar-submenu', function () {
+    var id = $(this).attr('id');
+    $('[data-bs-target="#' + id + '"]').removeClass('collapsed').attr('aria-expanded', 'true');
+  });
+
+  $('#sidebar-menu-accordion').on('hide.bs.collapse', '.sidebar-submenu', function () {
+    var id = $(this).attr('id');
+    $('[data-bs-target="#' + id + '"]').addClass('collapsed').attr('aria-expanded', 'false');
+  });
 });

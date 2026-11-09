@@ -97,8 +97,8 @@ class Reports extends Controller {
             'allocated_to' => !empty($_GET['allocated_to']) ? (int)$_GET['allocated_to'] : null
         ];
 
-        // For employee role (role_id == 3), default to their own tasks unless specified
-        if (Session::get('role_id') == 3 && empty($filters['allocated_to'])) {
+        // For employee role (role_id == 4), default to their own tasks unless specified
+        if ((Session::get('role_id') == 4 || is_employee()) && empty($filters['allocated_to'])) {
             $filters['allocated_to'] = Session::get('user_id');
         }
 
@@ -118,7 +118,7 @@ class Reports extends Controller {
         $avgClosed = $workingDays > 0 ? round($totalClosed / $workingDays, 1) : 0;
 
         $this->render('reports/production', [
-            'title' => 'Daywise Production Tracker',
+            'title' => 'Daywise Count Tracker',
             'report' => $report,
             'filters' => $filters,
             'activities' => $activityModel->getActivities(),
@@ -144,7 +144,7 @@ class Reports extends Controller {
             'allocated_to' => !empty($_GET['allocated_to']) ? (int)$_GET['allocated_to'] : null
         ];
 
-        if (Session::get('role_id') == 3 && empty($filters['allocated_to'])) {
+        if ((Session::get('role_id') == 4 || is_employee()) && empty($filters['allocated_to'])) {
             $filters['allocated_to'] = Session::get('user_id');
         }
 

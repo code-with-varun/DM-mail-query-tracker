@@ -44,11 +44,11 @@ function get_tat_badge(string $tatDatetime, string $status = ''): string {
     $tatStatus = calculate_tat_status($tatDatetime, $status);
 
     if ($tatStatus === 'Closed') {
-        return '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary fw-bold fs-8"><i class="fas fa-check-circle me-1"></i>Closed</span>';
+        return '';
     } elseif ($tatStatus === 'Within TAT') {
         return '<span class="badge bg-success bg-opacity-10 text-success border border-success fw-bold fs-8"><i class="fas fa-clock me-1"></i>Within TAT</span>';
     } elseif ($tatStatus === 'Due Today') {
-        return '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-exclamation-triangle me-1 text-warning"></i>Due Today</span>';
+        return '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-exclamation-triangle me-1 text-dark"></i>Due Today</span>';
     } else {
         return '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger fw-bold fs-8 animate__animated animate__pulse animate__infinite"><i class="fas fa-fire me-1"></i>Overdue SLA</span>';
     }
@@ -63,7 +63,7 @@ function get_status_badge(string $status): string {
         case 'In Progress': 
             return '<span class="badge bg-primary bg-opacity-15 text-primary border border-primary fw-bold fs-8"><i class="fas fa-spinner fa-spin me-1"></i>In Progress</span>';
         case 'Pending': 
-            return '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-hourglass-half me-1 text-warning"></i>Pending</span>';
+            return '<span class="badge bg-warning bg-opacity-15 text-dark border border-warning fw-bold fs-8"><i class="fas fa-hourglass-half me-1 text-dark"></i>Pending</span>';
         case 'Waiting for Customer': 
             return '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary fw-bold fs-8"><i class="fas fa-user-clock me-1"></i>Waiting Customer</span>';
         case 'Waiting for Internal Team': 
@@ -108,16 +108,21 @@ function format_datetime(string $datetime): string {
     return date('d M Y, h:i A', strtotime($datetime));
 }
 
+function format_date(?string $date): string {
+    if (empty($date)) return '-';
+    return date('d M Y', strtotime($date));
+}
+
 function get_current_bucket_info(array $ticket): array {
     $stage = $ticket['stage'] ?? 'Maker Phase';
     $status = $ticket['status'] ?? 'New';
 
-    if (in_array($status, ['Closed', 'Completed', 'Cancelled'])) {
+    if (in_array($status, ['Closed', 'Completed', 'Cancelled']) || $stage === 'Closed') {
         $userName = !empty($ticket['replied_user_name']) ? $ticket['replied_user_name'] : ($ticket['allocated_user_name'] ?? 'System');
         $userCode = !empty($ticket['replied_user_code']) ? $ticket['replied_user_code'] : ($ticket['allocated_user_code'] ?? '');
         return [
             'stage_name' => 'Closed',
-            'role_label' => 'Closed',
+            'role_label' => 'Closed Phase',
             'user_name' => $userName,
             'user_code' => $userCode,
             'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
@@ -126,7 +131,7 @@ function get_current_bucket_info(array $ticket): array {
         ];
     }
 
-    if ($stage === 'Checker Phase') {
+    if ($stage === 'Checker Phase' || $stage === 'Checker Queue' || $stage === 'Error Log') {
         if (!empty($ticket['checker_user_name'])) {
             $userName = $ticket['checker_user_name'];
             $userCode = $ticket['checker_user_code'] ?? '';
@@ -152,7 +157,7 @@ function get_current_bucket_info(array $ticket): array {
         }
     }
 
-    if ($stage === 'Delivery Phase') {
+    if ($stage === 'Delivery Phase' || $stage === 'Delivery') {
         $userName = !empty($ticket['allocated_user_name']) ? $ticket['allocated_user_name'] : 'Delivery Desk';
         $userCode = $ticket['allocated_user_code'] ?? '';
         return [
@@ -161,8 +166,70 @@ function get_current_bucket_info(array $ticket): array {
             'user_name' => $userName,
             'user_code' => $userCode,
             'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
-            'badge_class' => 'bg-success bg-opacity-10 text-success border border-success',
+            'badge_class' => 'bg-info bg-opacity-10 text-info border border-info',
             'icon' => 'fa-paper-plane'
+        ];
+    }
+
+    if ($stage === 'Acknowledgement') {
+        return [
+            'stage_name' => 'Acknowledgement',
+            'role_label' => 'Ack Receive',
+            'user_name' => 'Client / Operation Desk',
+            'user_code' => '',
+            'display_string' => 'Client / Operation Desk',
+            'badge_class' => 'bg-purple bg-opacity-10 text-purple border border-purple',
+            'icon' => 'fa-envelope-open-text'
+        ];
+    }
+
+    if ($stage === 'Approval Queue') {
+        return [
+            'stage_name' => 'Approval Queue',
+            'role_label' => 'Business Approval',
+            'user_name' => 'Business Head / Manager',
+            'user_code' => '',
+            'display_string' => 'Business Head / Manager',
+            'badge_class' => 'bg-primary bg-opacity-10 text-primary border border-primary',
+            'icon' => 'fa-user-shield'
+        ];
+    }
+
+    if ($stage === 'Uploader Queue') {
+        return [
+            'stage_name' => 'Uploader Queue',
+            'role_label' => 'Claims Upload',
+            'user_name' => 'Claims Uploader Desk',
+            'user_code' => '',
+            'display_string' => 'Claims Uploader Desk',
+            'badge_class' => 'bg-info bg-opacity-10 text-info border border-info',
+            'icon' => 'fa-cloud-upload-alt'
+        ];
+    }
+
+    if ($stage === 'Dump Sharing') {
+        return [
+            'stage_name' => 'Dump Sharing',
+            'role_label' => 'Finance Share',
+            'user_name' => 'Finance Team',
+            'user_code' => '',
+            'display_string' => 'Finance Team',
+            'badge_class' => 'bg-warning bg-opacity-15 text-dark border border-warning',
+            'icon' => 'fa-database'
+        ];
+    }
+
+    if ($stage === 'Consol Vendor Tracker') {
+        $userName = !empty($ticket['allocated_user_name']) ? $ticket['allocated_user_name'] : 'Maker';
+        $userCode = $ticket['allocated_user_code'] ?? '';
+        return [
+            'stage_name' => 'Consol Vendor Tracker',
+            'role_label' => 'Consol Vendor',
+            'user_name' => $userName,
+            'user_code' => $userCode,
+            'display_string' => $userName . ($userCode ? " ({$userCode})" : ''),
+            'badge_class' => 'bg-teal bg-opacity-10 text-teal border border-teal',
+            'icon' => 'fa-truck-moving'
         ];
     }
 

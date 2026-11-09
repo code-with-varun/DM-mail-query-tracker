@@ -1,12 +1,16 @@
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h4 class="fw-bold mb-1">Super Admin Dashboard & Executive Analytics</h4>
+            <h4 class="fw-bold mb-1"><?= is_super_admin() ? 'Super Admin Dashboard' : htmlspecialchars(Session::get('role_name') ?? 'Executive') . ' Dashboard' ?> & Executive Analytics</h4>
             <p class="text-muted fs-7 mb-0">Deep SLA Analytics, Employee Workload, Activity Volume & Quality Slicers</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= base_url('reports') ?>" class="btn btn-outline-secondary fw-bold btn-sm"><i class="fas fa-chart-line me-1"></i>SLA Reports</a>
-            <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary fw-bold btn-sm"><i class="fas fa-plus-circle me-1"></i>New Ticket</a>
+            <?php if (can_access_page('reports_export')): ?>
+                <a href="<?= base_url('reports') ?>" class="btn btn-outline-secondary fw-bold btn-sm"><i class="fas fa-chart-line me-1"></i>SLA Reports</a>
+            <?php endif; ?>
+            <?php if (can_access_page('create_ticket')): ?>
+                <a href="<?= base_url('tickets/create') ?>" class="btn btn-primary fw-bold btn-sm"><i class="fas fa-plus-circle me-1"></i>New Ticket</a>
+            <?php endif; ?>
         </div>
     </div>
 

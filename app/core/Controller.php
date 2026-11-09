@@ -83,4 +83,52 @@ class Controller {
             exit;
         }
     }
+
+    /**
+     * Require Page-Level Permission Guard (Read/View)
+     */
+    protected function requirePermission(string $pageKey): void {
+        $this->requireAuth();
+        if (!can_access_page($pageKey)) {
+            Session::setFlash('danger', 'Access Denied: You do not have permission to access this page.');
+            header("Location: " . BASE_URL . "/dashboard");
+            exit;
+        }
+    }
+
+    /**
+     * Require Create Permission Guard
+     */
+    protected function requireCreatePermission(string $pageKey): void {
+        $this->requireAuth();
+        if (!can_create($pageKey)) {
+            Session::setFlash('danger', 'Access Denied: You do not have permission to create records in this section.');
+            header("Location: " . BASE_URL . "/dashboard");
+            exit;
+        }
+    }
+
+    /**
+     * Require Edit/Update Permission Guard
+     */
+    protected function requireEditPermission(string $pageKey): void {
+        $this->requireAuth();
+        if (!can_edit($pageKey)) {
+            Session::setFlash('danger', 'Access Denied: You do not have permission to modify records in this section.');
+            header("Location: " . BASE_URL . "/dashboard");
+            exit;
+        }
+    }
+
+    /**
+     * Require Delete Permission Guard
+     */
+    protected function requireDeletePermission(string $pageKey): void {
+        $this->requireAuth();
+        if (!can_delete($pageKey)) {
+            Session::setFlash('danger', 'Access Denied: You do not have permission to delete records in this section.');
+            header("Location: " . BASE_URL . "/dashboard");
+            exit;
+        }
+    }
 }

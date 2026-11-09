@@ -1,7 +1,7 @@
 <?php
 /**
- * Process Updates Tracker Controller
- * Preserves Outlook process update mails, policy changes & billing guidelines
+ * Process Updates & Reference Library Controller
+ * Preserves Outlook process update mails, policy changes, billing guidelines & reference category tickets
  */
 
 class Processupdates extends Controller {
@@ -11,9 +11,11 @@ class Processupdates extends Controller {
 
         $puModel = $this->model('Process_update_model');
         $activityModel = $this->model('Activity_model');
+        $categoryModel = $this->model('Category_model');
 
         $filters = [
             'search' => sanitize($_GET['search'] ?? ''),
+            'category_id' => !empty($_GET['category_id']) ? (int)$_GET['category_id'] : null,
             'division_id' => !empty($_GET['division_id']) ? (int)$_GET['division_id'] : null,
             'activity_id' => !empty($_GET['activity_id']) ? (int)$_GET['activity_id'] : null,
             'sub_activity_id' => !empty($_GET['sub_activity_id']) ? (int)$_GET['sub_activity_id'] : null,
@@ -22,10 +24,18 @@ class Processupdates extends Controller {
 
         $updates = $puModel->getAllUpdates($filters);
 
+        // Fetch categories for filter dropdown (reference categories + active categories)
+        $allCategories = $categoryModel->getCategories();
+        $referenceCategories = array_filter($allCategories, function($cat) {
+            $name = strtolower(trim($cat['category_name']));
+            return in_array($name, ['allocation exclude', 'checklist', 'grid', 'penalty', 'process updates', 'process update']) || in_array($cat['category_slug'], ['allocation-exclude', 'checklist', 'grid', 'penalty', 'process-updates']);
+        });
+
         $this->render('tracker/process_updates', [
-            'title' => 'Process Updates Tracker',
+            'title' => 'Process Updates & Reference Library',
             'updates' => $updates,
             'filters' => $filters,
+            'categories' => !empty($referenceCategories) ? array_values($referenceCategories) : $allCategories,
             'divisions' => $activityModel->getDivisions(),
             'activities' => $activityModel->getActivities(),
             'subActivities' => $activityModel->getAllSubActivitiesWithHierarchy()
@@ -108,8 +118,9 @@ class Processupdates extends Controller {
         $this->requireAuth();
         header('Content-Type: application/json');
 
+        $source = sanitize($_GET['source'] ?? 'process_update');
         $puModel = $this->model('Process_update_model');
-        $record = $puModel->getById($id);
+        $record = $puModel->getItemById($id, $source);
 
         if (!$record) {
             echo json_encode(['success' => false, 'message' => 'Record not found']);
@@ -139,8 +150,9 @@ class Processupdates extends Controller {
     public function download(int $id) {
         $this->requireAuth();
 
+        $source = sanitize($_GET['source'] ?? 'process_update');
         $puModel = $this->model('Process_update_model');
-        $record = $puModel->getById($id);
+        $record = $puModel->getItemById($id, $source);
 
         if (!$record || empty($record['file_path'])) {
             Session::setFlash('danger', 'File not found for download.');
@@ -170,11 +182,12 @@ class Processupdates extends Controller {
                 redirect('tracker/process-updates');
             }
 
+            $source = sanitize($_POST['source'] ?? 'process_update');
             $puModel = $this->model('Process_update_model');
-            if ($puModel->deleteUpdate($id)) {
-                Session::setFlash('success', 'Process update record deleted successfully.');
+            if ($puModel->deleteItem($id, $source)) {
+                Session::setFlash('success', 'Reference record deleted successfully.');
             } else {
-                Session::setFlash('danger', 'Failed to delete process update record.');
+                Session::setFlash('danger', 'Failed to delete record.');
             }
             redirect('tracker/process-updates');
         }

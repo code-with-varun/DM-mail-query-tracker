@@ -5,9 +5,12 @@
             <p class="text-muted fs-7 mb-0">Manage operational sub-activities, default SLA TAT hours, and mapped employee allocations</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="<?= base_url('master/export-sub-activities') ?>" class="btn btn-outline-success btn-sm fw-bold">
-                <i class="fas fa-file-excel me-1"></i>Export Sub-Activities CSV
+            <a href="<?= base_url('master/export_sub_activities') ?>" class="btn btn-outline-success btn-sm fw-bold">
+                <i class="fas fa-file-excel me-1"></i>Export CSV
             </a>
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#importSubActivitiesModal">
+                <i class="fas fa-file-upload me-1"></i>Import Sub-Activities CSV
+            </button>
             <button type="button" class="btn btn-primary btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#subActivityModal">
                 <i class="fas fa-plus-circle me-1"></i>New Sub-Activity
             </button>
@@ -24,6 +27,7 @@
                             <th style="width: 50px;">#</th>
                             <th>Sub Activity Name</th>
                             <th>Parent Activity</th>
+                            <th>Assigned Workflow</th>
                             <th>Division</th>
                             <th>Default SLA TAT</th>
                             <th>Occurrence Day</th>
@@ -38,6 +42,13 @@
                             <td class="text-muted fs-7"><?= $idx + 1 ?></td>
                             <td class="fw-bold text-dark text-nowrap"><?= htmlspecialchars($sa['sub_activity_name']) ?></td>
                             <td class="text-nowrap"><span class="badge bg-light text-dark border"><?= htmlspecialchars($sa['activity_name']) ?></span></td>
+                            <td class="text-nowrap">
+                                <?php if (!empty($sa['workflow_name'])): ?>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary fw-bold"><i class="fas fa-sitemap me-1"></i><?= htmlspecialchars($sa['workflow_name']) ?></span>
+                                <?php else: ?>
+                                    <span class="badge bg-light text-muted border">System Default</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-nowrap">
                                 <?php if (!empty($sa['division_code'])): ?>
                                     <span class="badge bg-info bg-opacity-10 text-info border border-info"><?= htmlspecialchars($sa['division_name']) ?> (<?= $sa['division_code'] ?>)</span>
@@ -96,15 +107,16 @@
                             <td class="text-end text-nowrap">
                                 <div class="btn-group btn-group-sm">
                                     <button type="button" class="btn btn-outline-primary btn-edit-sub"
-                                            data-id="<?= $sa['id'] ?>"
-                                            data-name="<?= htmlspecialchars($sa['sub_activity_name'], ENT_QUOTES) ?>"
-                                            data-activity_id="<?= $sa['activity_id'] ?>"
-                                            data-division_id="<?= $sa['division_id'] ?? '' ?>"
-                                            data-tat="<?= $sa['default_tat_hours'] ?>"
-                                            data-occurrence_day="<?= $sa['default_occurrence_day'] ?? '' ?>"
-                                            data-user_id="<?= $sa['default_user_id'] ?? '' ?>"
-                                            data-checker_id="<?= $sa['default_checker_id'] ?? '' ?>"
-                                            title="Edit Sub-Activity">
+                                             data-id="<?= $sa['id'] ?>"
+                                             data-name="<?= htmlspecialchars($sa['sub_activity_name'], ENT_QUOTES) ?>"
+                                             data-activity_id="<?= $sa['activity_id'] ?>"
+                                             data-division_id="<?= $sa['division_id'] ?? '' ?>"
+                                             data-workflow_id="<?= $sa['workflow_id'] ?? '' ?>"
+                                             data-tat="<?= $sa['default_tat_hours'] ?>"
+                                             data-occurrence_day="<?= $sa['default_occurrence_day'] ?? '' ?>"
+                                             data-user_id="<?= $sa['default_user_id'] ?? '' ?>"
+                                             data-checker_id="<?= $sa['default_checker_id'] ?? '' ?>"
+                                             title="Edit Sub-Activity">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <form action="<?= base_url('master/subactivities') ?>" method="POST" class="d-inline mb-0" onsubmit="return confirm('Delete sub-activity <?= htmlspecialchars($sa['sub_activity_name'], ENT_QUOTES) ?>?');">
@@ -199,6 +211,20 @@
                             <small class="text-muted fs-8 d-block mt-1">Default Checker for verification/review.</small>
                         </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark"><i class="fas fa-sitemap text-primary me-1"></i>Assigned Process Workflow</label>
+                        <select name="workflow_id" id="sub_workflow_id" class="form-select">
+                            <option value="">-- Use Category Default / System Default Workflow --</option>
+                            <?php if (!empty($workflows)): ?>
+                                <?php foreach ($workflows as $wf): ?>
+                                    <option value="<?= $wf['id'] ?>"><?= htmlspecialchars($wf['workflow_name']) ?> (<?= $wf['stage_count'] ?> Stages)</option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <small class="text-muted fs-8 d-block mt-1">Select specific visual node workflow pipeline for this sub-activity.</small>
+                    </div>
+
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
@@ -228,7 +254,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Reset activity selection if hidden
         var selectedOption = activitySelect.options[activitySelect.selectedIndex];
         if (selectedOption && selectedOption.style.display === "none") {
             activitySelect.value = "";
@@ -253,6 +278,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sub_occurrence_day').value = this.dataset.occurrence_day;
             document.getElementById('sub_user_id').value = this.dataset.user_id || '';
             document.getElementById('sub_checker_id').value = this.dataset.checker_id || '';
+            if (document.getElementById('sub_workflow_id')) {
+                document.getElementById('sub_workflow_id').value = this.dataset.workflow_id || '';
+            }
 
             var modal = new bootstrap.Modal(document.getElementById('subActivityModal'));
             modal.show();
@@ -260,3 +288,45 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Modal: Bulk Import Sub-Activities -->
+<div class="modal fade" id="importSubActivitiesModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form action="<?= base_url('master/import_sub_activities') ?>" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= Session::csrfToken() ?>">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-file-upload me-2"></i>Bulk Import Sub-Activities CSV</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 shadow-2xs mb-3 fs-8">
+                        <i class="fas fa-info-circle me-1"></i> Upload a CSV file to bulk create or update sub-activities. Missing parent activities will be created automatically.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fs-7 fw-bold text-dark">Select CSV File <span class="text-danger">*</span></label>
+                        <input type="file" name="import_file" class="form-control" accept=".csv" required>
+                    </div>
+
+                    <div class="border p-3 rounded bg-light fs-8">
+                        <div class="fw-bold text-dark mb-1"><i class="fas fa-table me-1 text-primary"></i>Expected CSV Headers:</div>
+                        <code>Sub Activity Name, Parent Activity Name, Division Code, Default SLA TAT (Hours), Default Maker Code, Default Checker Code, Occurrence Day</code>
+                        <div class="mt-2 text-muted fs-9">
+                            Sample: <code>CCOD Billing Prep, File Preparation, DIV-OPS, 24, EMP001, EMP002, 5</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-3 d-flex justify-content-between">
+                    <a href="<?= base_url('master/download_template_sub_activities') ?>" class="btn btn-outline-secondary btn-sm fw-bold">
+                        <i class="fas fa-download me-1"></i>Download CSV Template
+                    </a>
+                    <div>
+                        <button type="button" class="btn btn-light border fw-bold me-1" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-bold"><i class="fas fa-upload me-1"></i>Upload & Import</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

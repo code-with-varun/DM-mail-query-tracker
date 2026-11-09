@@ -41,6 +41,22 @@ class Training_model extends Model {
             ");
 
             try {
+                $this->db->exec("ALTER TABLE `training_plans` ADD COLUMN `user_id` INT NULL DEFAULT NULL AFTER `id`");
+            } catch (Exception $e) {}
+            try {
+                $this->db->exec("ALTER TABLE `training_plans` ADD COLUMN `training_date` DATETIME NULL DEFAULT NULL AFTER `description`");
+            } catch (Exception $e) {}
+            try {
+                $this->db->exec("ALTER TABLE `training_plans` ADD COLUMN `meeting_url` VARCHAR(500) NULL DEFAULT NULL AFTER `training_date`");
+            } catch (Exception $e) {}
+            try {
+                $this->db->exec("ALTER TABLE `training_plans` ADD COLUMN `status` ENUM('Scheduled', 'Completed', 'Acknowledged') DEFAULT 'Scheduled' AFTER `kt_document_name`");
+            } catch (Exception $e) {}
+            try {
+                $this->db->exec("ALTER TABLE `user_training_progress` ADD COLUMN `acknowledged_at` DATETIME NULL DEFAULT NULL AFTER `learned_at`");
+            } catch (Exception $e) {}
+
+            try {
                 $this->db->exec("ALTER TABLE user_training_progress DROP INDEX idx_user_plan");
             } catch (Exception $e) {}
             try {
@@ -137,7 +153,225 @@ class Training_model extends Model {
     // ----------------------------------------------------
     // TRAINING PLAN & KT METHODS
     // ----------------------------------------------------
-    public function getGroupedTrainingPlan(int $userId, bool $isAdmin = false): array {
+    public function createTrainingPlanWithTrainees(array $data): int {
+        $meetingUrl = !empty($data['meeting_url']) ? sanitize($data['meeting_url']) : null;
+        $trainees = !empty($data['trainee_ids']) && is_array($data['trainee_ids']) ? array_map('intval', $data['trainee_ids']) : [];
+
+        $planData = [
+            'trainer_id' => !empty($data['trainer_id']) ? (int)$data['trainer_id'] : (int)$data['created_by'],
+            'user_id' => !empty($trainees[0]) ? $trainees[0] : null,
+            'sub_activity_id' => (int)$data['sub_activity_id'],
+            'title' => sanitize($data['title']),
+            'description' => sanitize($data['description'] ?? ''),
+            'training_date' => !empty($data['training_date']) ? date('Y-m-d H:i:s', strtotime($data['training_date'])) : null,
+            'meeting_url' => $meetingUrl,
+            'meeting_link' => $meetingUrl,
+            'kt_document_path' => $data['kt_document_path'] ?? null,
+            'kt_document_name' => $data['kt_document_name'] ?? null,
+            'trainees_json' => !empty($trainees) ? json_encode($trainees) : null,
+            'status' => 'Scheduled',
+            'created_by' => (int)$data['created_by'],
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+
+        $planId = $this->insert('training_plans', $planData);
+
+        // Attach trainees to training_plan_trainees & user_training_progress
+        if (!empty($trainees)) {
+            foreach ($trainees as $uid) {
+                if ($uid <= 0) continue;
+                try {
+                    $this->db->prepare("INSERT IGNORE INTO training_plan_trainees (training_plan_id, user_id, is_acknowledged) VALUES (?, ?, 0)")
+                             ->execute([$planId, $uid]);
+                } catch (Exception $e) {}
+
+                // Ensure user_training_progress initialized for trainee & sub_activity
+                $existing = $this->fetchOne("SELECT id FROM user_training_progress WHERE user_id = ? AND sub_activity_id = ?", [$uid, $planData['sub_activity_id']]);
+                if (!$existing) {
+                    $this->insert('user_training_progress', [
+                        'user_id' => $uid,
+                        'training_plan_id' => $planId,
+                        'sub_activity_id' => $planData['sub_activity_id'],
+                        'is_learned' => 0
+                    ]);
+                }
+            }
+        }
+
+        return $planId;
+    }
+
+    public function getScheduledTrainingPlansForUser(int $userId, bool $isAdmin = false, ?int $filterUserId = null): array {
+        $sql = "SELECT tp.*, 
+                       COALESCE(NULLIF(tp.meeting_url, ''), tp.meeting_link) as effective_meeting_url,
+                       sa.sub_activity_name, 
+                       a.activity_name, 
+                       d.division_name,
+                       u_trainer.full_name as trainer_name, u_trainer.user_code as trainer_code,
+                       u_creator.full_name as creator_name
+                FROM training_plans tp
+                JOIN sub_activities sa ON tp.sub_activity_id = sa.id
+                JOIN activities a ON sa.activity_id = a.id
+                LEFT JOIN divisions d ON sa.division_id = d.id
+                LEFT JOIN users u_trainer ON tp.trainer_id = u_trainer.id
+                LEFT JOIN users u_creator ON tp.created_by = u_creator.id
+                WHERE 1=1";
+        
+        $params = [];
+
+        if (!$isAdmin) {
+            $sql .= " AND (tp.id IN (SELECT training_plan_id FROM training_plan_trainees WHERE user_id = ?) OR tp.user_id = ? OR tp.user_id IS NULL)";
+            $params[] = $userId;
+            $params[] = $userId;
+        } elseif ($filterUserId && $isAdmin) {
+            $sql .= " AND (tp.id IN (SELECT training_plan_id FROM training_plan_trainees WHERE user_id = ?) OR tp.user_id = ? OR tp.user_id IS NULL)";
+            $params[] = $filterUserId;
+            $params[] = $filterUserId;
+        }
+
+        $sql .= " ORDER BY CASE WHEN tp.status = 'Scheduled' THEN 0 ELSE 1 END, tp.training_date DESC, tp.id DESC";
+        $plans = $this->fetchAll($sql, $params);
+
+        foreach ($plans as &$p) {
+            $trainees = $this->fetchAll("
+                SELECT tpt.is_acknowledged, tpt.acknowledged_at, u.id as user_id, u.full_name, u.user_code, u.department
+                FROM training_plan_trainees tpt
+                JOIN users u ON tpt.user_id = u.id
+                WHERE tpt.training_plan_id = ?
+            ", [$p['id']]);
+
+            if (empty($trainees) && !empty($p['trainees_json'])) {
+                $tIds = json_decode($p['trainees_json'], true);
+                if (is_array($tIds) && !empty($tIds)) {
+                    $inC = implode(',', array_map('intval', $tIds));
+                    $trainees = $this->fetchAll("SELECT 0 as is_acknowledged, NULL as acknowledged_at, id as user_id, full_name, user_code, department FROM users WHERE id IN ($inC)");
+                }
+            }
+
+            $p['trainees_list'] = $trainees;
+            $p['acknowledged_count'] = 0;
+            $p['user_is_acknowledged'] = 0;
+            $p['user_acknowledged_at'] = null;
+
+            foreach ($trainees as $tItem) {
+                if (!empty($tItem['is_acknowledged'])) {
+                    $p['acknowledged_count']++;
+                }
+                if ($tItem['user_id'] == $userId) {
+                    $p['user_is_acknowledged'] = !empty($tItem['is_acknowledged']) ? 1 : 0;
+                    $p['user_acknowledged_at'] = $tItem['acknowledged_at'] ?? null;
+                }
+            }
+
+            $cert = $this->fetchOne("SELECT pkt_passed, practice_passed FROM activity_certifications WHERE user_id = ? AND sub_activity_id = ?", [$userId, $p['sub_activity_id']]);
+            $p['pkt_passed'] = !empty($cert['pkt_passed']) ? 1 : 0;
+            $p['practice_passed'] = !empty($cert['practice_passed']) ? 1 : 0;
+        }
+
+        return $plans;
+    }
+
+    public function acknowledgeTraineeKT(int $planId, int $userId): array {
+        $plan = $this->fetchOne("SELECT * FROM training_plans WHERE id = ?", [$planId]);
+        if (!$plan) return ['success' => false, 'status' => 'error'];
+
+        $subActivityId = $plan['sub_activity_id'];
+        $now = date('Y-m-d H:i:s');
+
+        // Check existing trainee record
+        $tCheck = $this->fetchOne("SELECT id, is_acknowledged FROM training_plan_trainees WHERE training_plan_id = ? AND user_id = ?", [$planId, $userId]);
+        
+        $newStatus = 1;
+        if ($tCheck && !empty($tCheck['is_acknowledged'])) {
+            $newStatus = 0; // Revoke acknowledgment
+        }
+
+        if ($tCheck) {
+            $this->update('training_plan_trainees', [
+                'is_acknowledged' => $newStatus,
+                'acknowledged_at' => $newStatus ? $now : null
+            ], "id = ?", [$tCheck['id']]);
+        } else {
+            $this->insert('training_plan_trainees', [
+                'training_plan_id' => $planId,
+                'user_id' => $userId,
+                'is_acknowledged' => $newStatus,
+                'acknowledged_at' => $newStatus ? $now : null
+            ]);
+        }
+
+        // Update user_training_progress
+        $existing = $this->fetchOne("SELECT id FROM user_training_progress WHERE user_id = ? AND sub_activity_id = ?", [$userId, $subActivityId]);
+        if ($existing) {
+            $this->update('user_training_progress', [
+                'training_plan_id' => $planId,
+                'is_learned' => $newStatus,
+                'learned_at' => $newStatus ? $now : null,
+                'acknowledged_at' => $newStatus ? $now : null
+            ], "id = ?", [$existing['id']]);
+        } else {
+            $this->insert('user_training_progress', [
+                'user_id' => $userId,
+                'training_plan_id' => $planId,
+                'sub_activity_id' => $subActivityId,
+                'is_learned' => $newStatus,
+                'learned_at' => $newStatus ? $now : null,
+                'acknowledged_at' => $newStatus ? $now : null
+            ]);
+        }
+
+        $this->updateCertificationProgress($userId, $subActivityId);
+        return [
+            'success' => true,
+            'status' => $newStatus ? 'acknowledged' : 'revoked'
+        ];
+    }
+
+    public function deleteTrainingPlan(int $planId): bool {
+        $this->delete('training_plan_trainees', "training_plan_id = ?", [$planId]);
+        return $this->delete('training_plans', "id = ?", [$planId]);
+    }
+
+    public function getFlatTrainingPlanTable(int $userId, bool $isAdmin = false, ?int $targetUserId = null): array {
+        $effectiveUserId = ($targetUserId && $isAdmin) ? $targetUserId : $userId;
+
+        $sql = "SELECT 
+                    sa.id as sub_activity_id,
+                    sa.sub_activity_name,
+                    sa.activity_id,
+                    a.activity_name,
+                    sa.division_id,
+                    COALESCE(d.division_name, 'General Operations') as division_name,
+                    usa.role_type,
+                    COALESCE(utp.is_learned, 0) as is_learned,
+                    utp.learned_at,
+                    utp.acknowledged_at,
+                    tp.id as plan_id,
+                    tp.title as plan_title,
+                    tp.description as plan_description,
+                    COALESCE(NULLIF(tp.meeting_url, ''), tp.meeting_link) as meeting_url,
+                    tp.kt_document_path,
+                    tp.kt_document_name,
+                    ac.training_completed,
+                    ac.pkt_passed,
+                    ac.pkt_score,
+                    ac.practice_passed,
+                    ac.status as cert_status,
+                    ac.certificate_code
+                FROM sub_activities sa
+                JOIN activities a ON sa.activity_id = a.id
+                LEFT JOIN divisions d ON sa.division_id = d.id
+                JOIN user_sub_activities usa ON (usa.sub_activity_id = sa.id AND usa.user_id = ?)
+                LEFT JOIN user_training_progress utp ON (utp.sub_activity_id = sa.id AND utp.user_id = ?)
+                LEFT JOIN training_plans tp ON tp.sub_activity_id = sa.id
+                LEFT JOIN activity_certifications ac ON (ac.sub_activity_id = sa.id AND ac.user_id = ?)
+                WHERE sa.status = 'Active'
+                ORDER BY d.division_name ASC, a.activity_name ASC, sa.sub_activity_name ASC";
+
+        return $this->fetchAll($sql, [$effectiveUserId, $effectiveUserId, $effectiveUserId]);
+    }
+
+    public function getGroupedTrainingPlan(int $userId, bool $isAdmin = false, ?int $filterUserId = null): array {
         $assignedSkills = [];
         $userSkills = $this->fetchAll("SELECT sub_activity_id, role_type FROM user_sub_activities WHERE user_id = ?", [$userId]);
         if (!empty($userSkills)) {
@@ -312,16 +546,26 @@ class Training_model extends Model {
 
     public function getRandomQuestionsForSubActivity(int $subActivityId, int $limit = 5): array {
         $sql = "SELECT * FROM pkt_question_bank WHERE sub_activity_id = ? ORDER BY RAND() LIMIT ?";
-        return $this->fetchAll($sql, [$subActivityId, $limit]);
+        $questions = $this->fetchAll($sql, [$subActivityId, $limit]);
+        if (!empty($questions)) {
+            shuffle($questions);
+        }
+        return $questions;
     }
 
     public function submitTestAttempt(int $userId, int $testId, array $userAnswers): array {
         $test = $this->getTestById($testId);
         if (!$test) return ['success' => false, 'message' => 'Test not found'];
 
-        $questions = $this->fetchAll("SELECT * FROM pkt_question_bank WHERE sub_activity_id = ?", [$test['sub_activity_id']]);
+        $submittedQuestionIds = array_map('intval', array_keys($userAnswers));
+        if (empty($submittedQuestionIds)) {
+            return ['success' => false, 'message' => 'No question answers were submitted.'];
+        }
+
+        $inClause = implode(',', $submittedQuestionIds);
+        $questions = $this->fetchAll("SELECT * FROM pkt_question_bank WHERE id IN ($inClause) AND sub_activity_id = ?", [$test['sub_activity_id']]);
         if (empty($questions)) {
-            return ['success' => false, 'message' => 'No questions found for this test.'];
+            return ['success' => false, 'message' => 'No valid questions found for this test.'];
         }
 
         $correct = 0;
@@ -342,7 +586,7 @@ class Training_model extends Model {
             ];
         }
 
-        $percentage = round(($correct / $total) * 100, 2);
+        $percentage = ($total > 0) ? round(($correct / $total) * 100, 2) : 0;
         $passed = ($percentage >= $test['passing_score']) ? 1 : 0;
 
         $attemptId = $this->insert('pkt_test_attempts', [

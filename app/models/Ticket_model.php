@@ -12,6 +12,15 @@ class Ticket_model extends Model {
         } catch (Exception $e) {
             // Column already exists
         }
+        try {
+            $this->db->exec("ALTER TABLE tickets MODIFY COLUMN stage VARCHAR(100) NULL DEFAULT 'Maker Phase'");
+        } catch (Exception $e) {}
+        try {
+            $cols = $this->fetchAll("SHOW COLUMNS FROM sub_activities LIKE 'enabled_queues'");
+            if (empty($cols)) {
+                $this->db->exec("ALTER TABLE `sub_activities` ADD COLUMN `enabled_queues` TEXT NULL");
+            }
+        } catch (Exception $e) {}
     }
 
     public function generateTicketNumber(): string {
@@ -54,7 +63,25 @@ class Ticket_model extends Model {
         if (empty($data['scheduled_date'])) {
             $data['scheduled_date'] = date('Y-m-d', strtotime($data['created_at']));
         }
+
+        // Auto-determine Workflow based on Mail Category or Sub-Activity
+        if (empty($data['workflow_id'])) {
+            try {
+                require_once __DIR__ . '/Workflow_model.php';
+                $wfModel = new Workflow_model();
+                $wf = $wfModel->getWorkflowForTicket($data['category_id'] ?? null, $data['sub_activity_id'] ?? null);
+                if ($wf) {
+                    $data['workflow_id'] = $wf['id'];
+                    if (!empty($wf['stages'][0])) {
+                        $data['current_stage_id'] = $wf['stages'][0]['id'];
+                    }
+                }
+            } catch (Exception $e) {}
+        }
+
         $ticketId = $this->insert('tickets', $data);
+
+        $this->syncTicketToLifecycle($ticketId);
 
         $this->logAudit('Tickets', 'Create Ticket', null, ['id' => $ticketId, 'ticket_number' => $data['ticket_number']]);
 
@@ -69,7 +96,8 @@ class Ticket_model extends Model {
     public function getTicketById(int $id): ?array {
         $sql = "SELECT t.*, 
                        d.division_name, d.code as division_code,
-                       a.activity_name, sa.sub_activity_name, sa.default_tat_hours,
+                       a.activity_name, sa.sub_activity_name, sa.default_tat_hours, sa.enabled_queues,
+                       tc.category_name, tc.workflow_id as category_workflow_id,
                        u_alloc.full_name as allocated_user_name, u_alloc.email as allocated_user_email, u_alloc.user_code as allocated_user_code,
                        u_checker.full_name as checker_user_name, u_checker.email as checker_user_email, u_checker.user_code as checker_user_code,
                        u_creator.full_name as creator_name, u_creator.user_code as creator_user_code,
@@ -78,6 +106,7 @@ class Ticket_model extends Model {
                 LEFT JOIN divisions d ON t.division_id = d.id
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
+                LEFT JOIN ticket_categories tc ON t.category_id = tc.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
                 LEFT JOIN users u_checker ON t.checker_id = u_checker.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
@@ -106,14 +135,16 @@ class Ticket_model extends Model {
         $params = [];
 
         // Role-based visibility
-        if ($roleId == 3 && $userId) {
-            // Employee sees assigned tickets or tickets created by them
-            $sql .= " AND (t.allocated_to = ? OR t.created_by = ?)";
+        if ($roleId == 5 && $userId) {
+            // Employee sees assigned tickets (maker or checker) or tickets created by them
+            $sql .= " AND (t.allocated_to = ? OR t.checker_id = ? OR t.created_by = ?)";
             $params[] = $userId;
             $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            // Admin sees team tickets
-            $sql .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.created_by = ?)";
+            $params[] = $userId;
+        } elseif (($roleId == 3 || $roleId == 4) && $userId) {
+            // Manager & Team Lead see team/project tickets
+            $sql .= " AND (t.allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR t.checker_id = ? OR t.created_by = ?)";
+            $params[] = $userId;
             $params[] = $userId;
             $params[] = $userId;
             $params[] = $userId;
@@ -121,20 +152,38 @@ class Ticket_model extends Model {
 
         // Filters
         if (!empty($filters['status'])) {
-            $sql .= " AND t.status = ?";
-            $params[] = $filters['status'];
+            $statuses = (array)$filters['status'];
+            if (!empty($statuses)) {
+                $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+                $sql .= " AND t.status IN ({$placeholders})";
+                foreach ($statuses as $st) {
+                    $params[] = $st;
+                }
+            }
+        }
+        if (!empty($filters['activity_id'])) {
+            $acts = array_filter(array_map('intval', (array)$filters['activity_id']));
+            if (!empty($acts)) {
+                $placeholders = implode(',', array_fill(0, count($acts), '?'));
+                $sql .= " AND t.activity_id IN ({$placeholders})";
+                foreach ($acts as $aid) {
+                    $params[] = $aid;
+                }
+            }
+        }
+        if (!empty($filters['allocated_to'])) {
+            $users = array_filter(array_map('intval', (array)$filters['allocated_to']));
+            if (!empty($users)) {
+                $placeholders = implode(',', array_fill(0, count($users), '?'));
+                $sql .= " AND t.allocated_to IN ({$placeholders})";
+                foreach ($users as $uid) {
+                    $params[] = $uid;
+                }
+            }
         }
         if (!empty($filters['ticket_type'])) {
             $sql .= " AND t.ticket_type = ?";
             $params[] = $filters['ticket_type'];
-        }
-        if (!empty($filters['allocated_to'])) {
-            $sql .= " AND t.allocated_to = ?";
-            $params[] = $filters['allocated_to'];
-        }
-        if (!empty($filters['activity_id'])) {
-            $sql .= " AND t.activity_id = ?";
-            $params[] = $filters['activity_id'];
         }
         if (!empty($filters['search'])) {
             $searchTerm = "%" . $filters['search'] . "%";
@@ -251,16 +300,21 @@ class Ticket_model extends Model {
         $where = " WHERE 1=1";
         $params = [];
 
-        if ($roleId == 3 && $userId) {
-            $where .= " AND ({$prefix}allocated_to = ? OR {$prefix}created_by = ?)";
+        if ($roleId == 4 && $userId) {
+            // Employee: Personal workload only
+            $where .= " AND ({$prefix}allocated_to = ? OR {$prefix}created_by = ? OR {$prefix}checker_id = ?)";
             $params[] = $userId;
             $params[] = $userId;
-        } elseif ($roleId == 2 && $userId) {
-            $where .= " AND ({$prefix}allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR {$prefix}created_by = ?)";
+            $params[] = $userId;
+        } elseif (($roleId == 2 || $roleId == 3) && $userId) {
+            // Admin (TL) / Manager: Team level visibility
+            $where .= " AND ({$prefix}allocated_to IN (SELECT id FROM users WHERE manager_id = ? OR id = ?) OR {$prefix}created_by = ? OR {$prefix}checker_id = ?)";
+            $params[] = $userId;
             $params[] = $userId;
             $params[] = $userId;
             $params[] = $userId;
         }
+        // Role 1 (Super Admin) & Role 5 (Senior Management): Full organization-wide analytics (no restriction)
 
         if (!empty($filters['division_id'])) {
             $where .= " AND {$prefix}division_id = ?";
@@ -404,17 +458,115 @@ class Ticket_model extends Model {
         ]);
     }
 
+    /**
+     * Helper to resolve the next workflow stage for a ticket
+     */
+    public function getNextWorkflowStageForTicket(array $ticket, string $action = 'next'): array {
+        $wfId = $ticket['workflow_id'] ?? null;
+        if (!$wfId && !empty($ticket['category_id'])) {
+            $cat = $this->fetchOne("SELECT workflow_id FROM ticket_categories WHERE id = ?", [$ticket['category_id']]);
+            $wfId = $cat['workflow_id'] ?? null;
+        }
+
+        if ($wfId) {
+            $stages = $this->fetchAll("SELECT * FROM workflow_stages WHERE workflow_id = ? ORDER BY stage_order ASC", [$wfId]);
+            if (!empty($stages)) {
+                $curIdx = 0;
+                $found = false;
+
+                if (!empty($ticket['current_stage_id'])) {
+                    foreach ($stages as $i => $stg) {
+                        if ((int)$stg['id'] === (int)$ticket['current_stage_id']) {
+                            $curIdx = $i;
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$found && !empty($ticket['stage'])) {
+                    foreach ($stages as $i => $stg) {
+                        if (strcasecmp(trim($stg['stage_name']), trim($ticket['stage'])) === 0) {
+                            $curIdx = $i;
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
+
+                $nextIdx = $curIdx;
+
+                if ($action === 'checker') {
+                    // Find first Checker stage at or after current index
+                    for ($i = $curIdx + 1; $i < count($stages); $i++) {
+                        if (($stages[$i]['queue_type'] ?? '') === 'Checker') {
+                            $nextIdx = $i;
+                            break;
+                        }
+                    }
+                    if ($nextIdx === $curIdx && isset($stages[$curIdx + 1])) {
+                        $nextIdx = $curIdx + 1;
+                    }
+                } elseif ($action === 'maker' || $action === 'rework') {
+                    // Find Maker or Rework stage
+                    for ($i = 0; $i < count($stages); $i++) {
+                        if (in_array($stages[$i]['queue_type'] ?? '', ['Maker', 'Rework'])) {
+                            $nextIdx = $i;
+                            break;
+                        }
+                    }
+                } elseif ($action === 'delivery') {
+                    for ($i = $curIdx + 1; $i < count($stages); $i++) {
+                        if (($stages[$i]['queue_type'] ?? '') === 'Delivery') {
+                            $nextIdx = $i;
+                            break;
+                        }
+                    }
+                    if ($nextIdx === $curIdx && isset($stages[$curIdx + 1])) {
+                        $nextIdx = $curIdx + 1;
+                    }
+                } else {
+                    // Next consecutive stage
+                    $nextIdx = min($curIdx + 1, count($stages) - 1);
+                }
+
+                $targetStage = $stages[$nextIdx];
+                $isClosed = ($targetStage['queue_type'] ?? '') === 'Closed' || ($nextIdx === count($stages) - 1 && $action === 'next');
+
+                return [
+                    'stage_id'   => $targetStage['id'],
+                    'stage_name' => $targetStage['stage_name'],
+                    'queue_type' => $targetStage['queue_type'] ?? 'Maker',
+                    'is_closed'  => $isClosed
+                ];
+            }
+        }
+
+        // Fallback to legacy master stage calculation
+        $nextStageName = $this->getNextEnabledStage($ticket['stage'] ?? 'Maker Phase', $ticket['enabled_queues'] ?? null);
+        return [
+            'stage_id'   => null,
+            'stage_name' => $nextStageName,
+            'queue_type' => ($nextStageName === 'Closed') ? 'Closed' : 'Maker',
+            'is_closed'  => ($nextStageName === 'Closed')
+        ];
+    }
+
     public function submitToChecker(int $ticketId, int $checkerId, string $remarks, int $userId): bool {
         $ticket = $this->getTicketById($ticketId);
         if (!$ticket) return false;
 
+        $nextStg = $this->getNextWorkflowStageForTicket($ticket, 'checker');
+
         $this->update('tickets', [
-            'stage' => 'Checker Phase',
+            'stage' => $nextStg['stage_name'],
+            'current_stage_id' => $nextStg['stage_id'],
             'checker_id' => $checkerId,
+            'status' => 'In Progress',
             'updated_at' => date('Y-m-d H:i:s')
         ], "id = ?", [$ticketId]);
 
-        $this->addComment($ticketId, $userId, "Maker completed work and submitted to Checker. Remarks: {$remarks}");
+        $this->addComment($ticketId, $userId, "Maker completed work and submitted to Checker ({$nextStg['stage_name']}). Remarks: {$remarks}");
         $this->createNotification($checkerId, "Checker Review Requested", "Ticket {$ticket['ticket_number']} assigned to you for checker audit.", "/tickets/view/{$ticketId}");
         return true;
     }
@@ -434,8 +586,11 @@ class Ticket_model extends Model {
         $ticket = $this->getTicketById($ticketId);
         if (!$ticket) return false;
 
+        $nextStg = $this->getNextWorkflowStageForTicket($ticket, 'maker');
+
         $this->update('tickets', [
-            'stage' => 'Maker Phase',
+            'stage' => $nextStg['stage_name'],
+            'current_stage_id' => $nextStg['stage_id'],
             'status' => 'In Progress',
             'updated_at' => date('Y-m-d H:i:s')
         ], "id = ?", [$ticketId]);
@@ -459,7 +614,7 @@ class Ticket_model extends Model {
             'created_at' => date('Y-m-d H:i:s')
         ]);
 
-        $this->addComment($ticketId, $userId, "Checker Rejected File. Error: {$errorCategory} - {$errorDesc}. Retargeted to Maker Phase.");
+        $this->addComment($ticketId, $userId, "Checker Rejected File. Error: {$errorCategory} - {$errorDesc}. Retargeted to {$nextStg['stage_name']}.");
         if ($ticket['allocated_to']) {
             $this->createNotification($ticket['allocated_to'], "Ticket Returned by Checker", "Checker identified error on ticket {$ticket['ticket_number']}. Please revise.", "/tickets/view/{$ticketId}");
         }
@@ -470,30 +625,91 @@ class Ticket_model extends Model {
         $ticket = $this->getTicketById($ticketId);
         if (!$ticket) return false;
 
+        $nextStg = $this->getNextWorkflowStageForTicket($ticket, 'delivery');
+
         $this->update('tickets', [
-            'stage' => 'Delivery Phase',
+            'stage' => $nextStg['stage_name'],
+            'current_stage_id' => $nextStg['stage_id'],
+            'status' => 'In Progress',
             'updated_at' => date('Y-m-d H:i:s')
         ], "id = ?", [$ticketId]);
 
-        $this->addComment($ticketId, $userId, "Checker Audit Approved. Ticket moved to Delivery Phase. Remarks: {$remarks}");
+        $this->addComment($ticketId, $userId, "Checker Audit Approved. Ticket moved to {$nextStg['stage_name']}. Remarks: {$remarks}");
         if ($ticket['allocated_to']) {
-            $this->createNotification($ticket['allocated_to'], "Checker Approved Ticket", "Ticket {$ticket['ticket_number']} approved by checker. Ready for delivery.", "/tickets/view/{$ticketId}");
+            $this->createNotification($ticket['allocated_to'], "Checker Approved Ticket", "Ticket {$ticket['ticket_number']} approved by checker. Ready for next phase.", "/tickets/view/{$ticketId}");
         }
         return true;
+    }
+
+    public function getNextEnabledStage(string $currentStage, ?string $enabledQueuesJson = null): string {
+        $masterOrderedStages = [
+            1  => 'Input Received',
+            2  => 'Maker Queue',
+            3  => 'Checker Queue',
+            4  => 'Error Log',
+            5  => 'Maker Checker Rework',
+            6  => 'Delivery',
+            7  => 'Acknowledgement',
+            8  => 'Approval Queue',
+            9  => 'Uploader Queue',
+            10 => 'Dump Sharing',
+            11 => 'Consol Vendor Tracker',
+            12 => 'Closed'
+        ];
+
+        $stageMap = [
+            'Input Received'        => 1,
+            'Maker Phase'           => 2,
+            'Maker Queue'           => 2,
+            'Checker Phase'         => 3,
+            'Checker Queue'         => 3,
+            'Error Log'             => 4,
+            'Maker Checker Rework'  => 5,
+            'Delivery Phase'        => 6,
+            'Delivery'              => 6,
+            'Acknowledgement'       => 7,
+            'Approval Queue'        => 8,
+            'Uploader Queue'        => 9,
+            'Dump Sharing'          => 10,
+            'Consol Vendor Tracker' => 11,
+            'Closed'                => 12,
+            'Completed'             => 12,
+        ];
+
+        $currentIdx = $stageMap[$currentStage] ?? 2;
+        $enabledList = !empty($enabledQueuesJson) ? json_decode($enabledQueuesJson, true) : null;
+
+        for ($idx = $currentIdx + 1; $idx <= 12; $idx++) {
+            $stageName = $masterOrderedStages[$idx];
+            if ($enabledList === null || !is_array($enabledList) || in_array($stageName, $enabledList)) {
+                return $stageName;
+            }
+        }
+        return 'Closed';
     }
 
     public function completeDelivery(int $ticketId, ?string $attachmentPath, string $remarks, int $userId): bool {
         $ticket = $this->getTicketById($ticketId);
         if (!$ticket) return false;
 
-        $this->update('tickets', [
-            'stage' => 'Completed',
-            'status' => 'Closed',
-            'closure_attachment' => $attachmentPath,
+        $nextStg = $this->getNextWorkflowStageForTicket($ticket, 'next');
+
+        $updateData = [
+            'stage' => $nextStg['stage_name'],
+            'current_stage_id' => $nextStg['stage_id'],
+            'closure_attachment' => $attachmentPath ?: ($ticket['closure_attachment'] ?? null),
             'replied_by' => $userId,
             'replied_datetime' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
-        ], "id = ?", [$ticketId]);
+        ];
+
+        if ($nextStg['is_closed']) {
+            $updateData['status'] = 'Closed';
+        } else {
+            $updateData['status'] = 'In Progress';
+        }
+
+        $this->update('tickets', $updateData, "id = ?", [$ticketId]);
 
         $delivNo = 'DEL-' . date('Ymd') . '-' . str_pad((string)$ticketId, 4, '0', STR_PAD_LEFT);
         $this->insert('delivery_tracker', [
@@ -503,14 +719,47 @@ class Ticket_model extends Model {
             'delivery_date' => date('Y-m-d H:i:s'),
             'delivery_mode' => 'Email',
             'ack_received' => 'Yes',
-            'remarks' => $remarks ?: 'Delivered and closed.',
+            'remarks' => $remarks ?: 'Delivered and logged in Delivery Tracker.',
             'attachment_path' => $attachmentPath,
             'created_by' => $userId,
             'created_at' => date('Y-m-d H:i:s')
         ]);
 
-        $this->addComment($ticketId, $userId, "Ticket delivered and closed. Proof attached: " . ($attachmentPath ? basename($attachmentPath) : 'None') . ". Delivery Ref: {$delivNo}");
+        $statusMsg = ($nextStg['is_closed']) ? "Ticket delivered and closed. Delivery Ref: {$delivNo}" : "Ticket delivered and logged in Delivery Tracker (Ref: {$delivNo}). Progressed to next queue: [{$nextStg['stage_name']}].";
+        $this->addComment($ticketId, $userId, $statusMsg);
         return true;
+    }
+
+    public function advanceToNextQueue(int $ticketId, string $currentStage, ?string $attachmentPath, string $remarks, int $userId): string {
+        $ticket = $this->getTicketById($ticketId);
+        if (!$ticket) return 'Closed';
+
+        $nextStg = $this->getNextWorkflowStageForTicket($ticket, 'next');
+
+        $updateData = [
+            'stage' => $nextStg['stage_name'],
+            'current_stage_id' => $nextStg['stage_id'],
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        if ($attachmentPath) {
+            $updateData['closure_attachment'] = $attachmentPath;
+        }
+
+        if ($nextStg['is_closed']) {
+            $updateData['status'] = 'Closed';
+            $updateData['replied_by'] = $userId;
+            $updateData['replied_datetime'] = date('Y-m-d H:i:s');
+        } else {
+            $updateData['status'] = 'In Progress';
+        }
+
+        $this->update('tickets', $updateData, "id = ?", [$ticketId]);
+
+        $statusMsg = ($nextStg['is_closed']) ? "Queue action [{$currentStage}] completed! Ticket fully closed & archived. Remarks: {$remarks}" : "Queue action [{$currentStage}] completed! Ticket progressed to next queue: [{$nextStg['stage_name']}]. Remarks: {$remarks}";
+        $this->addComment($ticketId, $userId, $statusMsg);
+
+        return $nextStg['stage_name'];
     }
 
     public function syncToInputTracker(int $ticketId, int $userId): void {
@@ -562,27 +811,89 @@ class Ticket_model extends Model {
     }
 
     public function getMyBucketTickets(int $userId, array $filters = []): array {
+        $this->autoRolloverPendingTickets();
+
         $sql = "SELECT t.*, 
                        tc.category_name,
                        a.activity_name, sa.sub_activity_name,
                        u_alloc.full_name as allocated_user_name, u_alloc.user_code as allocated_user_code,
-                       u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code
+                       u_chk.full_name as checker_user_name, u_chk.user_code as checker_user_code,
+                       u_creator.full_name as creator_name, u_creator.user_code as creator_user_code
                 FROM tickets t
                 LEFT JOIN ticket_categories tc ON t.category_id = tc.id
                 LEFT JOIN activities a ON t.activity_id = a.id
                 LEFT JOIN sub_activities sa ON t.sub_activity_id = sa.id
                 LEFT JOIN users u_alloc ON t.allocated_to = u_alloc.id
                 LEFT JOIN users u_chk ON t.checker_id = u_chk.id
-                WHERE (t.allocated_to = ? OR t.checker_id = ?) AND t.status NOT IN ('Closed', 'Cancelled')";
-        $params = [$userId, $userId];
+                LEFT JOIN users u_creator ON t.created_by = u_creator.id
+                WHERE (t.allocated_to = ? OR t.checker_id = ? OR t.created_by = ?)";
+        $params = [$userId, $userId, $userId];
 
-        if (!empty($filters['stage'])) {
-            $sql .= " AND t.stage = ?";
-            $params[] = $filters['stage'];
+        // Multi-select status filter
+        if (!empty($filters['status'])) {
+            $statuses = (array)$filters['status'];
+            $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+            $sql .= " AND t.status IN ({$placeholders})";
+            foreach ($statuses as $st) {
+                $params[] = $st;
+            }
+        } else {
+            // Default active tickets if no status filter selected
+            $sql .= " AND t.status NOT IN ('Closed', 'Cancelled')";
         }
+
+        // Multi-select stage filter with stage alias expansion
+        if (!empty($filters['stage'])) {
+            $stages = (array)$filters['stage'];
+            $stageAliasMap = [
+                'Input Received'        => ['Input Received', '1'],
+                'Maker Phase'           => ['Maker Phase', 'Maker Queue', 'In Progress', 'Assigned', 'New', ''],
+                'Checker Phase'         => ['Checker Phase', 'Checker Queue', 'Error Log', 'Maker Checker Rework'],
+                'Delivery Phase'        => ['Delivery Phase', 'Delivery'],
+                'Acknowledgement'       => ['Acknowledgement'],
+                'Approval Queue'        => ['Approval Queue'],
+                'Uploader Queue'        => ['Uploader Queue'],
+                'Dump Sharing'          => ['Dump Sharing'],
+                'Consol Vendor Tracker' => ['Consol Vendor Tracker'],
+                'Closed'                => ['Closed', 'Completed'],
+            ];
+
+            $expanded = [];
+            foreach ($stages as $stg) {
+                if (isset($stageAliasMap[$stg])) {
+                    $expanded = array_merge($expanded, $stageAliasMap[$stg]);
+                } else {
+                    $expanded[] = $stg;
+                }
+            }
+            $expanded = array_unique($expanded);
+            $includeNull = in_array('Maker Phase', $stages) || count($stages) >= count($stageAliasMap);
+            
+            $placeholders = implode(',', array_fill(0, count($expanded), '?'));
+            if ($includeNull) {
+                $sql .= " AND (t.stage IN ({$placeholders}) OR t.stage IS NULL OR t.stage = '')";
+            } else {
+                $sql .= " AND t.stage IN ({$placeholders})";
+            }
+            foreach ($expanded as $stgVal) {
+                $params[] = $stgVal;
+            }
+        }
+
+        // Multi-select priority filter
+        if (!empty($filters['priority'])) {
+            $priorities = (array)$filters['priority'];
+            $placeholders = implode(',', array_fill(0, count($priorities), '?'));
+            $sql .= " AND t.priority IN ({$placeholders})";
+            foreach ($priorities as $p) {
+                $params[] = $p;
+            }
+        }
+
         if (!empty($filters['search'])) {
             $searchTerm = "%" . $filters['search'] . "%";
-            $sql .= " AND (t.ticket_number LIKE ? OR t.subject LIKE ? OR t.from_address LIKE ?)";
+            $sql .= " AND (t.ticket_number LIKE ? OR t.subject LIKE ? OR t.from_address LIKE ? OR t.agency_code LIKE ?)";
+            $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -592,7 +903,7 @@ class Ticket_model extends Model {
         return $this->fetchAll($sql, $params);
     }
 
-    public function getRosterTickets(string $targetDate, ?int $userId = null, ?int $roleId = null): array {
+    public function getRosterTickets(string $targetDate, ?int $userId = null, ?int $roleId = null, array $filters = []): array {
         $sql = "SELECT t.*, 
                        tc.category_name,
                        a.activity_name, sa.sub_activity_name,
@@ -614,11 +925,90 @@ class Ticket_model extends Model {
             $params[] = $userId;
         }
 
-        // Target Date or pending items scheduled on or before target date
-        $sql .= " AND (t.scheduled_date = ? OR (t.scheduled_date < ? AND t.status NOT IN ('Completed', 'Closed', 'Cancelled')) OR (t.scheduled_date IS NULL AND DATE(t.created_at) <= ? AND t.status NOT IN ('Completed', 'Closed', 'Cancelled')))";
-        $params[] = $targetDate;
-        $params[] = $targetDate;
-        $params[] = $targetDate;
+        // Target Date logic (Includes closed/completed tasks on target date)
+        if ($targetDate === date('Y-m-d')) {
+            $sql .= " AND (t.scheduled_date = ? OR (t.scheduled_date < ? AND t.status NOT IN ('Completed', 'Closed', 'Cancelled')) OR (t.scheduled_date IS NULL AND DATE(t.created_at) <= ? AND t.status NOT IN ('Completed', 'Closed', 'Cancelled')) OR (DATE(t.updated_at) = ? AND t.status IN ('Completed', 'Closed')))";
+            $params[] = $targetDate;
+            $params[] = $targetDate;
+            $params[] = $targetDate;
+            $params[] = $targetDate;
+        } else {
+            $sql .= " AND (t.scheduled_date = ? OR DATE(t.updated_at) = ? OR (DATE(t.created_at) = ? AND t.status IN ('Completed', 'Closed')))";
+            $params[] = $targetDate;
+            $params[] = $targetDate;
+            $params[] = $targetDate;
+        }
+
+        // Multi-select filters
+        if (!empty($filters['status'])) {
+            $statuses = (array)$filters['status'];
+            if (!empty($statuses)) {
+                $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+                $sql .= " AND t.status IN ({$placeholders})";
+                foreach ($statuses as $st) {
+                    $params[] = $st;
+                }
+            }
+        }
+
+        if (!empty($filters['stage'])) {
+            $stages = (array)$filters['stage'];
+            if (!empty($stages)) {
+                $stageAliasMap = [
+                    'Input Received'        => ['Input Received', '1'],
+                    'Maker Phase'           => ['Maker Phase', 'Maker Queue', 'In Progress', 'Assigned', 'New', ''],
+                    'Checker Phase'         => ['Checker Phase', 'Checker Queue', 'Error Log', 'Maker Checker Rework'],
+                    'Delivery Phase'        => ['Delivery Phase', 'Delivery'],
+                    'Acknowledgement'       => ['Acknowledgement'],
+                    'Approval Queue'        => ['Approval Queue'],
+                    'Uploader Queue'        => ['Uploader Queue'],
+                    'Dump Sharing'          => ['Dump Sharing'],
+                    'Consol Vendor Tracker' => ['Consol Vendor Tracker'],
+                    'Closed'                => ['Closed', 'Completed'],
+                ];
+
+                $expanded = [];
+                foreach ($stages as $stg) {
+                    if (isset($stageAliasMap[$stg])) {
+                        $expanded = array_merge($expanded, $stageAliasMap[$stg]);
+                    } else {
+                        $expanded[] = $stg;
+                    }
+                }
+                $expanded = array_unique($expanded);
+                $includeNull = in_array('Maker Phase', $stages);
+
+                $placeholders = implode(',', array_fill(0, count($expanded), '?'));
+                if ($includeNull) {
+                    $sql .= " AND (t.stage IN ({$placeholders}) OR t.stage IS NULL OR t.stage = '')";
+                } else {
+                    $sql .= " AND t.stage IN ({$placeholders})";
+                }
+                foreach ($expanded as $stgVal) {
+                    $params[] = $stgVal;
+                }
+            }
+        }
+
+        if (!empty($filters['priority'])) {
+            $prios = (array)$filters['priority'];
+            if (!empty($prios)) {
+                $placeholders = implode(',', array_fill(0, count($prios), '?'));
+                $sql .= " AND t.priority IN ({$placeholders})";
+                foreach ($prios as $p) {
+                    $params[] = $p;
+                }
+            }
+        }
+
+        if (!empty($filters['search'])) {
+            $searchTerm = "%" . $filters['search'] . "%";
+            $sql .= " AND (t.ticket_number LIKE ? OR t.subject LIKE ? OR t.from_address LIKE ? OR t.agency_code LIKE ?)";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
 
         $sql .= " ORDER BY t.priority DESC, t.id DESC";
         return $this->fetchAll($sql, $params);
@@ -660,16 +1050,34 @@ class Ticket_model extends Model {
         }
 
         if (!empty($filters['status'])) {
-            $sql .= " AND t.status = ?";
-            $params[] = $filters['status'];
+            $statuses = (array)$filters['status'];
+            if (!empty($statuses)) {
+                $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+                $sql .= " AND t.status IN ({$placeholders})";
+                foreach ($statuses as $st) {
+                    $params[] = $st;
+                }
+            }
         }
         if (!empty($filters['activity_id'])) {
-            $sql .= " AND t.activity_id = ?";
-            $params[] = $filters['activity_id'];
+            $acts = array_filter(array_map('intval', (array)$filters['activity_id']));
+            if (!empty($acts)) {
+                $placeholders = implode(',', array_fill(0, count($acts), '?'));
+                $sql .= " AND t.activity_id IN ({$placeholders})";
+                foreach ($acts as $aid) {
+                    $params[] = $aid;
+                }
+            }
         }
         if (!empty($filters['allocated_to'])) {
-            $sql .= " AND t.allocated_to = ?";
-            $params[] = $filters['allocated_to'];
+            $users = array_filter(array_map('intval', (array)$filters['allocated_to']));
+            if (!empty($users)) {
+                $placeholders = implode(',', array_fill(0, count($users), '?'));
+                $sql .= " AND t.allocated_to IN ({$placeholders})";
+                foreach ($users as $uid) {
+                    $params[] = $uid;
+                }
+            }
         }
         if (!empty($filters['search'])) {
             $searchTerm = "%" . $filters['search'] . "%";
@@ -718,5 +1126,74 @@ class Ticket_model extends Model {
             'closed' => $closed,
             'overdue' => $overdue
         ];
+    }
+
+    public function syncTicketToLifecycle(int $ticketId): void {
+        try {
+            $ticket = $this->getTicketById($ticketId);
+            if (!$ticket || empty($ticket['sub_activity_id'])) return;
+
+            $bMonth = !empty($ticket['billing_month']) ? $ticket['billing_month'] : date('Y-m', strtotime($ticket['created_at'] ?? 'now'));
+            $ticketType = !empty($ticket['ticket_type']) ? $ticket['ticket_type'] : 'File Preparation';
+
+            $stageMap = [
+                'Input Received'        => 'Input Received',
+                'Maker Phase'           => 'Maker Queue',
+                'Maker Queue'           => 'Maker Queue',
+                'In Progress'           => 'Maker Queue',
+                'Assigned'              => 'Maker Queue',
+                'Checker Phase'         => 'Checker Queue',
+                'Checker Queue'         => 'Checker Queue',
+                'Error Log'             => 'Error Log',
+                'Maker Checker Rework'  => 'Maker Checker Rework',
+                'Delivery Phase'        => 'Delivery',
+                'Delivery'              => 'Delivery',
+                'Acknowledgement'       => 'Acknowledgement',
+                'Approval Queue'        => 'Approval Queue',
+                'Uploader Queue'        => 'Uploader Queue',
+                'Dump Sharing'          => 'Dump Sharing',
+                'Consol Vendor Tracker' => 'Consol Vendor Tracker',
+                'Completed'             => 'Closed',
+                'Closed'                => 'Closed',
+            ];
+
+            $currentStage = $stageMap[$ticket['stage'] ?? ''] ?? ($stageMap[$ticket['status'] ?? ''] ?? 'Maker Queue');
+
+            $lfc = $this->fetchOne(
+                "SELECT id FROM ticket_lifecycle_tracker WHERE ticket_id = ? OR (sub_activity_id = ? AND billing_month = ? AND (ticket_id IS NULL OR ticket_id = 0)) LIMIT 1",
+                [$ticketId, $ticket['sub_activity_id'], $bMonth]
+            );
+
+            $payload = [
+                'ticket_id' => $ticketId,
+                'ticket_number' => $ticket['ticket_number'],
+                'billing_month' => $bMonth,
+                'ticket_type' => $ticketType,
+                'division_id' => $ticket['division_id'] ?? null,
+                'activity_id' => $ticket['activity_id'],
+                'sub_activity_id' => $ticket['sub_activity_id'],
+                'division_name' => $ticket['division_name'] ?? 'General Operations',
+                'activity_name' => $ticket['activity_name'] ?? '',
+                'sub_activity_name' => $ticket['sub_activity_name'] ?? '',
+                'maker_id' => $ticket['allocated_to'] ?? null,
+                'checker_id' => $ticket['checker_id'] ?? null,
+                'current_stage' => $currentStage,
+                'remarks' => $ticket['remarks'] ?? null
+            ];
+
+            if ($currentStage === 'Closed') {
+                $payload['closed_at'] = date('Y-m-d H:i:s');
+            }
+
+            if ($lfc) {
+                $this->update('ticket_lifecycle_tracker', $payload, "id = ?", [$lfc['id']]);
+            } else {
+                $payload['input_received_at'] = $ticket['received_datetime'] ?? date('Y-m-d H:i:s');
+                $payload['created_at'] = $ticket['created_at'] ?? date('Y-m-d H:i:s');
+                $this->insert('ticket_lifecycle_tracker', $payload);
+            }
+        } catch (Exception $e) {
+            // Silently catch sync error
+        }
     }
 }
